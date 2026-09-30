@@ -1,0 +1,210 @@
+@model CampesinApp.Repositories.Models.CatalogoDemandaViewModel
+
+@{
+    ViewData["Title"] = "Catálogo de Demanda";
+}
+
+<div class="container py-4">
+
+    <!-- ============================================================== -->
+    <!-- MENSAJE DE ÉXITO TEMPORAL (Ejemplo al responder una demanda)   -->
+    <!-- ============================================================== -->
+    @if (TempData["MensajeExito"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>✅ @TempData["MensajeExito"]</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- ============================================================== -->
+    <!-- FLUJO DE EXCEPCIÓN: FE-01-CU011 (Error en Base de Datos)       -->
+    <!-- ============================================================== -->
+    @if (Model.TieneErrorConexion)
+    {
+        <div class="card border-danger shadow-sm my-5 text-center">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">⚠️ Error de Conexión</h5>
+            </div>
+            <div class="card-body py-4">
+                <p class="card-text fs-5 text-secondary">
+                    @(Model.MensajeError ?? "No fue posible cargar el catálogo de demanda. Intente más tarde")
+                </p>
+                <!-- Botón Aceptar: Redirige a la pantalla principal (CU-009 / Home) -->
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary px-4">
+                    Aceptar
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO Y FILTROS (Paso 2 y Paso 3 del CU-011)             -->
+        <!-- ============================================================== -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="fw-bold text-success mb-1">Catálogo de Demanda Agrícola</h2>
+                <p class="text-muted mb-0">Consulta lo que compradores y mayoristas necesitan por camión de carga.</p>
+            </div>
+            <!-- Botón Regresar en la parte superior derecha (Paso 2) -->
+            <div>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                    ← Regresar
+                </a>
+            </div>
+        </div>
+
+        <!-- Barra de Filtros (Parte superior izquierda con botón verde 'Consultar') -->
+        <div class="card bg-light border-0 shadow-sm p-3 mb-4">
+            <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-2 align-items-end">
+
+                <!-- 1. Desplegable Categoría -->
+                <div class="col-md-3">
+                    <label for="categoria" class="form-label fw-semibold small text-muted">Categoría</label>
+                    <select id="categoria" name="categoria" class="form-select form-select-sm">
+                        <option value="">-- Todas las categorías --</option>
+                        @foreach (var cat in Model.CategoriasDisponibles)
+                        {
+                            <option value="@cat" selected="@(cat == Model.CategoriaSeleccionada)">
+                                @cat
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 2. Desplegable Producto -->
+                <div class="col-md-3">
+                    <label for="producto" class="form-label fw-semibold small text-muted">Producto</label>
+                    <select id="producto" name="producto" class="form-select form-select-sm">
+                        <option value="">-- Todos los productos --</option>
+                        @foreach (var prod in Model.ProductosDisponibles)
+                        {
+                            <option value="@prod" selected="@(prod == Model.ProductoSeleccionado)">
+                                @prod
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 3. Desplegable Región -->
+                <div class="col-md-3">
+                    <label for="region" class="form-label fw-semibold small text-muted">Región</label>
+                    <select id="region" name="region" class="form-select form-select-sm">
+                        <option value="">-- Todas las regiones --</option>
+                        @foreach (var reg in Model.RegionesDisponibles)
+                        {
+                            <option value="@reg" selected="@(reg == Model.RegionSeleccionada)">
+                                @reg
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Botón 'Consultar' (Color verde según requerimiento CU-011) -->
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
+                        🔍 Consultar
+                    </button>
+                    <!-- Opción rápida de resetear si hay algún filtro activo -->
+                    @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) ||
+                         !string.IsNullOrEmpty(Model.ProductoSeleccionado) ||
+                         !string.IsNullOrEmpty(Model.RegionSeleccionada))
+                    {
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
+                            Limpiar
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)    -->
+        <!-- ============================================================== -->
+        @if (!Model.Demandas.Any())
+        {
+            <div class="alert alert-warning text-center py-5 shadow-sm rounded">
+                <h5 class="fw-bold mb-2">No se encontraron ofertas para los criterios seleccionados</h5>
+                <p class="text-muted mb-3">Intenta consultar con otros filtros o restablecer la búsqueda.</p>
+                <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-dark">
+                    Limpiar filtros
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- ============================================================== -->
+            <!-- LISTADO DE DEMANDAS (Paso 4 y Paso 5 del CU-011)               -->
+            <!-- ============================================================== -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var demanda in Model.Demandas)
+                {
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border-0 border-top border-4 border-success">
+                            <div class="card-body d-flex flex-column">
+
+                                <!-- Badges de Categoría y Región -->
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        @demanda.Categoria
+                                    </span>
+                                    <span class="badge bg-secondary-subtle text-secondary">
+                                        📍 @demanda.Region
+                                    </span>
+                                </div>
+
+                                <!-- Título y Comprador -->
+                                <h5 class="card-title fw-bold text-dark mb-1">
+                                    @demanda.Titulo
+                                </h5>
+                                <p class="text-muted small mb-3">
+                                    Solicitado por: <strong>@demanda.Comprador</strong>
+                                </p>
+
+                                <!-- Detalle clave: Camión de carga y Cantidad requerida -->
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="fs-5 me-2">🚚</span>
+                                        <div>
+                                            <div class="small text-muted">Tipo de Camión</div>
+                                            <strong class="text-dark">@demanda.TipoCamion</strong>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fs-5 me-2">⚖️</span>
+                                        <div>
+                                            <div class="small text-muted">Cantidad Requerida</div>
+                                            <strong class="text-primary">@demanda.CantidadRequerida</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Descripción y Precio ofrecido -->
+                                <p class="card-text text-muted small flex-grow-1">
+                                    @demanda.Descripcion
+                                </p>
+
+                                <div class="border-top pt-2 mb-3 d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted">Precio ofrecido:</span>
+                                    <span class="fw-bold text-success fs-6">@demanda.PrecioOfrecido</span>
+                                </div>
+
+                                <!-- Botón Paso 5: Despliega caso de uso CU-012 Responder a Demanda -->
+                                <a asp-controller="catalogo" asp-action="Responder" asp-route-id="@demanda.Id" 
+                                   class="btn btn-outline-success w-100 fw-semibold">
+                                    Responder Demanda (CU-012) →
+                                </a>
+                            </div>
+
+                            <div class="card-footer bg-white border-0 text-muted small text-end pt-0 pb-2">
+                                Publicado: @demanda.FechaPublicacion.ToString("dd/MM/yyyy")
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
