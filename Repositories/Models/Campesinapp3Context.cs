@@ -70,7 +70,9 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("aporte_Camp");
 
-            entity.Property(e => e.IdAporte).HasColumnName("id_Aporte");
+            entity.Property(e => e.IdAporte)
+                .ValueGeneratedNever()
+                .HasColumnName("id_Aporte");
             entity.Property(e => e.CantAporte).HasColumnName("cant_Aporte");
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");

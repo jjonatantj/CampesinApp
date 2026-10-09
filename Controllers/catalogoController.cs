@@ -50,6 +50,8 @@ namespace CampesinApp.Controllers
 
             // 4. Retornamos la vista con el modelo completo
             return View(modelo);
+                }
+            };
         }
     }
 }
