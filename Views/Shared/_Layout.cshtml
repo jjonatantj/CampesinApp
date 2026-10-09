@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CampesinApp.styles.css" asp-append-version="true" />
+<<<<<<< Updated upstream
     <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+=======
+    <partial name="_CasosUsoHead" />
+>>>>>>> Stashed changes
 </head>
 <body>
     <header>
@@ -40,7 +44,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
+                        <partial name="_CasosUsoNavItems" />
                     </ul>
+                    <partial name="_CasosUsoNavDerecha" />
                 </div>
             </div>
         </nav>
@@ -61,6 +67,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <partial name="_CasosUsoModales" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

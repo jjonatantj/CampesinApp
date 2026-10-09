@@ -1,8 +1,25 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@inject CampesinApp.Services.IUsuarioActualService Sesion
+@{
+    ViewData["Title"] = "Bienvenido";
+    var usuario = await Sesion.ObtenerAsync();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@* Portada provisional: la página de bienvenida (CU-001) la entrega otro integrante del equipo. *@
+<div class="cu-pagina cu-portada text-center">
+    <img src="~/img/logo-campesinapp.png" alt="CampesinApp: campesino valorado, alimento bien pagado" class="cu-logo-grande mb-3" />
+    <h1 class="display-5">CampesinApp</h1>
+    <p class="lead mb-1">Campesino valorado, alimento bien pagado</p>
+    <p class="mx-auto mb-4" style="max-width: 40rem;">
+        Una plataforma que conecta a los campesinos directamente con los compradores, con precios justos calculados por un modelo
+        estadístico y el transporte de la cosecha gestionado dentro de la misma aplicación.
+    </p>
+    @if (usuario != null)
+    {
+        <p class="mb-3">Sesión iniciada como <strong>@usuario.Nombre</strong> (@usuario.Rol).</p>
+        <a class="btn btn-success btn-lg" asp-controller="Principal" asp-action="Index">Ir a mi pantalla principal</a>
+    }
+    else
+    {
+        <a class="btn btn-success btn-lg" asp-controller="Cuenta" asp-action="Entrar">Iniciar sesión</a>
+    }
 </div>
