@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using CampesinApp.Repositories.Models;
+using CampesinApp.ViewModels;
 
 namespace CampesinApp.Controllers
 {
@@ -86,7 +86,7 @@ namespace CampesinApp.Controllers
                 // Se marca el error para que la vista muestre el mensaje requerido con el botón "Aceptar"
                 viewModel.TieneErrorConexion = true;
                 viewModel.MensajeError = "No fue posible cargar el catálogo de demanda. Intente más tarde";
-                viewModel.Demandas = new List<Demanda>();
+                viewModel.Demandas = new List<DemandaItem>();
             }
 
             // Enviamos el ViewModel a la vista Views/catalogo/Index.cshtml
@@ -105,15 +105,13 @@ namespace CampesinApp.Controllers
         }
 
         // =========================================================================
-        // DATOS DE PRUEBA SIMULADOS
+        // DATOS DE PRUEBA SIMULADOS (temporales hasta implementar CatalogoDemandaRepository)
         // =========================================================================
-        // Como aún estás iniciando y aprendiendo, estos datos en memoria te permiten
-        // ver la interfaz en funcionamiento de inmediato sin depender de una BD externa.
-        private List<Demanda> ObtenerDemandasSimuladas()
+        private List<DemandaItem> ObtenerDemandasSimuladas()
         {
-            return new List<Demanda>
+            return new List<DemandaItem>
             {
-                new Demanda
+                new DemandaItem
                 {
                     Id = 1,
                     Titulo = "Demanda urgente de Papa Pastusa lavada",
@@ -127,7 +125,7 @@ namespace CampesinApp.Controllers
                     FechaPublicacion = DateTime.Now.AddDays(-1),
                     Descripcion = "Requerimos papa de primera calidad, empacada en bultos de 50 kg para entrega inmediata."
                 },
-                new Demanda
+                new DemandaItem
                 {
                     Id = 2,
                     Titulo = "Compra de Tomate Chonto maduro",
@@ -141,7 +139,7 @@ namespace CampesinApp.Controllers
                     FechaPublicacion = DateTime.Now.AddDays(-2),
                     Descripcion = "Tomate pintón o maduro, en canastillas plásticas estándar limpias."
                 },
-                new Demanda
+                new DemandaItem
                 {
                     Id = 3,
                     Titulo = "Lote de Aguacate Hass para exportación",
@@ -155,7 +153,7 @@ namespace CampesinApp.Controllers
                     FechaPublicacion = DateTime.Now.AddHours(-10),
                     Descripcion = "Fruta con certificado BPA o registro predio exportador ICA. Calibre 14 a 22."
                 },
-                new Demanda
+                new DemandaItem
                 {
                     Id = 4,
                     Titulo = "Requerimiento de Cebolla Junca fresca",
@@ -169,7 +167,7 @@ namespace CampesinApp.Controllers
                     FechaPublicacion = DateTime.Now.AddDays(-3),
                     Descripcion = "Cebolla descolada y lavada, atada según norma tradicional."
                 },
-                new Demanda
+                new DemandaItem
                 {
                     Id = 5,
                     Titulo = "Plátano Hartón Verde por toneladas",
@@ -183,7 +181,7 @@ namespace CampesinApp.Controllers
                     FechaPublicacion = DateTime.Now.AddDays(-4),
                     Descripcion = "Plátano verde de buen grosor para elaboración de snacks y congelados."
                 },
-                new Demanda
+                new DemandaItem
                 {
                     Id = 6,
                     Titulo = "Zanahoria seleccionada tamaño estándar",

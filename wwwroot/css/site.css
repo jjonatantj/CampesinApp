@@ -2,6 +2,7 @@ html {
     font-size: 14px;
     position: relative;
     min-height: 100%;
+    scroll-behavior: smooth;
 }
 
 @media (min-width: 768px) {
@@ -61,3 +62,412 @@ p.mulish-bold {
     .brand-title:hover {
         color: #263a26;
     }
+
+/* ==========================================================================
+   ESTILOS COMPLEMENTARIOS MODERNOS PARA CAMPESINAPP (CU-001)
+   Paleta: Verde base (#98FB98), Verde Bosque (#385438), Verde Vibrante (#2e7d32),
+   Blancos suaves (rgba(255,255,255,0.88)), Grises tenues (#f8f9fa, #6c757d).
+   ========================================================================== */
+
+/* 0. BARRA DE NAVEGACIÓN SUPERIOR (NAVBAR CON GLASSMORPHISM Y ANIMACIONES) */
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(46, 125, 50, 0.12) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 0;
+    transition: all 0.3s ease;
+}
+
+/* Marca y Logo en la barra */
+.navbar-custom .navbar-brand {
+    padding: 0;
+    transition: transform 0.25s ease;
+}
+
+.navbar-custom .navbar-brand:hover {
+    transform: translateY(-1px);
+}
+
+.navbar-custom .brand-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #2e7d32;
+    letter-spacing: -0.3px;
+    margin-left: 0.35rem;
+    transition: color 0.2s ease;
+}
+
+.navbar-custom .brand-title:hover {
+    color: #1b5e20;
+}
+
+/* Enlaces del Menú de Navegación */
+.navbar-custom .navbar-nav {
+    gap: 0.35rem;
+}
+
+.navbar-custom .nav-link {
+    color: #374151 !important;
+    font-family: 'Mulish', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.55rem 1rem !important;
+    border-radius: 8px;
+    position: relative;
+    transition: color 0.25s ease, transform 0.25s ease;
+    display: inline-block;
+}
+
+/* Indicador animado inferior al pasar el mouse por los enlaces */
+.navbar-custom .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4caf50, #2e7d32);
+    border-radius: 4px;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto hover: cambio suave de color a verde, ligera elevación (-2px) y línea animada */
+.navbar-custom .nav-link:hover {
+    color: #2e7d32 !important;
+    transform: translateY(-2px);
+}
+
+.navbar-custom .nav-link:hover::after {
+    width: 65%;
+}
+
+/* Enlace destacado (Precios y Demandas) */
+.navbar-custom .nav-link-highlight {
+    color: #1b5e20 !important;
+    font-weight: 700;
+}
+
+.navbar-custom .nav-link-highlight::after {
+    background: #1b5e20;
+}
+
+/* Contenedor de botones de autenticación (Alineados a la derecha) */
+.navbar-custom .nav-auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: 1.5rem;
+}
+
+/* Botón Iniciar Sesión (Texto en color negro, estilo moderno) */
+.btn-nav-login {
+    color: #000000 !important;
+    font-family: 'Mulish', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: #ffffff;
+    border: 1.5px solid #2e7d32;
+    border-radius: 50px;
+    padding: 0.45rem 1.25rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-nav-login:hover {
+    background: #f0fdf4;
+    color: #000000 !important;
+    border-color: #1b5e20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+}
+
+/* Botón Registrarse (Fondo verde fresco, texto en color negro) */
+.btn-nav-register {
+    color: #000000 !important;
+    font-family: 'Mulish', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #a7f3d0 0%, #86efac 100%);
+    border: 1.5px solid #22c55e;
+    border-radius: 50px;
+    padding: 0.45rem 1.35rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 3px 10px rgba(34, 197, 94, 0.25);
+}
+
+.btn-nav-register:hover {
+    background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
+    border-color: #16a34a;
+    color: #000000 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+}
+
+/* 1. SECCIÓN HERO (BANNER PRINCIPAL) */
+.hero-card {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 45px 35px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-logo-wrapper {
+    display: inline-block;
+    padding: 6px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 6px 20px rgba(56, 84, 56, 0.18);
+}
+
+.hero-slogan {
+    color: #263a26;
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+}
+
+.hero-description {
+    color: #4a5568;
+    font-size: 1.15rem;
+    font-weight: 500;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+/* 2. TARJETAS FLOTANTES DE PROPÓSITO Y VISIÓN */
+.feature-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border-radius: 18px;
+    padding: 32px 28px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 36px rgba(46, 125, 50, 0.14);
+    border-color: #2e7d32;
+}
+
+.feature-icon-box {
+    width: 62px;
+    height: 62px;
+    border-radius: 16px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+}
+
+/* 3. PASOS DE FUNCIONAMIENTO ("¿CÓMO FUNCIONA?") */
+.step-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 24px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+    transition: transform 0.25s ease;
+    height: 100%;
+}
+
+.step-card:hover {
+    transform: translateY(-4px);
+    background: #ffffff;
+}
+
+.step-badge {
+    display: inline-block;
+    width: 38px;
+    height: 38px;
+    line-height: 38px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: #2e7d32;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+/* 4. TARJETAS DEL CATÁLOGO PRELIMINAR (GRID DE CARDS) */
+.product-card {
+    background: #ffffff;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 18px 36px rgba(46, 125, 50, 0.2);
+}
+
+.product-img-box {
+    background-color: #f7faf7;
+    height: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    position: relative;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.product-img-box img {
+    max-height: 140px;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-img-box img {
+    transform: scale(1.05);
+}
+
+.category-pill {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #2e7d32;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 50px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.product-body {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.product-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 6px;
+}
+
+.price-box {
+    background-color: #e8f5e9;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+}
+
+.price-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #2e7d32;
+    font-weight: 700;
+    display: block;
+}
+
+.price-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1b5e20;
+    margin: 0;
+}
+
+.demand-meta {
+    font-size: 0.88rem;
+    color: #4a5568;
+    margin-bottom: 16px;
+    flex-grow: 1;
+}
+
+.demand-meta-item {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 5. VENTANA EMERGENTE (MODAL) PARA INVITADOS */
+.guest-modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.guest-modal-header {
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    color: #ffffff;
+    padding: 24px 28px;
+    border-bottom: none;
+}
+
+.guest-modal-body {
+    padding: 28px;
+    background-color: #ffffff;
+}
+
+/* 6. TARJETA DE CANALES DE SOPORTE */
+.support-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border-radius: 18px;
+    padding: 30px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.support-item {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px 20px;
+    border: 1px solid #edf2f7;
+    transition: all 0.2s ease;
+}
+
+.support-item:hover {
+    border-color: #2e7d32;
+    background-color: #f7faf7;
+}
+
+.support-icon {
+    font-size: 1.5rem;
+    color: #2e7d32;
+}
+
+/* Footer limpio */
+.footer-modern {
+    background-color: #ffffff !important;
+}
+
+input::-ms-reveal,
+input::-ms-clear {
+    display: none !important;
+}
+
