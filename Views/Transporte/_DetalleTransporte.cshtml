@@ -1,0 +1,44 @@
+@model DetalleTransporteDto
+@{
+    // Desde la lista de pedidos, "Regresar" vuelve a ella; desde la búsqueda del administrador, a su perfil.
+    var cerrar = Model.DesdeBusqueda ? "todas" : "superpuesta";
+}
+<div class="modal-header">
+    <button type="button" class="btn btn-dark btn-sm" data-modal-cerrar="@cerrar">Regresar</button>
+    <h5 class="modal-title flex-grow-1 text-center">Detalle Logístico del Transporte</h5>
+    <span class="text-muted small">@Model.CodigoPedido</span>
+</div>
+<div class="modal-body">
+    <h6>Datos del Transportador</h6>
+    <dl class="row">
+        <dt class="col-5">Nombre completo</dt>
+        <dd class="col-7">@Model.NombreTransportador</dd>
+        <dt class="col-5">Teléfono de contacto</dt>
+        <dd class="col-7">@Model.TelefonoTransportador</dd>
+        <dt class="col-5">Calificación</dt>
+        <dd class="col-7">
+            @if (Model.Reputacion is double promedio)
+            {
+                <span class="estrellas-fijas" aria-label="@Formato.Promedio(promedio) de 5 estrellas">@VistaHelpers.Estrellas((int)Math.Round(promedio))</span>
+                <span class="small text-muted">@Formato.Promedio(promedio)</span>
+            }
+            else
+            {
+                <span class="text-muted">Sin calificaciones</span>
+            }
+        </dd>
+    </dl>
+
+    <h6>Datos del Vehículo</h6>
+    <dl class="row">
+        <dt class="col-5">Placa del camión</dt>
+        <dd class="col-7">@Model.Placa</dd>
+        <dt class="col-5">Modelo</dt>
+        <dd class="col-7">@Model.Modelo</dd>
+        <dt class="col-5">Capacidad de carga</dt>
+        <dd class="col-7">@Formato.Entero(Model.Capacidad) kg</dd>
+    </dl>
+
+    <h6>Estado del Envío</h6>
+    <p class="mb-0"><span class="badge @VistaHelpers.ClaseEstado(Model.EstadoEnvio) fs-6">@Model.EstadoEnvio</span></p>
+</div>

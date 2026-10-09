@@ -1,0 +1,7 @@
+@model List<ReporteVencidoDto>
+<div class="modal-body text-center p-4 aviso aviso-advertencia" data-modal-estatico role="alertdialog">
+    <h5 class="mb-2">Es hora de su siguiente informe de avance</h5>
+    <p class="mb-2">Han pasado 2 horas desde su último reporte de ubicación.</p>
+    <p class="small text-muted mb-3">Pedidos pendientes: @string.Join(", ", Model.Select(v => v.CodigoPedido))</p>
+    <button type="button" class="btn btn-primary" data-modal-url="/Ubicacion/Reportar" data-modal-destino="principal" data-cerrar-origen>Registrar informe de avance</button>
+</div>
