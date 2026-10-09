@@ -1,83 +1,32 @@
-﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using CampesinApp.Repositories;
 
 namespace CampesinApp.Controllers
 {
+    /// <summary>
+    /// Controlador para la Página de Bienvenida y Pantalla Principal (CU-001).
+    /// Permite a cualquier visitante (campesino, comprador, transportador o invitado)
+    /// conocer el propósito de CampesinApp y consultar el catálogo preliminar desde la BD real.
+    /// </summary>
     public class PaginaBienvenidaController : Controller
     {
-        // GET: PaginaBienvenidaController
-        public ActionResult Bienvenida()
+        private readonly PaginaBienvenidaRepository _bienvenidaRepo;
+
+        public PaginaBienvenidaController(PaginaBienvenidaRepository bienvenidaRepo)
         {
-            return View();
+            _bienvenidaRepo = bienvenidaRepo;
         }
 
-        // GET: PaginaBienvenidaController/Details/5
-        public ActionResult Details(int id)
+        // =========================================================================
+        // ACCIÓN PRINCIPAL: Cargar la pantalla de bienvenida (CU-001)
+        // =========================================================================
+        public IActionResult Bienvenida()
         {
-            return View();
-        }
+            // Consultar el catálogo de demandas desde la base de datos SQL Server
+            var catalogoPreliminar = _bienvenidaRepo.ObtenerCatalogoPreliminar();
 
-        // GET: PaginaBienvenidaController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: PaginaBienvenidaController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: PaginaBienvenidaController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
-
-        // POST: PaginaBienvenidaController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: PaginaBienvenidaController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: PaginaBienvenidaController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            return View(catalogoPreliminar);
         }
     }
 }
+

@@ -1,10 +1,299 @@
-﻿@*    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860*@
+@model List<CampesinApp.Repositories.PaginaBienvenidaRepository.ItemCatalogoPreliminar>
+
 @{
+    ViewData["Title"] = "Bienvenido a CampesinApp";
 }
 
-<div class="container">
-    <div class="main-container">
-        <h1>PAGINA BIENVENIDA</h1>
-        <p>Aquí irá el contenido de tu pantalla, protegido por el cuadro traslúcido.</p>
+<div class="py-4">
+
+    <!-- HERO SECTION -->
+    <section class="hero-card text-center mb-5" id="hero">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="hero-logo-wrapper mb-3">
+                    <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo Oficial CampesinApp" width="180" height="180" class="rounded-circle shadow-lg border border-3 border-success bg-white" />
+                </div>
+
+                <div class="mb-2">
+                    <span class="badge rounded-pill bg-success px-3 py-2 text-white fw-bold shadow-sm" style="background-color: #2e7d32 !important; font-size: 0.85rem;">
+                        Campesino Valorado, Alimento Bien Pagado
+                    </span>
+                </div>
+                <h1 class="hero-slogan mt-3 mb-3">
+                    Conectando el Campo Colombiano con la Ciudad sin Intermediarios
+                </h1>
+                <p class="hero-description mb-4">
+                    La plataforma tecnológica que dignifica el trabajo del campesino y optimiza la compra mayorista.
+                    Accede a precios justos y transparentes, calcula rutas logísticas y comercializa directamente.
+                </p>
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="#catalogo-preliminar" class="btn btn-success btn-lg px-4 py-2 fw-bold rounded-pill shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        Ver Precios y Catálogo
+                    </a>
+                    <a href="#como-funciona" class="btn btn-outline-dark btn-lg px-4 py-2 fw-bold rounded-pill">
+                        ¿Cómo Funciona?
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="mb-5" id="como-funciona">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-dark">¿Cómo Funciona CampesinApp?</h2>
+            <p class="text-muted fs-6">Un proceso ágil, transparente y seguro para transformar la comercialización agrícola.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card text-center">
+                    <div class="step-badge">1</div>
+                    <h5 class="fw-bold text-dark mb-2">Demanda Mayorista</h5>
+                    <p class="text-muted small mb-0">
+                        Compradores mayoristas publican solicitudes de compra por camión de carga.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card text-center">
+                    <div class="step-badge">2</div>
+                    <h5 class="fw-bold text-dark mb-2">Precio Justo</h5>
+                    <p class="text-muted small mb-0">
+                        Los precios sugeridos se calculan a partir de tendencias de mercado para asegurar pago justo al productor.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card text-center">
+                    <div class="step-badge">3</div>
+                    <h5 class="fw-bold text-dark mb-2">Oferta Directa</h5>
+                    <p class="text-muted small mb-0">
+                        Los campesinos postulan su cosecha total o parcial, sumándose a las demandas disponibles sin intermediarios.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card text-center">
+                    <div class="step-badge">4</div>
+                    <h5 class="fw-bold text-dark mb-2">Logística y Pago</h5>
+                    <p class="text-muted small mb-0">
+                        Puntos de acopio, transporte coordinado y pago seguro transferido directamente a la cuenta del campesino.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROPÓSITO Y VISIÓN -->
+    <section class="mb-5" id="proposito-vision">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon-box">🎯</div>
+                    <h3 class="fw-bold text-dark mb-3">Nuestro Propósito</h3>
+                    <p class="text-muted" style="line-height: 1.7;">
+                        Eliminar la intermediación excesiva en la cadena de comercialización agropecuaria.
+                        Empoderamos a los productores rurales con información clara y canales de venta directos
+                        hacia compradores finales, garantizando que el verdadero valor de la cosecha llegue a las manos del campesino.
+                    </p>
+                    <div class="pt-2">
+                        <span class="badge bg-light text-success fw-bold p-2 border">Precios Transparentes</span>
+                        <span class="badge bg-light text-success fw-bold p-2 border ms-1">Trato Justo</span>
+                        <span class="badge bg-light text-success fw-bold p-2 border ms-1">Seguridad</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon-box">🔭</div>
+                    <h3 class="fw-bold text-dark mb-3">Nuestra Visión</h3>
+                    <p class="text-muted" style="line-height: 1.7;">
+                        Convertirnos en la plataforma digital líder en Colombia que una la despensa campesina con las grandes ciudades.
+                        Aspiramos a consolidar un ecosistema agrícola sostenible, eficiente en logística y solidario,
+                        donde cada cultivo tenga un destino rentable y seguro.
+                    </p>
+                    <div class="pt-2">
+                        <span class="badge bg-light text-success fw-bold p-2 border">Tecnología Sostenible</span>
+                        <span class="badge bg-light text-success fw-bold p-2 border ms-1">Impacto Rural</span>
+                        <span class="badge bg-light text-success fw-bold p-2 border ms-1">Trazabilidad Total</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATÁLOGO PRELIMINAR / PRECIOS SUGERIDOS -->
+    <section class="mb-5" id="catalogo-preliminar">
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+            <div>
+                <span class="text-success fw-bold text-uppercase small">Mercado en Tiempo Real</span>
+                <h2 class="fw-bold text-dark mb-1">Precios Sugeridos y Demandas Activas</h2>
+                <p class="text-muted mb-0">Vista previa en modo lectura para visitantes e invitados desde la BD.</p>
+            </div>
+            <div class="mt-2 mt-md-0">
+                <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm">
+                    🟢 Modo Invitado: Solo Lectura
+                </span>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            @if (Model != null && Model.Count > 0)
+            {
+                @foreach (var producto in Model)
+                {
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="product-card h-100 d-flex flex-column justify-content-between p-3 bg-white rounded-4 shadow-sm">
+                            <div>
+                                <div class="product-img-box mb-3 text-center position-relative">
+                                    <span class="badge bg-success-subtle text-success position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill fw-bold">@producto.Categoria</span>
+                                    <img src="@Url.Content(producto.ImagenUrl)" alt="@producto.NombreProducto" class="img-fluid rounded-3" style="max-height: 140px; object-fit: contain;" />
+                                </div>
+
+                                <div class="product-body">
+                                    <h4 class="product-title fw-bold text-dark fs-5 mb-2">@producto.NombreProducto</h4>
+
+                                    <div class="price-box p-2 rounded-3 mb-3" style="background-color: #f0fdf4;">
+                                        <span class="price-label small text-muted d-block">Precio Sugerido del Día</span>
+                                        <div class="price-value fw-extrabold fs-5" style="color: #1b5e20;">@producto.PrecioSugerido</div>
+                                    </div>
+
+                                    <div class="demand-meta small text-muted mb-3">
+                                        <div class="mb-1"><i class="bi bi-box-seam text-success me-1"></i> <strong>Demanda:</strong> @producto.CantidadDemanda</div>
+                                        <div class="mb-1"><i class="bi bi-building text-success me-1"></i> <strong>Solicitante:</strong> @producto.Comprador</div>
+                                        <div class="mb-1"><i class="bi bi-geo-alt text-danger me-1"></i> <strong>Región:</strong> @producto.Ubicacion</div>
+                                        <div class="mb-1"><i class="bi bi-truck text-primary me-1"></i> <strong>Transporte:</strong> @producto.TipoCamion</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" 
+                                    class="btn btn-outline-success w-100 fw-bold rounded-pill mt-3"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalInvitado"
+                                    data-producto="@producto.NombreProducto">
+                                Postular Cosecha / Ofertar
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm">
+                    <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                    <h5 class="fw-bold text-dark mb-1">No hay demandas registradas en este momento</h5>
+                    <p class="text-muted small">Tan pronto los compradores publiquen solicitudes, aparecerán reflejadas aquí.</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- CANALES DE SOPORTE -->
+    <section class="support-card mb-4" id="contacto-soporte">
+        <div class="row align-items-center gy-4">
+            <div class="col-lg-5">
+                <span class="badge bg-success-subtle text-success fw-bold px-3 py-1 mb-2 rounded-pill">
+                    Atención al Usuario
+                </span>
+                <h3 class="fw-bold text-dark mb-2">Canales de Soporte Técnico</h3>
+                <p class="text-muted mb-0">
+                    ¿Tienes dudas sobre cómo funciona la plataforma, las rutas de acopio o el cálculo de precios? Nuestro equipo está listo para orientarte.
+                </p>
+            </div>
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="support-item d-flex align-items-center gap-3 p-3 bg-white rounded-3 shadow-sm">
+                            <span class="fs-3">✉️</span>
+                            <div>
+                                <small class="text-muted d-block">Correo Electrónico</small>
+                                <span class="fw-bold text-dark small">soporte@campesinapp.com</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="support-item d-flex align-items-center gap-3 p-3 bg-white rounded-3 shadow-sm">
+                            <span class="fs-3">📞</span>
+                            <div>
+                                <small class="text-muted d-block">Línea / WhatsApp</small>
+                                <span class="fw-bold text-dark small">+57 300 123 4567</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- VENTANA EMERGENTE PARA USUARIOS INVITADOS (MODAL) -->
+<div class="modal fade" id="modalInvitado" tabindex="-1" aria-labelledby="modalInvitadoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="p-4 text-center text-white" style="background-color: #2e7d32;">
+                <div class="fs-1 mb-1">🌱</div>
+                <h4 class="modal-title fw-bold text-white w-100" id="modalInvitadoLabel">
+                    ¡Bienvenido a CampesinApp!
+                </h4>
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="p-4 text-center bg-white">
+                <div class="mb-3">
+                    <span class="badge bg-light text-success border px-3 py-2 rounded-pill fw-bold" id="badgeProductoSeleccionado">
+                        Producto Seleccionado
+                    </span>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-2">Acceso Reservado para Usuarios Registrados</h5>
+
+                <p class="text-muted px-2 small">
+                    Como usuario <strong>invitado</strong> puedes explorar libremente el catálogo preliminar y consultar los precios sugeridos del mercado.
+                </p>
+                <p class="text-secondary small mb-4">
+                    Para postular tu cosecha, participar en demandas activas, coordinar transporte o publicar solicitudes de compra mayorista, por favor crea tu cuenta o inicia sesión.
+                </p>
+
+                <!-- BOTONES DE NAVEGACIÓN REALES -->
+                <div class="d-grid gap-2 mb-3">
+                    <a asp-controller="RegistroUsuario" asp-action="Index" class="btn btn-success py-2 fw-bold rounded-pill shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        Crear Cuenta Gratuita
+                    </a>
+                    <a asp-controller="InicioSesion" asp-action="Login" class="btn btn-outline-success py-2 fw-bold rounded-pill">
+                        Ya tengo cuenta - Iniciar Sesión
+                    </a>
+                </div>
+
+                <button type="button" class="btn btn-link text-muted text-decoration-none small" data-bs-dismiss="modal">
+                    ← Continuar explorando en modo lectura
+                </button>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modalInvitado = document.getElementById('modalInvitado');
+            if (modalInvitado) {
+                modalInvitado.addEventListener('show.bs.modal', function (event) {
+                    var boton = event.relatedTarget;
+                    var nombreProducto = boton.getAttribute('data-producto');
+                    var badge = document.getElementById('badgeProductoSeleccionado');
+                    
+                    if (nombreProducto && badge) {
+                        badge.textContent = 'Interés en: ' + nombreProducto;
+                    }
+                });
+            }
+        });
+    </script>
+}

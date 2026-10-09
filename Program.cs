@@ -1,23 +1,36 @@
-using CampesinApp.Services;
+using CampesinApp.Repositories;
+using CampesinApp.Repositories.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. Agregar servicios MVC al contenedor
 builder.Services.AddControllersWithViews();
-// Casos de uso 21 a 30: contexto de datos (simulado o SQL Server según Datos:Modo en appsettings.json), servicios,
-// filtros y proceso automático del modelo estadístico.
-builder.Services.AddCasosDeUso21a30(builder.Configuration);
+
+// 2. REGISTRAR EL DbContext con la cadena de conexión definida en appsettings.json
+builder.Services.AddDbContext<Campesinapp3Context>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Test")));
+
+// 3. REGISTRAR LOS REPOSITORIOS (inyección de dependencias)
+//    Agrega aquí cada nuevo repositorio que crees en la carpeta Repositories/
+builder.Services.AddScoped<UsuariosRepository>();
+builder.Services.AddScoped<PantallaPrincipalRepository>();
+builder.Services.AddScoped<PaginaBienvenidaRepository>();
+
+// 4. REGISTRAR SERVICIO DE SESIÓN (Permite conservar el Rol y la Cédula tras iniciar sesión)
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Tiempo de expiración tras inactividad
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 var app = builder.Build();
 
-// En modo simulado carga los datos de demostración en memoria (en modo "BaseDatos" no hace nada).
-await app.Services.InicializarDatosSimuladosAsync();
-
-// Configure the HTTP request pipeline.
+// Configurar el pipeline de solicitudes HTTP
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -26,11 +39,15 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication();
+// 5. ACTIVAR EL MIDDLEWARE DE SESIÓN (Obligatorio antes de UseAuthorization)
+app.UseSession();
+
 app.UseAuthorization();
 
+// 6. RUTA PREDETERMINADA: Mantiene 'PaginaBienvenida' como la primera pantalla al abrir el sitio
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=PaginaBienvenida}/{action=Bienvenida}/{id?}");
 
 app.Run();
+

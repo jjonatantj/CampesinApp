@@ -1,0 +1,169 @@
+@model CampesinApp.ViewModels.RegistroUsuarioViewModel
+
+@{
+    ViewData["Title"] = "Registro de Usuario - CampesinApp";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7 position-relative">
+            
+            <!-- LOGO SUPERPUESTO -->
+            <div class="text-center" style="position: relative; margin-bottom: -75px; z-index: 10;">
+                <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="150" height="150" class="rounded-circle shadow-lg border border-3 border-success bg-white" style="object-fit: cover;" />
+            </div>
+
+            <!-- CAJA PRINCIPAL -->
+            <div class="card main-container border-0 shadow-lg p-4 p-md-5 pt-5">
+                <div class="text-center mb-4 mt-3">
+                    <h2 class="brand-title mb-1">Registro de Usuario</h2>
+                    <p class="text-muted" style="font-weight: 500;">Diligencie sus datos para unirse a CampesinApp</p>
+                </div>
+
+                <form asp-action="Index" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- FOTO DE PERFIL -->
+                    <div class="text-center mb-4">
+                        <label class="form-label fw-bold text-dark d-block mb-2">Foto de Perfil</label>
+                        <div class="d-flex flex-column align-items-center">
+                            <div class="rounded-circle shadow-sm border border-2 border-secondary overflow-hidden bg-white d-flex align-items-center justify-content-center mb-2" style="width: 110px; height: 110px;">
+                                <img id="previewFoto" src="#" alt="Vista previa" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+                                <span id="placeholderText" class="text-muted small text-center px-1" style="font-size: 0.8rem;">Sin foto</span>
+                            </div>
+                            <label for="fileInputFoto" class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm" style="cursor: pointer;">
+                                Agregar foto
+                            </label>
+                            <input asp-for="FotoPerfil" type="file" id="fileInputFoto" class="d-none" accept="image/*" onchange="mostrarVistaPrevia(event)" />
+                            <span asp-validation-for="FotoPerfil" class="text-danger small mt-1"></span>
+                        </div>
+                    </div>
+
+                    <!-- NOMBRES Y APELLIDOS -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Nombres" class="form-label fw-bold text-dark"></label>
+                            <input asp-for="Nombres" class="form-control rounded-pill px-3 py-2" placeholder="Nombres" />
+                            <span asp-validation-for="Nombres" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Apellidos" class="form-label fw-bold text-dark"></label>
+                            <input asp-for="Apellidos" class="form-control rounded-pill px-3 py-2" placeholder="Apellidos" />
+                            <span asp-validation-for="Apellidos" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- CÉDULA Y ROL (CARGADO DESDE BD) -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Cedula" class="form-label fw-bold text-dark"></label>
+                            <input asp-for="Cedula" class="form-control rounded-pill px-3 py-2" placeholder="Número de cédula" />
+                            <span asp-validation-for="Cedula" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdRol" class="form-label fw-bold text-dark"></label>
+                            <select asp-for="IdRol" asp-items="Model.ListaRoles" class="form-select rounded-pill px-3 py-2">
+                                <option value="">Seleccione su rol...</option>
+                            </select>
+                            <span asp-validation-for="IdRol" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- CORREO Y TELÉFONO -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Correo" class="form-label fw-bold text-dark"></label>
+                            <input asp-for="Correo" class="form-control rounded-pill px-3 py-2" placeholder="correo@ejemplo.com" />
+                            <span asp-validation-for="Correo" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Telefono" class="form-label fw-bold text-dark"></label>
+                            <input asp-for="Telefono" class="form-control rounded-pill px-3 py-2" placeholder="3156337952" />
+                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- DEPARTAMENTO Y MUNICIPIO DINÁMICOS -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdDepartamento" class="form-label fw-bold text-dark"></label>
+                            <select id="ddlDepartamento" asp-for="IdDepartamento" asp-items="Model.ListaDepartamentos" class="form-select rounded-pill px-3 py-2" onchange="cargarMunicipios()">
+                                <option value="">Seleccione departamento...</option>
+                            </select>
+                            <span asp-validation-for="IdDepartamento" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdMunicipio" class="form-label fw-bold text-dark"></label>
+                            <select id="ddlMunicipio" asp-for="IdMunicipio" asp-items="Model.ListaMunicipios" class="form-select rounded-pill px-3 py-2">
+                                <option value="">Seleccione municipio...</option>
+                            </select>
+                            <span asp-validation-for="IdMunicipio" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- DIRECCIÓN -->
+                    <div class="mb-4">
+                        <label asp-for="Direccion" class="form-label fw-bold text-dark"></label>
+                        <input asp-for="Direccion" class="form-control rounded-pill px-3 py-2" placeholder="Dirección de residencia o finca" />
+                        <span asp-validation-for="Direccion" class="text-danger small"></span>
+                    </div>
+
+                    <!-- CONTRASEÑA Y CONFIRMACIÓN -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Contrasena" class="form-label fw-bold text-dark"></label>
+                            <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
+                                <input asp-for="Contrasena" type="password" id="txtContrasena" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ingrese Contraseña" />
+                                <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtContrasena', 'iconPass')">
+                                    <i id="iconPass" class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Contrasena" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="ConfirmarContrasena" class="form-label fw-bold text-dark"></label>
+                            <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
+                                <input asp-for="ConfirmarContrasena" type="password" id="txtConfirmar" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Confirme su contraseña" />
+                                <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtConfirmar', 'iconConfirm')">
+                                    <i id="iconConfirm" class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="ConfirmarContrasena" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-outline-secondary rounded-pill px-4 py-2">Volver</a>
+                        <button type="submit" class="btn btn-nav-register px-5 py-2" style="font-size: 1rem;">Continuar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/js/MostrarContraseña.js" asp-append-version="true"></script>
+    <script src="~/js/FotoPerfil.js" asp-append-version="true"></script>
+
+    <script>
+        function cargarMunicipios() {
+            var depId = $("#ddlDepartamento").val();
+            var $ddlMuni = $("#ddlMunicipio");
+            $ddlMuni.empty().append('<option value="">Cargando municipios...</option>');
+
+            if (depId) {
+                $.getJSON('/RegistroUsuario/ObtenerMunicipiosPorDepartamento?idDepartamento=' + depId, function (data) {
+                    $ddlMuni.empty().append('<option value="">Seleccione municipio...</option>');
+                    $.each(data, function (i, item) {
+                        $ddlMuni.append($('<option>', { value: item.id, text: item.nombre }));
+                    });
+                });
+            } else {
+                $ddlMuni.empty().append('<option value="">Seleccione municipio...</option>');
+            }
+        }
+    </script>
+}
