@@ -6,7 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<Campesinapp3Context>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("ConnetionString:Test")));
-
+// Registrar Repositorios para Inyección de Dependencias
+builder.Services.AddScoped<CampesinApp.Repositories.DemandaRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
