@@ -1,0 +1,29 @@
+@model ReporteVistaDto
+<div class="modal-body p-4">
+    <div class="cuadro-notificacion p-3">
+        <h5 class="fw-bold">Nueva actualización de ubicación recibida</h5>
+        <dl class="row mb-0">
+            <dt class="col-5">Pedido</dt>
+            <dd class="col-7">@Model.CodigoPedido</dd>
+            <dt class="col-5">Lugar / Punto de acopio</dt>
+            <dd class="col-7">@Model.Lugar</dd>
+            <dt class="col-5">Hito</dt>
+            <dd class="col-7">@Model.Hito</dd>
+            <dt class="col-5">Fecha actual</dt>
+            <dd class="col-7">@Formato.Fecha(Model.FechaHora)</dd>
+            <dt class="col-5">Hora</dt>
+            <dd class="col-7 mb-0">@Formato.Hora(Model.FechaHora)</dd>
+        </dl>
+    </div>
+</div>
+<div class="modal-footer justify-content-between">
+    @if (Model.Guardado)
+    {
+        <span class="text-success small">Este reporte ya está guardado en su panel.</span>
+    }
+    else
+    {
+        <button type="button" class="btn btn-outline-dark" data-modal-post="/Ubicacion/GuardarAlerta?idReporte=@Model.IdReporteUbicacion">Guardar reporte</button>
+    }
+    <button type="button" class="btn btn-dark" data-modal-cerrar="todas">Cerrar</button>
+</div>

@@ -267,3 +267,6 @@ ModelManifest.xml
 *.db-wal
 # Evidencias fotograficas subidas por los usuarios (CU-025)
 wwwroot/uploads/
+
+# Configuracion local de cada integrante (cadena de conexion propia)
+appsettings.Local.json

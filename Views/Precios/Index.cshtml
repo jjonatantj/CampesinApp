@@ -1,0 +1,58 @@
+@model ListaPreciosDto
+@{
+    ViewData["Title"] = "Precios Sugeridos";
+    var usuario = Model.Usuario;
+    var verComprador = usuario.Rol is RolUsuario.Comprador or RolUsuario.Administrador;
+    var verCampesino = usuario.Rol is RolUsuario.Campesino or RolUsuario.Administrador;
+}
+
+<div class="container py-4">
+    <div class="main-container p-4 p-md-5 shadow-sm">
+        <div class="d-flex align-items-center mb-3">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-graph-up-arrow fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Precios Sugeridos</h1>
+                <p class="text-muted mb-0 fw-semibold">Precios estimados por kilogramo vigentes en la plataforma.</p>
+            </div>
+        </div>
+
+        @if (Model.Precios.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Aún no hay precios estimados registrados.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Variedad</th>
+                            @if (verComprador) { <th class="text-end">Precio de compra por kg</th> }
+                            @if (verCampesino) { <th class="text-end">Precio de venta por kg</th> }
+                            <th>Actualizado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var precio in Model.Precios)
+                        {
+                            <tr>
+                                <td class="fw-bold">@precio.Producto</td>
+                                <td>@precio.Variedad</td>
+                                @if (verComprador) { <td class="text-end">@Formato.MonedaConDecimales(precio.PrecioComprador ?? 0)</td> }
+                                @if (verCampesino) { <td class="text-end">@Formato.MonedaConDecimales(precio.PrecioCampesino ?? 0)</td> }
+                                <td>@Formato.Fecha(precio.FechaCalculo)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="mt-3">
+            <a class="btn btn-nav-login text-decoration-none" asp-controller="PantallaPrincipal" asp-action="Index">Volver</a>
+        </div>
+    </div>
+</div>

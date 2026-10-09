@@ -1,0 +1,26 @@
+@model ReporteGuardadoVistaDto
+<div class="modal-header">
+    <h5 class="modal-title">Control de Reportes Guardados</h5>
+    <span class="text-muted small">@Model.CodigoPedido</span>
+</div>
+<div class="modal-body">
+    @if (Model.Reportes.Count == 0)
+    {
+        <p class="text-center my-4">Aún no has guardado ningún reporte de ubicación para este pedido</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var reporte in Model.Reportes)
+            {
+                <li class="list-group-item">
+                    <div class="fw-semibold">@reporte.Lugar</div>
+                    <div class="small text-muted">@reporte.Hito · @Formato.Fecha(reporte.FechaHora) · @Formato.Hora(reporte.FechaHora)</div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-success" data-modal-cerrar="todas">Cerrar</button>
+</div>

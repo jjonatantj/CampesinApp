@@ -1,0 +1,61 @@
+@model ListaPedidosDto
+@{
+    var puedeVerUbicacion = Model.Usuario.Rol is RolUsuario.Campesino or RolUsuario.Comprador or RolUsuario.Administrador;
+}
+<div class="modal-header">
+    <h5 class="modal-title">Lista de Pedidos</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    <form method="get" asp-controller="Pedidos" asp-action="Lista" data-ajax-form class="d-flex gap-2 mb-3">
+        <label for="filtroEstado" class="visually-hidden">Estado del envío</label>
+        <select id="filtroEstado" name="estado" class="form-select form-select-sm">
+            <option value="">Todos los estados</option>
+            @foreach (var estado in EstadosEnvio.Todos)
+            {
+                <option value="@estado" selected="@(Model.EstadoFiltro == estado)">@estado</option>
+            }
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-dark">Filtrar</button>
+    </form>
+
+    @if (Model.Pedidos.Count == 0)
+    {
+        <p class="text-center my-4">No hay pedidos para mostrar@(string.IsNullOrEmpty(Model.EstadoFiltro) ? "." : " con ese estado.")</p>
+    }
+
+    @foreach (var pedido in Model.Pedidos)
+    {
+        <div class="bloque-pedido">
+            <div class="d-flex justify-content-between flex-wrap gap-1">
+                <strong>@pedido.Codigo · @pedido.Producto</strong>
+                <span class="badge @VistaHelpers.ClaseEstado(pedido.EstadoEnvio)">@pedido.EstadoEnvio</span>
+            </div>
+            <div class="small text-muted">
+                Cantidad: @pedido.Cantidad · Precio: @Formato.Moneda(pedido.PrecioUnitario) · Entrega: @Formato.Fecha(pedido.FechaEntrega)
+                · Comprador: @pedido.NombreComprador
+            </div>
+            <div class="small text-muted">Destino: @pedido.DireccionFinal</div>
+
+            <div class="acciones">
+                @if (puedeVerUbicacion)
+                {
+                    <button type="button" class="btn btn-sm btn-success" data-modal-url="/Ubicacion/Seguimiento?idDemanda=@pedido.IdDemanda">Seguimiento de Pedido</button>
+                    <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Ubicacion/Guardados?idDemanda=@pedido.IdDemanda">Control de Reportes</button>
+                }
+                <button type="button" class="btn btn-sm btn-success" data-modal-url="/Transporte/Detalle?idDemanda=@pedido.IdDemanda">Consultar Datos de Transporte</button>
+                @if (pedido.PuedeValidarEntrega)
+                {
+                    <button type="button" class="btn btn-sm btn-warning" data-modal-url="/Entrega/Validar?idDemanda=@pedido.IdDemanda">Validar Entrega</button>
+                }
+                @if (pedido.PuedeCalificar)
+                {
+                    <button type="button" class="btn btn-sm btn-dark" data-modal-url="/Calificacion/Formulario?idDemanda=@pedido.IdDemanda">Calificar</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+</div>
