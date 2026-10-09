@@ -1,0 +1,71 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Collections.Generic;
+
+namespace CampesinApp.ViewModels
+{
+    public class RegistroUsuarioViewModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [Display(Name = "Nombres")]
+        public string Nombres { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [Display(Name = "Apellidos")]
+        public string Apellidos { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La cédula es obligatoria.")]
+        [RegularExpression(@"^\d{6,10}$", ErrorMessage = "Ingrese un número de cédula válido.")]
+        [Display(Name = "Cédula")]
+        public string Cedula { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Formato de correo no válido.")]
+        [Display(Name = "Correo Electrónico")]
+        public string Correo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [RegularExpression(@"^\d{7,10}$", ErrorMessage = "Ingrese un número de teléfono válido.")]
+        [Display(Name = "Teléfono")]
+        public string Telefono { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe seleccionar un rol.")]
+        [Display(Name = "Rol")]
+        public int IdRol { get; set; }
+
+        [Required(ErrorMessage = "El departamento es obligatorio.")]
+        [Display(Name = "Departamento")]
+        public int IdDepartamento { get; set; }
+
+        [Required(ErrorMessage = "El municipio es obligatorio.")]
+        [Display(Name = "Municipio")]
+        public int IdMunicipio { get; set; }
+
+        [Required(ErrorMessage = "La dirección es obligatoria.")]
+        [Display(Name = "Dirección")]
+        public string Direccion { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength(15, MinimumLength = 6, ErrorMessage = "Debe tener entre 6 y 15 caracteres.")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,15}$", ErrorMessage = "Debe incluir al menos una letra, un número y un carácter especial.")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Contraseña")]
+        public string Contrasena { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe confirmar su contraseña.")]
+        [DataType(DataType.Password)]
+        [Compare("Contrasena", ErrorMessage = "Las contraseñas no coinciden.")]
+        [Display(Name = "Confirmar Contraseña")]
+        public string ConfirmarContrasena { get; set; } = string.Empty;
+
+        [Display(Name = "Foto de Perfil")]
+        public IFormFile? FotoPerfil { get; set; }
+
+        // Listas dinámicas para poblar los combobox desde la Base de Datos
+        public List<SelectListItem> ListaRoles { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> ListaDepartamentos { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> ListaMunicipios { get; set; } = new List<SelectListItem>();
+    }
+
+}
