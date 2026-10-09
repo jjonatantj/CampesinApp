@@ -1,7 +1,11 @@
+using CampesinApp.Repositories.Models;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<Campesinapp3Context>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("ConnetionString:Test")));
 
 var app = builder.Build();
 
