@@ -1,0 +1,74 @@
+@model FormularioCalificacionDto
+@{
+    var error = ViewData["Error"] as string;
+    var estrellasError = !string.IsNullOrEmpty(error) && Model.Estrellas is < 1 or > 5;
+    var comentarioError = !string.IsNullOrEmpty(error) && string.IsNullOrWhiteSpace(Model.Comentario);
+    var evaluadoError = !string.IsNullOrEmpty(error) && Model.IdUsuarioEvaluado == null;
+}
+@* Ventana obligatoria: sin botón de cierre ni aplazamiento (CU-026). *@
+<form method="post" asp-controller="Calificacion" asp-action="Enviar" data-ajax-form novalidate data-modal-estatico>
+    <input type="hidden" name="IdDemanda" value="@Model.IdDemanda" />
+    <input type="hidden" name="PorDesacuerdo" value="@Model.PorDesacuerdo.ToString().ToLowerInvariant()" />
+    <div class="modal-header">
+        <h5 class="modal-title">Módulo de Observaciones y Calificación</h5>
+        <span class="text-muted small">@Model.CodigoPedido</span>
+    </div>
+    <div class="modal-body">
+        @if (Model.PorDesacuerdo)
+        {
+            <div class="recuadro-error" role="alert">
+                Registramos su inconformidad con la entrega. Cuéntenos lo ocurrido y, si lo necesita, comuníquese con soporte.
+            </div>
+        }
+
+        <div class="mb-3">
+            <label for="IdUsuarioEvaluado" class="form-label">¿A quién califica?</label>
+            <select id="IdUsuarioEvaluado" name="IdUsuarioEvaluado" class="form-select @(evaluadoError ? "campo-error" : "")">
+                @if (Model.Pendientes.Count > 1)
+                {
+                    <option value="">Seleccione…</option>
+                }
+                @foreach (var participante in Model.Pendientes)
+                {
+                    <option value="@participante.IdUsuario" selected="@(Model.IdUsuarioEvaluado == participante.IdUsuario)">@participante.Nombre (@participante.Rol)</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <span class="form-label d-block" id="etiquetaEstrellas">Calificación</span>
+            <div class="estrellas @(estrellasError ? "campo-error" : "")" data-estrellas role="group" aria-labelledby="etiquetaEstrellas">
+                <input type="hidden" name="Estrellas" value="@Model.Estrellas" />
+                @for (var i = 1; i <= 5; i++)
+                {
+                    <button type="button" class="estrella @(i <= Model.Estrellas ? "activa" : "")" data-valor="@i" aria-label="@i @(i == 1 ? "estrella" : "estrellas")" aria-pressed="@((i == Model.Estrellas).ToString().ToLowerInvariant())">★</button>
+                }
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="Comentario" class="form-label">Comentario u observación (obligatorio)</label>
+            <textarea id="Comentario" name="Comentario" rows="4" maxlength="500"
+                      class="form-control @(comentarioError ? "campo-error" : "")">@Model.Comentario</textarea>
+        </div>
+
+        <div class="small border rounded p-2 mb-3">
+            <strong>Teléfonos oficiales de soporte</strong> (para reportar inconformidades):
+            <ul class="mb-0">
+                @foreach (var telefono in Model.TelefonosSoporte)
+                {
+                    <li>@telefono</li>
+                }
+            </ul>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <p class="mensaje-formulario" role="alert">@error</p>
+        }
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-success">Enviar</button>
+        </div>
+    </div>
+</form>

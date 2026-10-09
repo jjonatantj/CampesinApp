@@ -1,0 +1,40 @@
+@model List<ViajeTransportadorDto>
+<div class="modal-header">
+    <h5 class="modal-title">Mis Viajes</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    @if (Model.Count == 0)
+    {
+        <p class="text-center my-4">No hay viajes registrados o asignados actualmente.</p>
+    }
+
+    @foreach (var viaje in Model)
+    {
+        <div class="bloque-pedido">
+            <div class="d-flex justify-content-between flex-wrap gap-1">
+                <strong>@viaje.CodigoPedido · @viaje.Producto (@viaje.Cantidad)</strong>
+                <span>
+                    <span class="badge @(viaje.Activo ? "bg-success" : "bg-secondary")">@(viaje.Activo ? "Activo" : "Inactivo")</span>
+                    <span class="badge @VistaHelpers.ClaseEstado(viaje.EstadoEnvio)">@viaje.EstadoEnvio</span>
+                </span>
+            </div>
+            <div class="small text-muted">Destino: @viaje.DireccionFinal</div>
+            <div class="acciones">
+                <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Ubicacion/Reportar?idViaje=@viaje.IdViaje" data-modal-destino="principal">Reportar Ubicación</button>
+                @if (viaje.LlegadaNotificada)
+                {
+                    <button type="button" class="btn btn-sm btn-success" data-confirmar="¿Confirma que entregó el pedido @viaje.CodigoPedido en el punto de destino?"
+                            data-modal-post="/Entrega/EntregaRealizada?idViaje=@viaje.IdViaje">Entrega realizada</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-success" disabled title="Disponible cuando notifique la llegada al destino">Entrega realizada</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+</div>

@@ -1,0 +1,114 @@
+@model ReporteUbicacionDto
+@{
+    var faltanCampos = ViewData["FaltanCampos"] as bool? == true;
+    var errorNegocio = ViewData["ErrorNegocio"] as string;
+    var errorBd = ViewData["ErrorBd"] as string;
+    var accionPrevia = ViewData["AccionPrevia"] as string;
+    var mensajeFecha = VistaHelpers.MensajeError(ViewData, nameof(Model.FechaInicial));
+}
+<form method="post" asp-controller="Ubicacion" asp-action="Reportar" data-ajax-form novalidate>
+    <div class="modal-header">
+        <h5 class="modal-title">Filtros del Reporte</h5>
+        <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+    </div>
+    <div class="modal-body">
+        @if (!string.IsNullOrEmpty(errorBd))
+        {
+            <div class="recuadro-error" role="alert">
+                <p class="mb-2">@errorBd</p>
+                <button type="submit" name="accion" value="@(accionPrevia ?? "generar")" class="btn btn-sm btn-outline-dark">Reintentar</button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(errorNegocio))
+        {
+            <div class="recuadro-error" role="alert">@errorNegocio</div>
+        }
+
+        <div class="mb-3">
+            <label for="IdViaje" class="form-label">Viaje</label>
+            <select id="IdViaje" name="IdViaje" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdViaje))">
+                <option value="">Seleccione el viaje…</option>
+                @foreach (var viaje in Model.Viajes)
+                {
+                    <option value="@viaje.IdViaje" selected="@(Model.IdViaje == viaje.IdViaje)">@viaje.Texto</option>
+                }
+            </select>
+            @if (Model.Viajes.Count == 0)
+            {
+                <div class="mensaje-campo">No tiene viajes activos para reportar.</div>
+            }
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label for="FechaInicial" class="form-label">Fecha Inicial</label>
+                <input type="date" id="FechaInicial" name="FechaInicial" value="@Model.FechaInicial?.ToString("yyyy-MM-dd")"
+                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.FechaInicial))" />
+                @if (!string.IsNullOrEmpty(mensajeFecha))
+                {
+                    <div class="mensaje-campo" role="alert">@mensajeFecha</div>
+                }
+            </div>
+            <div class="col-sm-6">
+                <label for="FechaFinal" class="form-label">Fecha Final</label>
+                <input type="date" id="FechaFinal" name="FechaFinal" value="@Model.FechaFinal?.ToString("yyyy-MM-dd")"
+                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.FechaFinal))" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="Region" class="form-label">Región</label>
+            <select id="Region" name="Region" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Region))">
+                <option value="">Seleccione…</option>
+                @foreach (var region in Regiones.Todas)
+                {
+                    <option value="@region" selected="@(Model.Region == region)">@region</option>
+                }
+            </select>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label for="PuntoOrigen" class="form-label">Punto de Origen</label>
+                <input type="text" id="PuntoOrigen" name="PuntoOrigen" value="@Model.PuntoOrigen" maxlength="100" autocomplete="off"
+                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoOrigen))" />
+            </div>
+            <div class="col-sm-6">
+                <label for="PuntoDestino" class="form-label">Punto de Destino</label>
+                <input type="text" id="PuntoDestino" name="PuntoDestino" value="@Model.PuntoDestino" maxlength="100" autocomplete="off"
+                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoDestino))" />
+            </div>
+        </div>
+
+        <hr />
+        <p class="small text-muted mb-2">La fecha y la hora del reporte se registran automáticamente al enviarlo.</p>
+        <div class="row g-3">
+            <div class="col-sm-7">
+                <label for="Lugar" class="form-label">Lugar o punto de acopio donde se encuentra</label>
+                <input type="text" id="Lugar" name="Lugar" value="@Model.Lugar" maxlength="100" autocomplete="off"
+                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.Lugar))" />
+            </div>
+            <div class="col-sm-5">
+                <label for="Hito" class="form-label">Hito</label>
+                <select id="Hito" name="Hito" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Hito))">
+                    <option value="">Seleccione…</option>
+                    @foreach (var hito in Hitos.Todos)
+                    {
+                        <option value="@hito" selected="@(Model.Hito == hito)">@hito</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2 mt-4 flex-wrap">
+            <button type="submit" name="accion" value="generar" class="btn btn-primary px-4">Generar Reporte</button>
+            <button type="button" class="btn btn-outline-dark" data-modal-cerrar="todas" data-redirigir="/Perfil/Index">Cancelar</button>
+            <button type="submit" name="accion" value="llegada" class="btn btn-outline-success" title="Registra el destino final y avisa al comprador">Notificar Llegada</button>
+        </div>
+
+        @if (faltanCampos)
+        {
+            <p class="mensaje-formulario" role="alert">Por favor complete todos los campos obligatorios para generar el reporte</p>
+        }
+    </div>
+</form>

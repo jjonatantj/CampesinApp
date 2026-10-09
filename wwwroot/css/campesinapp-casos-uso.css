@@ -1,0 +1,301 @@
+/* =============================================================================================
+   CampesinApp - Estilos de los casos de uso 21 a 32
+   - Tipografía: Mulish, la misma del resto de la aplicación (site.css), para que las ventanas emergentes combinen con las pantallas.
+   - Color verde de la marca: #B8FFB8 (variable --cp-verde). Todo lo "verde" de estas pantallas usa este valor;
+     como es un verde claro, el texto sobre él es siempre oscuro.
+   - Los estilos se limitan a las ventanas emergentes (.modal-content) y a las páginas con la clase .cu-pagina,
+     para no cambiar el diseño de las pantallas de otros casos de uso.
+   ============================================================================================= */
+
+:root {
+  --cp-verde: #B8FFB8;
+  --cp-tinta: #1d1d1d;
+  --cp-fuente: 'Mulish', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.cu-pagina,
+.modal-content {
+  font-family: var(--cp-fuente);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--cp-tinta);
+}
+
+.cu-pagina h1, .cu-pagina h2, .cu-pagina h3, .cu-pagina h4, .cu-pagina h5, .cu-pagina h6,
+.modal-title, .modal-content h5, .modal-content h6, .modal-content legend {
+  font-family: var(--cp-fuente);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cu-pagina .btn,
+.modal-content .btn,
+.modal-content .nav-link,
+.modal-content .badge,
+.modal-content label,
+.modal-content th {
+  font-family: var(--cp-fuente);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* --- Verde de la marca ---------------------------------------------------------------- */
+.cu-pagina .btn-success,
+.modal-content .btn-success {
+  background-color: var(--cp-verde);
+  border-color: var(--cp-tinta);
+  color: var(--cp-tinta);
+}
+
+.cu-pagina .btn-success:hover, .cu-pagina .btn-success:focus, .cu-pagina .btn-success:active,
+.modal-content .btn-success:hover, .modal-content .btn-success:focus, .modal-content .btn-success:active {
+  background-color: var(--cp-verde);
+  border-color: var(--cp-tinta);
+  color: var(--cp-tinta);
+  filter: brightness(0.93);
+}
+
+.cu-pagina .btn-success:disabled, .modal-content .btn-success:disabled {
+  background-color: var(--cp-verde);
+  border-color: var(--cp-tinta);
+  color: var(--cp-tinta);
+  opacity: 0.55;
+}
+
+.cu-pagina .btn-outline-success,
+.modal-content .btn-outline-success {
+  background-color: #fff;
+  border-color: var(--cp-tinta);
+  color: var(--cp-tinta);
+}
+
+.cu-pagina .btn-outline-success:hover, .cu-pagina .btn-outline-success:focus, .cu-pagina .btn-outline-success:active,
+.modal-content .btn-outline-success:hover, .modal-content .btn-outline-success:focus, .modal-content .btn-outline-success:active {
+  background-color: var(--cp-verde);
+  border-color: var(--cp-tinta);
+  color: var(--cp-tinta);
+}
+
+.cu-pagina .bg-success,
+.modal-content .bg-success {
+  background-color: var(--cp-verde) !important;
+  color: var(--cp-tinta) !important;
+}
+
+.cu-pagina .text-success,
+.modal-content .text-success {
+  color: var(--cp-tinta) !important;
+}
+
+.modal-header {
+  background-color: var(--cp-verde);
+  border-bottom: 1px solid var(--cp-tinta);
+  border-top-left-radius: 0.4rem;
+  border-top-right-radius: 0.4rem;
+}
+
+.modal-header .modal-title {
+  color: var(--cp-tinta);
+}
+
+.cu-pagina .table thead th,
+.modal-content .table thead th {
+  background-color: var(--cp-verde);
+  color: var(--cp-tinta);
+}
+
+.cu-hero {
+  background-color: var(--cp-verde);
+  border: 2px solid var(--cp-tinta);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.cu-tarjeta {
+  border: 2px solid var(--cp-tinta);
+  border-radius: 0.75rem;
+  background: #fff;
+  overflow: hidden;
+  height: 100%;
+}
+
+.cu-tarjeta-cabecera {
+  background-color: var(--cp-verde);
+  border-bottom: 2px solid var(--cp-tinta);
+  padding: 0.6rem 1rem;
+}
+
+.cu-tarjeta-cabecera h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.cu-ruta {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  color: #444;
+  word-break: break-word;
+}
+
+/* ------------------------------------------------------------------
+   Ventanas emergentes y pantallas de los casos de uso CU-021 a CU-030
+   ------------------------------------------------------------------ */
+
+/* La ventana superpuesta queda por encima de la principal (y su fondo, entre las dos). */
+#modalSuperpuesta {
+  z-index: 1065;
+}
+
+body > .modal-backdrop ~ .modal-backdrop {
+  z-index: 1060;
+}
+
+.modal-content {
+  background: #fff;
+  border: 2px solid #212529;
+  border-radius: 0.5rem;
+}
+
+.modal-header {
+  border-bottom: 1px solid #212529;
+}
+
+/* Campos con error: borde negro resaltado (FE-01 de CU-021, CU-024) */
+.campo-error {
+  border: 2px solid #000 !important;
+}
+
+.mensaje-campo {
+  color: #000;
+  background: #fff3cd;
+  font-size: 0.875rem;
+  padding: 0.15rem 0.5rem;
+  margin-top: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.mensaje-formulario {
+  color: #000;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+.recuadro-error {
+  background: #f8d7da;
+  color: #000;
+  border: 1px solid #dc3545;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Avisos (cuadros con un botón) */
+.aviso .aviso-mensaje {
+  font-size: 1.05rem;
+}
+
+.aviso-exito {
+  border-top: 6px solid var(--cp-verde);
+}
+
+.aviso-advertencia {
+  border-top: 6px solid #ffc107;
+}
+
+.aviso-error {
+  border-top: 6px solid #dc3545;
+}
+
+.aviso-informacion {
+  border-top: 6px solid #0d6efd;
+}
+
+/* Reporte exitoso (CU-021 paso 4) */
+.reporte-exitoso {
+  cursor: pointer;
+  border: 3px solid var(--cp-tinta);
+  border-radius: 0.5rem;
+  background: var(--cp-verde);
+}
+
+/* Cuadro de notificación de ubicación (CU-021 / CU-022): fondo blanco y borde verde */
+.cuadro-notificacion {
+  border: 4px solid var(--cp-verde);
+  box-shadow: 0 0 0 1px var(--cp-tinta);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--cp-tinta);
+}
+
+/* Bloques de pedido / viaje / transacción */
+.bloque-pedido {
+  border: 1px solid #212529;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: #fff;
+}
+
+.bloque-pedido .acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+/* Estrellas interactivas (CU-026) */
+.estrellas {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.estrella {
+  background: none;
+  border: 0;
+  font-size: 2rem;
+  line-height: 1;
+  color: #adb5bd;
+  cursor: pointer;
+  padding: 0 0.1rem;
+}
+
+.estrella.activa {
+  color: #f5b301;
+}
+
+.estrella:focus-visible {
+  outline: 2px solid #258cfb;
+  outline-offset: 2px;
+}
+
+.estrellas-fijas {
+  color: #f5b301;
+  letter-spacing: 0.1rem;
+  white-space: nowrap;
+}
+
+/* Campana de notificaciones */
+.campana {
+  position: relative;
+}
+
+.campana .badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(35%, -25%);
+}
+
+.selector-simulacion {
+  font-size: 0.8rem;
+}
+
+.tarjeta-precio {
+  border: 1px solid #212529;
+  border-radius: 0.5rem;
+}

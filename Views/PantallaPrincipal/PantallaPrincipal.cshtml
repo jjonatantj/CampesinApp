@@ -49,17 +49,11 @@
             <div class="nav-auth-buttons">
                 <span class="badge bg-success text-white px-3 py-2 rounded-pill small">Rol: @Model.RolUsuario</span>
                 
-                <button class="btn btn-outline-success position-relative rounded-circle p-2" style="width: 40px; height: 40px;" title="Notificaciones">
-                    <i class="bi bi-bell-fill"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-                </button>
+                <!-- CU-021/CU-025: campana de notificaciones · CU-032: menú de usuario con "Cerrar Sesión" -->
+                <partial name="_AccionesNavPrivada" />
 
                 <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-register text-decoration-none">
                     <i class="bi bi-person-circle me-1"></i> Perfil
-                </a>
-
-                <a asp-controller="InicioSesion" asp-action="CerrarSesion" class="btn btn-nav-login text-decoration-none">
-                    Cerrar Sesión
                 </a>
             </div>
         </div>
@@ -67,6 +61,19 @@
 </nav>
 
 <div class="container">
+
+    @if (Model.RolUsuario == "Administrador")
+    {
+        <!-- CU-023 (FA-01): búsqueda directa del administrador por placa del camión o código del pedido -->
+        <form class="card p-2 border-0 shadow-sm rounded-4 bg-white mb-4" data-ajax-form method="get" asp-controller="Transporte" asp-action="Buscar" role="search">
+            <div class="input-group">
+                <span class="input-group-text border-0 bg-transparent text-success"><i class="bi bi-truck"></i></span>
+                <label for="buscarTransporte" class="visually-hidden">Placa del camión o código del pedido</label>
+                <input type="text" id="buscarTransporte" name="texto" class="form-control border-0 shadow-none" placeholder="Placa del camión o código del pedido (PED-0001)" maxlength="20" required />
+                <button type="submit" class="btn btn-nav-register px-4 rounded-pill">Buscar Transporte</button>
+            </div>
+        </form>
+    }
 
     <!-- 2. ENCABEZADO Y BUSCADOR MULTIFILTRO (TEXTO + CATEGORÍA REAL) -->
     <div class="main-container p-4 p-md-5 mb-4 shadow-sm border-0" style="background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); border-radius: 20px;">
@@ -86,6 +93,13 @@
                 <p class="text-muted mb-0 mt-2 ms-1 fw-semibold">
                     Cotizaciones oficiales calculadas en tiempo real para regular el comercio directo.
                 </p>
+                @if (Model.RolUsuario != "Transportador")
+                {
+                    <!-- CU-028: consolidado de precios sugeridos -->
+                    <a asp-controller="Precios" asp-action="Index" class="btn btn-nav-register btn-sm mt-3 text-decoration-none">
+                        <i class="bi bi-graph-up-arrow me-1"></i> Precios Sugeridos
+                    </a>
+                }
             </div>
 
             <div class="col-lg-7">

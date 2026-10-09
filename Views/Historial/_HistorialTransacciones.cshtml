@@ -1,0 +1,40 @@
+@model HistorialTransaccionesDto
+<div class="modal-header">
+    <h5 class="modal-title">Historial de Transacciones</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    <form method="get" asp-controller="Historial" asp-action="Transacciones" data-ajax-form class="d-flex gap-2 mb-3" role="search">
+        <input type="text" name="busqueda" value="@Model.Busqueda" class="form-control form-control-sm border-dark" maxlength="20"
+               placeholder="Código o ID del pedido (PED-0001)" aria-label="Buscar por código o ID del pedido" />
+        <button type="submit" class="btn btn-sm btn-outline-dark" aria-label="Buscar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+            </svg>
+        </button>
+    </form>
+
+    @if (Model.Transacciones.Count == 0)
+    {
+        <div class="text-center my-4">
+            <p>@(string.IsNullOrWhiteSpace(Model.Busqueda) ? "Aún no tienes compras o ventas registradas" : "No se encontró ninguna transacción con ese código.")</p>
+        </div>
+    }
+
+    @foreach (var transaccion in Model.Transacciones)
+    {
+        <div class="bloque-pedido d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div>
+                <strong>@transaccion.Codigo · @transaccion.Producto</strong>
+                <div class="small text-muted">
+                    @transaccion.Cantidad unidades · @Formato.Moneda(transaccion.Valor) · @Formato.Fecha(transaccion.Fecha)
+                </div>
+                <span class="badge @VistaHelpers.ClaseEstado(transaccion.Estado)">@transaccion.Estado</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-dark" data-modal-url="/Historial/Detalle?idDemanda=@transaccion.IdDemanda">Ver Detalle</button>
+        </div>
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+</div>

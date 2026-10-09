@@ -1,0 +1,24 @@
+@model AvisoDto
+@{
+    var clase = Model.Tipo switch
+    {
+        TipoAviso.Exito => "aviso-exito",
+        TipoAviso.Advertencia => "aviso-advertencia",
+        TipoAviso.Error => "aviso-error",
+        _ => "aviso-informacion"
+    };
+}
+<div class="modal-body text-center p-4 aviso @clase" role="alertdialog" aria-live="assertive">
+    @if (!string.IsNullOrEmpty(Model.Titulo))
+    {
+        <h5 class="mb-2">@Model.Titulo</h5>
+    }
+    <p class="aviso-mensaje fw-semibold mb-3">@Model.Mensaje</p>
+    <div class="d-flex justify-content-center gap-2">
+        @if (!string.IsNullOrEmpty(Model.ReintentarUrl))
+        {
+            <button type="button" class="btn btn-outline-dark" data-modal-url="@Model.ReintentarUrl" data-modal-destino="superpuesta">Reintentar</button>
+        }
+        <button type="button" class="btn btn-dark" data-modal-cerrar="@Model.Cerrar" data-recargar-url="@Model.RecargarPrincipalUrl" data-redirigir="@Model.RedirigirA">@Model.TextoBoton</button>
+    </div>
+</div>

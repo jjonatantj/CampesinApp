@@ -1,0 +1,27 @@
+@model List<NotificacionDto>
+<div class="modal-header">
+    <h5 class="modal-title">Notificaciones</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    @if (Model.Count == 0)
+    {
+        <p class="text-center my-4">No tienes notificaciones.</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var notificacion in Model)
+            {
+                <li class="list-group-item @(notificacion.Leida ? "" : "fw-semibold")">
+                    <div>@notificacion.Mensaje</div>
+                    <div class="small text-muted">@Formato.FechaHora(notificacion.Fecha)</div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+<div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-outline-dark btn-sm" data-modal-post="/Notificaciones/MarcarLeidas">Marcar todas como leídas</button>
+    <button type="button" class="btn btn-dark btn-sm" data-modal-cerrar="">Cerrar</button>
+</div>

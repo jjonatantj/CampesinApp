@@ -1,0 +1,122 @@
+@model HistorialGlobalDto
+@{
+    var filtro = Model.Filtro;
+    var enVentas = filtro.Pestana != "logs";
+    string UrlPestana(string pestana) =>
+        $"/Historial/Global?pestana={pestana}&IdUsuario={filtro.IdUsuario}&Rol={filtro.Rol}&Desde={filtro.Desde:yyyy-MM-dd}&Hasta={filtro.Hasta:yyyy-MM-dd}";
+}
+<div class="modal-header">
+    <h5 class="modal-title">Historial Global del Aplicativo</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button type="button" class="nav-link @(enVentas ? "active" : "")" data-modal-url="@UrlPestana("ventas")" data-modal-destino="principal">Historial de Ventas General</button>
+        </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link @(enVentas ? "" : "active")" data-modal-url="@UrlPestana("logs")" data-modal-destino="principal">Logs del Sistema</button>
+        </li>
+    </ul>
+
+    <form method="get" asp-controller="Historial" asp-action="Global" data-ajax-form class="row g-2 mb-3">
+        <input type="hidden" name="Pestana" value="@filtro.Pestana" />
+        <div class="col-sm-3">
+            <label for="fIdUsuario" class="form-label small mb-0">ID de usuario</label>
+            <input type="number" id="fIdUsuario" name="IdUsuario" value="@filtro.IdUsuario" min="1" class="form-control form-control-sm" />
+        </div>
+        @if (enVentas)
+        {
+            <div class="col-sm-3">
+                <label for="fRol" class="form-label small mb-0">Rol</label>
+                <select id="fRol" name="Rol" class="form-select form-select-sm">
+                    <option value="">Cualquiera</option>
+                    @foreach (var rol in new[] { "Campesino", "Comprador", "Transportador" })
+                    {
+                        <option value="@rol" selected="@(filtro.Rol == rol)">@rol</option>
+                    }
+                </select>
+            </div>
+        }
+        <div class="col-sm-3">
+            <label for="fDesde" class="form-label small mb-0">Desde</label>
+            <input type="date" id="fDesde" name="Desde" value="@filtro.Desde?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+        </div>
+        <div class="col-sm-3">
+            <label for="fHasta" class="form-label small mb-0">Hasta</label>
+            <input type="date" id="fHasta" name="Hasta" value="@filtro.Hasta?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+        </div>
+        <div class="col-12 text-end">
+            <button type="submit" class="btn btn-sm btn-dark">Aplicar Filtros</button>
+        </div>
+    </form>
+
+    @if (enVentas)
+    {
+        @if (Model.Ventas.Count == 0)
+        {
+            <p class="text-center my-4">No hay transacciones para los filtros seleccionados.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Valor</th>
+                            <th>Fecha</th><th>Comprador</th><th>Vendedor(es)</th><th>Transportador</th><th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var venta in Model.Ventas)
+                        {
+                            <tr>
+                                <td>@venta.Codigo</td>
+                                <td>@venta.Producto</td>
+                                <td class="text-end">@venta.Cantidad</td>
+                                <td class="text-end">@Formato.Moneda(venta.Valor)</td>
+                                <td>@Formato.Fecha(venta.Fecha)</td>
+                                <td>@venta.Comprador</td>
+                                <td>@venta.Vendedores</td>
+                                <td>@venta.Transportador</td>
+                                <td><span class="badge @VistaHelpers.ClaseEstado(venta.Estado)">@venta.Estado</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+    else
+    {
+        @if (Model.Logs.Count == 0)
+        {
+            <p class="text-center my-4">No hay eventos para los filtros seleccionados.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr><th>Fecha</th><th>Nivel</th><th>Usuario</th><th>Origen</th><th>Mensaje</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="text-nowrap">@Formato.FechaHora(log.Fecha)</td>
+                                <td><span class="badge @(log.Nivel == NivelesLog.Error ? "bg-danger" : log.Nivel == NivelesLog.Advertencia ? "bg-warning text-dark" : "bg-secondary")">@log.Nivel</span></td>
+                                <td>@log.Usuario</td>
+                                <td>@log.Origen</td>
+                                <td>@log.Mensaje</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+</div>

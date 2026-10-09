@@ -1,0 +1,18 @@
+@{
+    ViewData["Title"] = "Perfil de Usuario";
+}
+
+@* FE-01-CU031: el aviso se muestra 3 segundos y se vuelve a la pantalla principal. *@
+<div class="container py-5">
+    <div class="main-container p-5 text-center shadow-sm mx-auto" style="max-width: 36rem;" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-1 text-warning d-block mb-3"></i>
+        <p class="fw-bold fs-5 mb-2">No fue posible cargar las opciones de su perfil. Intente de nuevo más tarde</p>
+        <p class="text-muted small mb-0">Volverá a la pantalla principal en unos segundos…</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setTimeout(function () { window.location.href = '@Url.Action("Index", "PantallaPrincipal")'; }, 3000);
+    </script>
+}

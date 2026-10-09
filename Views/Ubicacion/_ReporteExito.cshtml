@@ -1,0 +1,18 @@
+@model ReporteVistaDto
+@{
+    var llegada = ViewData["Llegada"] as bool? == true;
+}
+<div class="modal-body p-0">
+    <div class="reporte-exitoso text-center p-5 position-relative" data-redirigir-ahora data-url="/Perfil/Index" role="alert" title="Clic para continuar">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-2" aria-label="Cerrar" data-redirigir-ahora data-url="/Perfil/Index"></button>
+        <h4 class="text-success fw-bold mb-3">REPORTE REALIZADO CON EXITO</h4>
+        <p class="mb-1">@Model.Hito · @Model.Lugar</p>
+        <p class="small text-muted mb-0">@Formato.FechaHora(Model.FechaHora)</p>
+        @if (llegada)
+        {
+            <p class="small mt-3 mb-0">Se notificó la llegada: el comprador debe verificar la mercancía y confirmar la recepción.</p>
+        }
+        <p class="small text-muted mt-3 mb-0">Volverá a su pantalla principal en unos segundos…</p>
+        <span class="d-none" data-autoredirigir="6000" data-url="/Perfil/Index"></span>
+    </div>
+</div>

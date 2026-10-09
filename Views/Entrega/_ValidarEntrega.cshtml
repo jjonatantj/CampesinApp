@@ -1,0 +1,44 @@
+@model ValidacionEntregaDto
+@{
+    var error = ViewData["Error"] as string;
+    var observacionPrevia = ViewData["ObservacionPrevia"] as string;
+}
+<form method="post" asp-controller="Entrega" asp-action="Confirmar" enctype="multipart/form-data" data-ajax-form novalidate>
+    <input type="hidden" name="IdDemanda" value="@Model.IdDemanda" />
+    <div class="modal-header">
+        <h5 class="modal-title">Validación de Entrega</h5>
+        <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+    </div>
+    <div class="modal-body">
+        <p class="mb-1"><strong>@Model.CodigoPedido</strong> · @Model.Producto (@Model.Cantidad)</p>
+        <p class="text-muted small">Revise físicamente que la cosecha esté completa, en buen estado y conforme a lo acordado, y luego confirme.</p>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="recuadro-error" role="alert">@error</div>
+        }
+
+        <div class="d-grid mb-3">
+            <button type="submit" name="Respuesta" value="SinObservaciones" class="btn btn-success">Recibido Sin Observaciones</button>
+        </div>
+
+        <fieldset class="border border-dark rounded p-3 mb-3">
+            <legend class="float-none w-auto px-2 fs-6">Si hay novedades (productos dañados o faltantes)</legend>
+            <div class="mb-2">
+                <label for="Observacion" class="form-label">Detalle de la novedad</label>
+                <textarea id="Observacion" name="Observacion" class="form-control" rows="3" maxlength="500">@observacionPrevia</textarea>
+            </div>
+            <div class="mb-3">
+                <label for="Evidencia" class="form-label">Fotografía como evidencia (JPG, PNG o WEBP, máx. 5 MB)</label>
+                <input type="file" id="Evidencia" name="Evidencia" class="form-control" accept="image/jpeg,image/png,image/webp" />
+            </div>
+            <div class="d-grid">
+                <button type="submit" name="Respuesta" value="ConObservaciones" class="btn btn-warning">Recibido con observaciones</button>
+            </div>
+        </fieldset>
+
+        <div class="d-grid">
+            <button type="submit" name="Respuesta" value="Rechazada" class="btn btn-outline-danger">No acepto la entrega</button>
+        </div>
+    </div>
+</form>
