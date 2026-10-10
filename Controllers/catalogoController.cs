@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
 
@@ -7,9 +8,10 @@ namespace CampesinApp.Controllers
     /// <summary>
     /// Controlador encargado de gestionar el Caso de Uso CU-011: Catálogo de Demanda.
     /// 
-    /// REGLA ARQUITECTÓNICA CUMPLIDA:
-    /// - Este controlador NO instancia ni llama directamente a DbContext.
-    /// - Toda consulta a la BD se delega al repositorio (DemandaRepository).
+    /// REGLAS ARQUITECTÓNICAS CUMPLIDAS:
+    /// 1. El controlador NO instancia ni llama directamente a DbContext.
+    /// 2. Toda consulta a la BD se realiza exclusivamente a través de DemandaRepository.
+    /// 3. Soporta tanto usuarios 'Invitados' (solo lectura) como usuarios 'Campesino' autenticados (RN01-CU011).
     /// </summary>
     public class catalogoController : Controller
     {
@@ -28,30 +30,38 @@ namespace CampesinApp.Controllers
         /// </summary>
         public async Task<IActionResult> Index(string? categoria, string? producto, string? region)
         {
-            // 1. Consultamos las demandas aplicando los 3 filtros
-            var demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(categoria, producto, region);
+            // 1. Obtener el rol del usuario desde la sesión HTTP (si existe)
+            string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
 
-            // 2. Obtenemos las opciones para poblar los 3 desplegables
-            var categoriasDisponibles = await _demandaRepository.ObtenerNombresCategoriasAsync();
-            var productosDisponibles = await _demandaRepository.ObtenerNombresProductosAsync();
-            var regionesDisponibles = await _demandaRepository.ObtenerNombresRegionesAsync();
-
-            // 3. Construimos el ViewModel para la vista
             var modelo = new CatalogoDemandaViewModel
             {
                 CategoriaSeleccionada = categoria,
                 ProductoSeleccionado = producto,
                 RegionSeleccionada = region,
-                CategoriasDisponibles = categoriasDisponibles,
-                ProductosDisponibles = productosDisponibles,
-                RegionesDisponibles = regionesDisponibles,
-                Demandas = demandas
+                RolUsuario = rolUsuario
             };
 
-            // 4. Retornamos la vista con el modelo completo
+            try
+            {
+                // 2. Consultar demandas aplicando los 3 filtros a través del repositorio
+                modelo.Demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(categoria, producto, region);
+
+                // 3. Obtener opciones para poblar los 3 desplegables
+                modelo.CategoriasDisponibles = await _demandaRepository.ObtenerNombresCategoriasAsync();
+                modelo.ProductosDisponibles = await _demandaRepository.ObtenerNombresProductosAsync();
+                modelo.RegionesDisponibles = await _demandaRepository.ObtenerNombresRegionesAsync();
+            }
+            catch (Exception)
+            {
+                // FE-01-CU011: Error en base de datos
+                // Si falla la conexión con el servidor de base de datos, el sistema muestra el mensaje de error
+                modelo.TieneErrorConexion = true;
+                modelo.MensajeError = "No fue posible cargar el catálogo de demanda. Intente más tarde";
+                modelo.Demandas = new List<Demandum>();
+            }
+
+            // 4. Retornar la vista con el ViewModel completo
             return View(modelo);
-                }
-            };
         }
     }
 }

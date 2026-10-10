@@ -1,143 +1,195 @@
-@model CampesinApp.ViewModels.CatalogoDemandaViewModel
+@model CampesinApp.Repositories.Models.CatalogoDemandaViewModel
 
 @{
     ViewData["Title"] = "Catálogo de Demanda";
+    // Seleccionar el Layout según si el usuario está autenticado o es invitado
+    Layout = Model.EsUsuarioAutenticado ? "_LayoutCasosUso" : "_Layout";
 }
 
 <!-- Contenedor principal integrado con la clase global .main-container de site.css -->
-<div class="container main-container py-4">
-    
-    <!-- Encabezado con título y botón regresar (Paso 2 del CU-011) -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h1 class="brand-title mb-1">Catálogo de Demanda</h1>
-            <p class="text-muted mb-0">Consulta lo que compradores y mayoristas requieren por camión de carga.</p>
-        </div>
-        <!-- Botón regresar en la parte superior derecha -->
-        <div>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                ← Regresar
-            </a>
-        </div>
-    </div>
+<div class="container main-container py-4 my-3">
 
-    <!-- Barra de Filtros: Categoría, Producto, Región y Botón verde 'Consultar' (Paso 2 y Paso 3 del CU-011) -->
-    <div class="card bg-light border-0 shadow-sm p-3 mb-4">
-        <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end">
-            
-            <!-- 1. Desplegable Categoría -->
-            <div class="col-md-3">
-                <label for="categoria" class="form-label fw-semibold small text-muted">Categoría</label>
-                <select id="categoria" name="categoria" class="form-select form-select-sm">
-                    <option value="">-- Todas las categorías --</option>
-                    @foreach (var cat in Model.CategoriasDisponibles)
-                    {
-                        <option value="@cat" selected="@(cat == Model.CategoriaSeleccionada)">
-                            @cat
-                        </option>
-                    }
-                </select>
+    <!-- ============================================================== -->
+    <!-- FLUJO DE EXCEPCIÓN: FE-01-CU011 (Error en Base de Datos)       -->
+    <!-- ============================================================== -->
+    @if (Model.TieneErrorConexion)
+    {
+        <div class="card border-danger shadow-sm my-4 text-center">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">⚠️ Error de Base de Datos</h5>
             </div>
-
-            <!-- 2. Desplegable Producto -->
-            <div class="col-md-3">
-                <label for="producto" class="form-label fw-semibold small text-muted">Producto</label>
-                <select id="producto" name="producto" class="form-select form-select-sm">
-                    <option value="">-- Todos los productos --</option>
-                    @foreach (var prod in Model.ProductosDisponibles)
-                    {
-                        <option value="@prod" selected="@(prod == Model.ProductoSeleccionado)">
-                            @prod
-                        </option>
-                    }
-                </select>
-            </div>
-
-            <!-- 3. Desplegable Región -->
-            <div class="col-md-3">
-                <label for="region" class="form-label fw-semibold small text-muted">Región</label>
-                <select id="region" name="region" class="form-select form-select-sm">
-                    <option value="">-- Todas las regiones --</option>
-                    @foreach (var reg in Model.RegionesDisponibles)
-                    {
-                        <option value="@reg" selected="@(reg == Model.RegionSeleccionada)">
-                            @reg
-                        </option>
-                    }
-                </select>
-            </div>
-
-            <!-- 4. Botón Consultar de color verde (Paso 2 del CU-011) y opción de limpiar filtros -->
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
-                    🔍 Consultar
-                </button>
-                @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) ||
-                     !string.IsNullOrEmpty(Model.ProductoSeleccionado) ||
-                     !string.IsNullOrEmpty(Model.RegionSeleccionada))
+            <div class="card-body py-4">
+                <p class="card-text fs-5 text-secondary">
+                    @(Model.MensajeError ?? "No fue posible cargar el catálogo de demanda. Intente más tarde")
+                </p>
+                <!-- Botón Aceptar: Redirecciona a la pantalla principal o bienvenida según la sesión -->
+                @if (Model.EsUsuarioAutenticado)
                 {
-                    <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
-                        Limpiar
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-success px-4">
+                        Aceptar
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-success px-4">
+                        Aceptar
                     </a>
                 }
             </div>
+        </div>
+    }
+    else
+    {
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO Y BOTÓN REGRESAR (Paso 2 del CU-011)                -->
+        <!-- ============================================================== -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h1 class="brand-title mb-1">Catálogo de Demanda</h1>
+                <p class="text-muted mb-0">Consulta lo que compradores y mayoristas requieren por camión de carga.</p>
+            </div>
+            <!-- Botón regresar en la parte superior derecha -->
+            <div>
+                @if (Model.EsUsuarioAutenticado)
+                {
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-outline-secondary">
+                        ← Regresar
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-outline-secondary">
+                        ← Regresar
+                    </a>
+                }
+            </div>
+        </div>
 
-        </form>
-    </div>
+        <!-- ============================================================== -->
+        <!-- BARRA DE FILTROS: Categoría, Producto, Región y Consultar      -->
+        <!-- (Paso 2 y Paso 3 del CU-011)                                   -->
+        <!-- ============================================================== -->
+        <div class="card bg-light border-0 shadow-sm p-3 mb-4">
+            <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end">
+                
+                <!-- 1. Desplegable Categoría -->
+                <div class="col-md-3">
+                    <label for="categoria" class="form-label fw-semibold small text-muted">Categoría</label>
+                    <select id="categoria" name="categoria" class="form-select form-select-sm">
+                        <option value="">-- Todas las categorías --</option>
+                        @foreach (var cat in Model.CategoriasDisponibles)
+                        {
+                            <option value="@cat" selected="@(cat == Model.CategoriaSeleccionada)">
+                                @cat
+                            </option>
+                        }
+                    </select>
+                </div>
 
-    <!-- Rejilla de Tarjetas (Cards) actualizada según los criterios seleccionados -->
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-        @if (Model.Demandas != null && Model.Demandas.Any())
-        {
-            @foreach (var item in Model.Demandas)
+                <!-- 2. Desplegable Producto -->
+                <div class="col-md-3">
+                    <label for="producto" class="form-label fw-semibold small text-muted">Producto</label>
+                    <select id="producto" name="producto" class="form-select form-select-sm">
+                        <option value="">-- Todos los productos --</option>
+                        @foreach (var prod in Model.ProductosDisponibles)
+                        {
+                            <option value="@prod" selected="@(prod == Model.ProductoSeleccionado)">
+                                @prod
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 3. Desplegable Región -->
+                <div class="col-md-3">
+                    <label for="region" class="form-label fw-semibold small text-muted">Región</label>
+                    <select id="region" name="region" class="form-select form-select-sm">
+                        <option value="">-- Todas las regiones --</option>
+                        @foreach (var reg in Model.RegionesDisponibles)
+                        {
+                            <option value="@reg" selected="@(reg == Model.RegionSeleccionada)">
+                                @reg
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 4. Botón verde Consultar (Paso 2) y Limpiar Filtros -->
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
+                        🔍 Consultar
+                    </button>
+                    @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) ||
+                         !string.IsNullOrEmpty(Model.ProductoSeleccionado) ||
+                         !string.IsNullOrEmpty(Model.RegionSeleccionada))
+                    {
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
+                            Limpiar
+                        </a>
+                    }
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- REJILLA DE TARJETAS (Paso 4 del CU-011)                        -->
+        <!-- ============================================================== -->
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            @if (Model.Demandas != null && Model.Demandas.Any())
             {
-                <div class="col">
-                    <!-- Tarjeta semántica estándar -->
-                    <div class="card h-100 shadow-sm border-0">
-                        
-                        <!-- 1. Imagen del producto (Placeholder por defecto listo para reemplazo) -->
-                        <img src="~/images/logo.jpeg" 
-                             alt="Imagen del producto" 
-                             class="card-img card-img-top" 
-                             style="height: 180px; object-fit: cover;" />
+                @foreach (var item in Model.Demandas)
+                {
+                    <div class="col">
+                        <!-- Tarjeta estándar HTML conectada con CSS global -->
+                        <div class="card h-100 shadow-sm border-0">
+                            
+                            <!-- 1. Imagen del producto (Placeholder por defecto listo para reemplazo) -->
+                            <img src="~/images/logo.jpeg" 
+                                 alt="Imagen de @(item.IdTipoProductoNavigation?.Producto ?? "Producto")" 
+                                 class="card-img card-img-top" 
+                                 style="height: 180px; object-fit: cover;" />
 
-                        <div class="card-body d-flex flex-column justify-content-between">
-                            <!-- Nombre del producto -->
-                            <h5 class="card-title text-success fw-bold">
-                                @(item.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar")
-                            </h5>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <!-- Nombre del producto -->
+                                <h5 class="card-title text-success fw-bold">
+                                    @(item.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar")
+                                </h5>
 
-                            <!-- 2. Cantidad demandada (Kilos) -->
-                            <p class="card-text mb-2">
-                                <span class="fw-semibold">Cantidad demandada:</span>
-                                <span>@item.CantidadDeman Kilos</span>
-                            </p>
+                                <!-- 2. Cantidad demandada (Kilos) -->
+                                <p class="card-text mb-2">
+                                    <span class="fw-semibold">Cantidad demandada:</span>
+                                    <span>@item.CantidadDeman Kilos</span>
+                                </p>
 
-                            <!-- 3. Valor propuesto / Precio -->
-                            <p class="card-text mb-0">
-                                <span class="fw-semibold">Valor propuesto:</span>
-                                <span class="text-success fw-bold fs-5">$@item.PrecioDeman.ToString("N0")</span>
-                            </p>
+                                <!-- 3. Valor propuesto / Precio -->
+                                <p class="card-text mb-0">
+                                    <span class="fw-semibold">Valor propuesto:</span>
+                                    <span class="text-success fw-bold fs-5">$@item.PrecioDeman.ToString("N0")</span>
+                                </p>
+                            </div>
+
                         </div>
-
+                    </div>
+                }
+            }
+            else
+            {
+                <!-- ============================================================== -->
+                <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)     -->
+                <!-- ============================================================== -->
+                <div class="col-12 text-center py-5">
+                    <div class="alert alert-warning shadow-sm d-inline-block px-5 py-4">
+                        <h5 class="fw-bold mb-2">No se encontraron ofertas para los criterios seleccionados</h5>
+                        <p class="text-muted mb-3">Intenta consultar con otros filtros o limpiar la búsqueda actual.</p>
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-dark btn-sm">
+                            Limpiar filtros
+                        </a>
                     </div>
                 </div>
             }
-        }
-        else
-        {
-            <!-- Flujo de Excepción FE-02-CU011: Filtración sin resultados -->
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-warning shadow-sm d-inline-block px-5 py-4">
-                    <h5 class="fw-bold mb-2">No se encontraron ofertas para los criterios seleccionados</h5>
-                    <p class="text-muted mb-3">Intenta consultar con otros filtros o limpiar la búsqueda actual.</p>
-                    <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-dark btn-sm">
-                        Limpiar filtros
-                    </a>
-                </div>
-            </div>
-        }
-    </div>
+        </div>
+    }
 
 </div>
 

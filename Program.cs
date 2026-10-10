@@ -25,6 +25,7 @@ builder.Services.AddDbContext<Campesinapp3Context>(options =>
 builder.Services.AddScoped<UsuariosRepository>();
 builder.Services.AddScoped<PantallaPrincipalRepository>();
 builder.Services.AddScoped<PaginaBienvenidaRepository>();
+builder.Services.AddScoped<DemandaRepository>();
 
 // 3.1 CASOS DE USO 21 a 32 (ubicacion, transporte, entrega, calificacion, historiales, precios, perfil y cierre de sesion).
 //     Todo lo que necesitan se registra en Services/CasosUsoServiceCollectionExtensions.cs

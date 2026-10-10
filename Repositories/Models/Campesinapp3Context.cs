@@ -64,15 +64,15 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
+
         modelBuilder.Entity<AporteCamp>(entity =>
         {
             entity.HasKey(e => e.IdAporte);
 
             entity.ToTable("aporte_Camp");
 
-            entity.Property(e => e.IdAporte)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Aporte");
+            entity.Property(e => e.IdAporte).HasColumnName("id_Aporte");
             entity.Property(e => e.CantAporte).HasColumnName("cant_Aporte");
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
@@ -98,9 +98,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("camion");
 
-            entity.Property(e => e.IdCamion)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Camion");
+            entity.Property(e => e.IdCamion).HasColumnName("id_Camion");
             entity.Property(e => e.CapacidadCami).HasColumnName("capacidad_Cami");
             entity.Property(e => e.EstadoPase).HasColumnName("estado_pase");
             entity.Property(e => e.EstadoSeguro).HasColumnName("estado_seguro");
@@ -127,9 +125,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("consignacion");
 
-            entity.Property(e => e.IdConsignacionCam)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Consignacion_Cam");
+            entity.Property(e => e.IdConsignacionCam).HasColumnName("id_Consignacion_Cam");
             entity.Property(e => e.ConsigCampesino).HasColumnName("consig_Campesino");
             entity.Property(e => e.FechaConsigCam)
                 .HasColumnType("datetime")
@@ -160,9 +156,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("dato_Dane");
 
-            entity.Property(e => e.IdDatoDane)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Dato_Dane");
+            entity.Property(e => e.IdDatoDane).HasColumnName("id_Dato_Dane");
             entity.Property(e => e.FechaDato).HasColumnName("fecha_Dato");
             entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
@@ -185,9 +179,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("demanda");
 
-            entity.Property(e => e.IdDemanda)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Demanda");
+            entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.CantidadDeman).HasColumnName("cantidad_Deman");
             entity.Property(e => e.DescripcionDeman)
                 .HasMaxLength(255)
@@ -243,9 +235,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("departamento");
 
-            entity.Property(e => e.IdDepartamento)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Departamento");
+            entity.Property(e => e.IdDepartamento).HasColumnName("id_Departamento");
             entity.Property(e => e.Departamento1)
                 .HasMaxLength(30)
                 .IsUnicode(false)
@@ -258,9 +248,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("entidad_Financiera");
 
-            entity.Property(e => e.IdEntiFinanc)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Enti_Financ");
+            entity.Property(e => e.IdEntiFinanc).HasColumnName("id_Enti_Financ");
             entity.Property(e => e.EntiFinanc)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -273,9 +261,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("estado_Demanda");
 
-            entity.Property(e => e.IdEstadoDeman)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Estado_Deman");
+            entity.Property(e => e.IdEstadoDeman).HasColumnName("id_Estado_Deman");
             entity.Property(e => e.Estado)
                 .HasMaxLength(15)
                 .IsUnicode(false)
@@ -288,9 +274,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("municipio");
 
-            entity.Property(e => e.IdMunicipio)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Municipio");
+            entity.Property(e => e.IdMunicipio).HasColumnName("id_Municipio");
             entity.Property(e => e.IdDepartamento).HasColumnName("id_Departamento");
             entity.Property(e => e.Municipio1)
                 .HasMaxLength(30)
@@ -309,9 +293,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("observacion");
 
-            entity.Property(e => e.IdObservacion)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Observacion");
+            entity.Property(e => e.IdObservacion).HasColumnName("id_Observacion");
             entity.Property(e => e.CalificacionEstre).HasColumnName("calificacion_Estre");
             entity.Property(e => e.HoraObser)
                 .HasColumnType("datetime")
@@ -346,9 +328,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("pago_Comprador");
 
-            entity.Property(e => e.IdPago)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Pago");
+            entity.Property(e => e.IdPago).HasColumnName("id_Pago");
             entity.Property(e => e.FechaPagoC)
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Pago_C");
@@ -380,9 +360,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("pago_Transportador");
 
-            entity.Property(e => e.IdConsignacionTrans)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Consignacion_Trans");
+            entity.Property(e => e.IdConsignacionTrans).HasColumnName("id_Consignacion_Trans");
             entity.Property(e => e.AnticipoTrans).HasColumnName("anticipo_Trans");
             entity.Property(e => e.FechaAntiTrans)
                 .HasColumnType("datetime")
@@ -417,9 +395,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("perfil_Pago");
 
-            entity.Property(e => e.IdPerfilPago)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Perfil_Pago");
+            entity.Property(e => e.IdPerfilPago).HasColumnName("id_Perfil_Pago");
             entity.Property(e => e.Cvc)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -460,9 +436,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("precio_Estimado");
 
-            entity.Property(e => e.IdPrecioEstimado)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Precio_Estimado");
+            entity.Property(e => e.IdPrecioEstimado).HasColumnName("id_Precio_Estimado");
             entity.Property(e => e.FechaPreci).HasColumnName("fecha_Preci");
             entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
@@ -485,9 +459,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("producto");
 
-            entity.Property(e => e.IdProducto)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Producto");
+            entity.Property(e => e.IdProducto).HasColumnName("id_Producto");
             entity.Property(e => e.DescripcionProduc)
                 .HasMaxLength(255)
                 .IsUnicode(false)
@@ -526,9 +498,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("reporte_Transportador");
 
-            entity.Property(e => e.IdReporte)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Reporte");
+            entity.Property(e => e.IdReporte).HasColumnName("id_Reporte");
             entity.Property(e => e.FechaActual)
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Actual");
@@ -561,9 +531,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("rol");
 
-            entity.Property(e => e.IdRol)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Rol");
+            entity.Property(e => e.IdRol).HasColumnName("id_Rol");
             entity.Property(e => e.TipoRol)
                 .HasMaxLength(15)
                 .IsUnicode(false)
@@ -576,9 +544,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("tipo_Cuenta");
 
-            entity.Property(e => e.IdTipoCuenta)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Tipo_Cuenta");
+            entity.Property(e => e.IdTipoCuenta).HasColumnName("id_Tipo_Cuenta");
             entity.Property(e => e.TipoCuenta)
                 .HasMaxLength(15)
                 .IsUnicode(false)
@@ -591,9 +557,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("tipo_Pago");
 
-            entity.Property(e => e.IdTipoPago)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Tipo_Pago");
+            entity.Property(e => e.IdTipoPago).HasColumnName("id_Tipo_Pago");
             entity.Property(e => e.TipoPago1)
                 .HasMaxLength(12)
                 .IsUnicode(false)
@@ -606,9 +570,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("tipo_Producto");
 
-            entity.Property(e => e.IdTipoProducto)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Tipo_Producto");
+            entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.Producto)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -665,9 +627,7 @@ public partial class Campesinapp3Context : DbContext
 
             entity.ToTable("variedad");
 
-            entity.Property(e => e.IdVariedad)
-                .ValueGeneratedNever()
-                .HasColumnName("id_Variedad");
+            entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
             entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.VariedadProd)
                 .HasMaxLength(50)

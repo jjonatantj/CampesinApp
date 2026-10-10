@@ -135,10 +135,13 @@
                 <h2 class="fw-bold text-dark mb-1">Precios Sugeridos y Demandas Activas</h2>
                 <p class="text-muted mb-0">Vista previa en modo lectura para visitantes e invitados desde la BD.</p>
             </div>
-            <div class="mt-2 mt-md-0">
+            <div class="mt-2 mt-md-0 d-flex gap-2 align-items-center">
                 <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm">
                     🟢 Modo Invitado: Solo Lectura
                 </span>
+                <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-success btn-sm rounded-pill fw-semibold px-3 shadow-sm">
+                    Ver Catálogo Completo →
+                </a>
             </div>
         </div>
 
