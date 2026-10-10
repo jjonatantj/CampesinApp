@@ -5,3 +5,7 @@
 }
 <partial name="_NavPrivada" />
 @RenderBody()
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

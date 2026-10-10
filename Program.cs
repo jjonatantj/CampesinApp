@@ -26,6 +26,7 @@ builder.Services.AddScoped<UsuariosRepository>();
 builder.Services.AddScoped<PantallaPrincipalRepository>();
 builder.Services.AddScoped<PaginaBienvenidaRepository>();
 builder.Services.AddScoped<DemandaRepository>();
+builder.Services.AddScoped<IPuntoAcopioRepository, PuntoAcopioRepository>();
 
 // 3.1 CASOS DE USO 21 a 32 (ubicacion, transporte, entrega, calificacion, historiales, precios, perfil y cierre de sesion).
 //     Todo lo que necesitan se registra en Services/CasosUsoServiceCollectionExtensions.cs

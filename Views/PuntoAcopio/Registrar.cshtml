@@ -1,0 +1,390 @@
+@model CampesinApp.ViewModels.PuntoAcopioViewModel
+
+@{
+    ViewData["Title"] = "Registro de Puntos de Acopio";
+    Layout = "_LayoutCasosUso";
+}
+
+<div class="container py-4">
+    <div class="main-container p-4 p-md-5 shadow-sm">
+
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO DE LA VISTA                                         -->
+        <!-- ============================================================== -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-geo-alt-fill fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Registro de Puntos de Acopio</h1>
+                <p class="text-muted mb-0 fw-semibold">CU-018: Registra y gestiona puntos físicos de recepción agrícola con geolocalización.</p>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- ALERTAS TEMPORALES FLOTANTES (FE-01, FE-02 Y ÉXITO)            -->
+        <!-- ============================================================== -->
+
+        <!-- FE-01-CU018: Error de conexión a la BD o Internet (6 segundos) -->
+        @if (ViewBag.MensajeErrorConexion != null)
+        {
+            <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-wifi-off fs-4 me-3 text-danger"></i>
+                <div class="flex-grow-1">
+                    <strong>⚠️ Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+
+        <!-- FE-02-CU018: Punto de acopio duplicado en misma dirección (6 segundos) -->
+        @if (ViewBag.MensajeErrorDuplicado != null)
+        {
+            <div id="alertaErrorDuplicado" class="alert alert-warning shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                <div class="flex-grow-1">
+                    <strong>⚠️ Punto Duplicado:</strong> @ViewBag.MensajeErrorDuplicado
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+
+        <!-- Notificación de Éxito: 3 segundos y redirección a Perfil (CU-031) -->
+        @if (ViewBag.RegistroExitoso == true)
+        {
+            <div id="alertaExito" class="alert alert-success shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
+                <div class="flex-grow-1">
+                    <strong>✅ ¡Éxito!</strong> @ViewBag.MensajeExito. Redireccionando a tu perfil...
+                </div>
+            </div>
+        }
+
+        <!-- Resumen de validación de modelo -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger shadow-sm mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes campos:</h6>
+                <div asp-validation-summary="All" class="small mb-0"></div>
+            </div>
+        }
+
+        <!-- ============================================================== -->
+        <!-- FORMULARIO DE REGISTRO (Paso 2 y Paso 3 del CU-018)            -->
+        <!-- ============================================================== -->
+        <form asp-controller="PuntoAcopio" asp-action="Registrar" method="post" id="formPuntoAcopio" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="row g-4">
+
+                <!-- Columna Izquierda: Información General -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-building me-1"></i> Información del Punto
+                    </h5>
+
+                    <!-- Nombre del Punto -->
+                    <div class="mb-3">
+                        <label asp-for="NombrePunto" class="form-label fw-bold small text-muted">Nombre del Punto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success border-end-0"><i class="bi bi-tag-fill"></i></span>
+                            <input asp-for="NombrePunto" class="form-control border-start-0" placeholder="Ej: Acopio Central La Sabana" maxlength="100" required />
+                        </div>
+                        <span asp-validation-for="NombrePunto" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Departamento -->
+                    <div class="mb-3">
+                        <label asp-for="IdDepartamento" class="form-label fw-bold small text-muted">Departamento *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success border-end-0"><i class="bi bi-map"></i></span>
+                            <select asp-for="IdDepartamento" class="form-select border-start-0" id="selectDepartamento" required>
+                                <option value="">-- Seleccione un departamento --</option>
+                                @foreach (var depto in Model.Departamentos)
+                                {
+                                    <option value="@depto.Value" selected="@depto.Selected">@depto.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdDepartamento" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Municipio -->
+                    <div class="mb-3">
+                        <label asp-for="IdMunicipio" class="form-label fw-bold small text-muted">Municipio *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success border-end-0"><i class="bi bi-geo"></i></span>
+                            <select asp-for="IdMunicipio" class="form-select border-start-0" id="selectMunicipio" required>
+                                <option value="">-- Seleccione primero un departamento --</option>
+                                @foreach (var mun in Model.Municipios)
+                                {
+                                    <option value="@mun.Value" selected="@mun.Selected">@mun.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdMunicipio" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Dirección Física -->
+                    <div class="mb-3">
+                        <label asp-for="Direccion" class="form-label fw-bold small text-muted">Dirección Física *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success border-end-0"><i class="bi bi-signpost-2"></i></span>
+                            <input asp-for="Direccion" class="form-control border-start-0" id="inputDireccion" placeholder="Ej: Vereda La Florida Km 4 Vía Principal" maxlength="50" required />
+                        </div>
+                        <span asp-validation-for="Direccion" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Capacidad -->
+                    <div class="mb-3">
+                        <label asp-for="Capacidad" class="form-label fw-bold small text-muted">Capacidad de Almacenamiento (Kg o Toneladas) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success border-end-0"><i class="bi bi-box-seam"></i></span>
+                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-start-0" placeholder="Ej: 15000" required />
+                            <span class="input-group-text bg-light text-muted">Kg / Ton</span>
+                        </div>
+                        <span asp-validation-for="Capacidad" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Regla de Negocio RN-02-CU018: Acceso Vehicular Obligatorio -->
+                    <div class="card p-3 border-success-subtle bg-light mb-3">
+                        <div class="form-check form-switch mb-0">
+                            <input asp-for="AccesoVehicular" class="form-check-input" type="checkbox" id="checkAccesoVehicular" role="switch" checked>
+                            <label class="form-check-label fw-bold text-dark ms-2" for="checkAccesoVehicular">
+                                <i class="bi bi-truck text-success me-1"></i> Cuenta con acceso vehicular accesible para camión
+                            </label>
+                        </div>
+                        <small class="text-muted ms-4 mt-1 d-block">
+                            <strong>RN-02-CU018:</strong> Requisito obligatorio para permitir el cargue y descargue logístico.
+                        </small>
+                        <span asp-validation-for="AccesoVehicular" class="text-danger small ms-4"></span>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Mapa Interactivo y Coordenadas (RN-01-CU018) -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-pin-map-fill me-1"></i> Ubicación Geográfica (Google Maps)
+                    </h5>
+
+                    <p class="small text-muted mb-2">
+                        <strong>RN-01-CU018:</strong> Haz clic en el mapa o arrastra el marcador rojo para capturar la ubicación exacta del punto de acopio.
+                    </p>
+
+                    <!-- Contenedor del Mapa de Google Maps -->
+                    <div id="map" style="width: 100%; height: 350px; border-radius: 12px; background-color: #e9ecef;" class="border shadow-sm mb-3 position-relative">
+                        <div id="mapLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
+                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                            <div>Cargando mapa interactivo...</div>
+                        </div>
+                    </div>
+
+                    <!-- Coordenadas capturadas (Sincronizadas automáticamente) -->
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label asp-for="Latitud" class="form-label fw-bold small text-muted">Latitud *</label>
+                            <input asp-for="Latitud" id="latitudInput" class="form-control form-control-sm bg-light" readonly placeholder="0.0000000" />
+                            <span asp-validation-for="Latitud" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="Longitud" class="form-label fw-bold small text-muted">Longitud *</label>
+                            <input asp-for="Longitud" id="longitudInput" class="form-control form-control-sm bg-light" readonly placeholder="0.0000000" />
+                            <span asp-validation-for="Longitud" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- BOTONES DE ACCIÓN: Cancelar (Gris) y Guardar (Verde)          -->
+            <!-- (Paso 2 y FA-01-CU018)                                         -->
+            <!-- ============================================================== -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                <!-- Botón Cancelar (Gris, inferior izquierda): Dispara modal de confirmación FA-01 -->
+                <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCancelar">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                </button>
+
+                <!-- Botón Guardar Punto de Acopio (Verde, inferior derecha) -->
+                <button type="submit" class="btn btn-success px-4 py-2 fw-bold rounded-pill shadow-sm" id="btnGuardar">
+                    <i class="bi bi-check-circle me-1"></i> Guardar Punto de Acopio
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL DE CONFIRMACIÓN DE CANCELACIÓN (FA-01-CU018)              -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalCancelarLabel">
+                    <i class="bi bi-question-circle-fill text-warning me-2"></i> Confirmar Cancelación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <p class="fs-5 text-muted mb-0">
+                    ¿Está seguro de cancelar el registro del punto de acopio?
+                </p>
+                <small class="text-secondary">Los datos ingresados no se guardarán.</small>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-center gap-3">
+                <!-- Opción NO: Cierra el modal y sigue editando -->
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">
+                    NO
+                </button>
+                <!-- Opción SÍ: Regresa al menú de perfil (CU-031) -->
+                <a asp-controller="Perfil" asp-action="Index" class="btn btn-danger px-4 rounded-pill">
+                    SÍ, Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Validación del lado del cliente de ASP.NET Core -->
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- Google Maps JavaScript API -->
+    @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
+    {
+        <script src="https://maps.googleapis.com/maps/api/js?key=@Model.GoogleMapsApiKey&callback=initMap&loading=async" async defer></script>
+    }
+
+    <script>
+        // ==============================================================
+        // 1. INICIALIZACIÓN DEL MAPA INTERACTIVO DE GOOGLE MAPS
+        // ==============================================================
+        let map;
+        let marker;
+
+        // Coordenadas iniciales por defecto (Colombia / Bogotá o las seleccionadas previamente)
+        const latInicial = parseFloat('@(Model.Latitud?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "4.7110")') || 4.7110;
+        const lngInicial = parseFloat('@(Model.Longitud?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-74.0721")') || -74.0721;
+        const tieneCoordenadasPrevias = @(Model.Latitud.HasValue && Model.Longitud.HasValue ? "true" : "false");
+
+        function initMap() {
+            const mapContainer = document.getElementById('map');
+            const mapLoading = document.getElementById('mapLoading');
+            if (mapLoading) mapLoading.style.display = 'none';
+
+            const defaultPos = { lat: latInicial, lng: lngInicial };
+
+            map = new google.maps.Map(mapContainer, {
+                center: defaultPos,
+                zoom: tieneCoordenadasPrevias ? 13 : 6,
+                mapTypeControl: false,
+                streetViewControl: false,
+                zoomControl: true
+            });
+
+            // Crear el marcador (Pin) arrastrable
+            marker = new google.maps.Marker({
+                position: defaultPos,
+                map: map,
+                draggable: true,
+                animation: google.maps.Animation.DROP,
+                title: "Arrastra para fijar la ubicación del punto de acopio"
+            });
+
+            // Evento: Al hacer clic en cualquier parte del mapa
+            map.addListener('click', function(event) {
+                actualizarCoordenadas(event.latLng.lat(), event.latLng.lng());
+            });
+
+            // Evento: Al terminar de arrastrar el marcador
+            marker.addListener('dragend', function(event) {
+                actualizarCoordenadas(event.latLng.lat(), event.latLng.lng());
+            });
+
+            // Si ya traía coordenadas, poblar campos
+            if (tieneCoordenadasPrevias) {
+                actualizarCoordenadas(latInicial, lngInicial, false);
+            }
+        }
+
+        function actualizarCoordenadas(lat, lng, moverMarcador = true) {
+            const latFixed = lat.toFixed(7);
+            const lngFixed = lng.toFixed(7);
+
+            document.getElementById('latitudInput').value = latFixed;
+            document.getElementById('longitudInput').value = lngFixed;
+
+            if (moverMarcador && marker) {
+                marker.setPosition({ lat: lat, lng: lng });
+            }
+        }
+
+        // ==============================================================
+        // 2. CARGA DINÁMICA DE MUNICIPIOS AL CAMBIAR DEPARTAMENTO
+        // ==============================================================
+        document.getElementById('selectDepartamento').addEventListener('change', function() {
+            const deptoId = this.value;
+            const selectMun = document.getElementById('selectMunicipio');
+            selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
+
+            if (!deptoId) {
+                selectMun.innerHTML = '<option value="">-- Seleccione primero un departamento --</option>';
+                return;
+            }
+
+            fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=' + deptoId)
+                .then(response => response.json())
+                .then(data => {
+                    selectMun.innerHTML = '<option value="">-- Seleccione un municipio --</option>';
+                    data.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.nombre;
+                        selectMun.appendChild(opt);
+                    });
+                })
+                .catch(() => {
+                    selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
+                });
+        });
+
+        // ==============================================================
+        // 3. CONTROL DE MENSAJES TEMPORIZADOS (FE-01, FE-02 Y ÉXITO)
+        // ==============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // FE-01-CU018: Mensaje de error de BD o internet desaparece a los 6 segundos
+            const alertaConexion = document.getElementById('alertaErrorConexion');
+            if (alertaConexion) {
+                setTimeout(() => {
+                    alertaConexion.style.transition = 'opacity 0.8s ease';
+                    alertaConexion.style.opacity = '0';
+                    setTimeout(() => alertaConexion.remove(), 800);
+                }, 6000);
+            }
+
+            // FE-02-CU018: Mensaje de punto duplicado desaparece a los 6 segundos
+            const alertaDuplicado = document.getElementById('alertaErrorDuplicado');
+            if (alertaDuplicado) {
+                setTimeout(() => {
+                    alertaDuplicado.style.transition = 'opacity 0.8s ease';
+                    alertaDuplicado.style.opacity = '0';
+                    setTimeout(() => alertaDuplicado.remove(), 800);
+                }, 6000);
+            }
+
+            // Paso 4: Mensaje de éxito dura 3 segundos y redirige a Perfil (CU-031)
+            const alertaExito = document.getElementById('alertaExito');
+            if (alertaExito) {
+                setTimeout(() => {
+                    window.location.href = '@Url.Action("Index", "Perfil")';
+                }, 3000);
+            }
+        });
+    </script>
+}
+

@@ -189,6 +189,10 @@ public partial class Campesinapp3Context : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("direccion_Final");
+            entity.Property(e => e.DireccionInicial)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("direccion_Inicial");
             entity.Property(e => e.FechaEntrega)
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Entrega");
@@ -590,7 +594,7 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("apellido_com");
             entity.Property(e => e.CedulaUsu).HasColumnName("cedula_Usu");
             entity.Property(e => e.ContrasenaUsu)
-                .HasMaxLength(10)
+                .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("contrasena_Usu");
             entity.Property(e => e.CorreoUsu)
