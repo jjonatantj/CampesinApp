@@ -63,6 +63,87 @@ namespace CampesinApp.Controllers
             // 4. Retornar la vista con el ViewModel completo
             return View(modelo);
         }
+
+        // =========================================================================
+        // ACCIÓN DETALLE (CU-012: RESPONDER A DEMANDA DE PRODUCTO)
+        // =========================================================================
+        /// <summary>
+        /// Muestra el detalle específico de una demanda seleccionada en el catálogo CU-011.
+        /// Flujo de excepción FE01-CU012: En caso de error o si la demanda no existe,
+        /// redirige al catálogo mostrando una notificación temporal.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Detalle(int id)
+        {
+            if (id <= 0)
+            {
+                TempData["MensajeError"] = "Identificador de demanda no válido.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                // Consultamos la demanda a través del repositorio con todas sus relaciones
+                var demanda = await _demandaRepository.ObtenerDemandaPorIdAsync(id);
+
+                if (demanda == null)
+                {
+                    // FE01-CU012: Demanda inexistente
+                    TempData["MensajeError"] = "La demanda seleccionada no fue encontrada o ya no está disponible.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Consultamos el total aportado previamente por otros campesinos
+                int totalAportado = await _demandaRepository.ObtenerTotalAportadoAsync(id);
+                int cantidadFaltante = Math.Max(0, demanda.CantidadDeman - totalAportado);
+
+                string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
+
+                var viewModel = new CampesinApp.ViewModels.DetalleDemandaViewModel
+                {
+                    IdDemanda = demanda.IdDemanda,
+                    NombreProducto = demanda.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar",
+                    VariedadProducto = demanda.IdVariedadNavigation?.VariedadProd ?? "Variedad estándar",
+                    Descripcion = string.IsNullOrWhiteSpace(demanda.DescripcionDeman) ? "Sin observaciones adicionales." : demanda.DescripcionDeman,
+                    EstadoDemanda = demanda.IdEstadoDemanNavigation?.Estado ?? "Activa",
+                    CantidadTotal = demanda.CantidadDeman,
+                    CantidadAportada = totalAportado,
+                    CantidadFaltante = cantidadFaltante,
+                    PrecioPropuesto = demanda.PrecioDeman,
+                    DireccionEntrega = demanda.DireccionFinal,
+                    MunicipioEntrega = demanda.IdMunicipioNavigation?.Municipio1 ?? "Municipio no registrado",
+                    DepartamentoEntrega = demanda.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "",
+                    FechaLimite = demanda.LimTiemDeman,
+                    FechaEntrega = demanda.FechaEntrega,
+                    CompradorId = demanda.IdUsuario,
+                    CompradorNombreCompleto = $"{demanda.IdUsuarioNavigation?.NombreCom} {demanda.IdUsuarioNavigation?.ApellidoCom}".Trim(),
+                    CompradorTelefono = demanda.IdUsuarioNavigation != null && demanda.IdUsuarioNavigation.TelelfonoUsu > 0
+                        ? demanda.IdUsuarioNavigation.TelelfonoUsu.ToString()
+                        : "No disponible",
+                    CompradorCorreo = demanda.IdUsuarioNavigation?.CorreoUsu ?? "No disponible",
+                    CompradorMunicipio = demanda.IdUsuarioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Colombia",
+                    EsUsuarioAutenticado = !string.IsNullOrEmpty(rolUsuario),
+                    RolUsuario = rolUsuario
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception)
+            {
+                // FE01-CU012: Error al conectar con la base de datos
+                TempData["MensajeError"] = "No fue posible conectar con el servidor para consultar el detalle de la demanda. Intente más tarde.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Alias de enrutamiento: permite ingresar también a través de /catalogo/Responder/{id}
+        /// </summary>
+        [HttpGet]
+        public IActionResult Responder(int id)
+        {
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
     }
 }
 

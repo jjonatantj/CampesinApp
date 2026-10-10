@@ -88,6 +88,34 @@ namespace CampesinApp.Repositories
                 .OrderBy(m => m)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// CU-012: Consulta el detalle completo de una demanda por su ID.
+        /// Incluye producto, variedad, municipio, comprador (usuario) y la colección de aportes previos.
+        /// </summary>
+        public async Task<Demandum?> ObtenerDemandaPorIdAsync(int idDemanda)
+        {
+            return await _context.Demanda
+                .Include(d => d.IdTipoProductoNavigation)
+                .Include(d => d.IdVariedadNavigation)
+                .Include(d => d.IdMunicipioNavigation)
+                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdUsuarioNavigation)
+                    .ThenInclude(u => u.IdMunicipioNavigation)
+                .Include(d => d.AporteCamps)
+                .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda);
+        }
+
+        /// <summary>
+        /// CU-012: Calcula la suma de todos los kilos ya aportados por los campesinos a esta demanda.
+        /// Permite calcular en el negocio la cantidad faltante (CantidadDeman - TotalAportado).
+        /// </summary>
+        public async Task<int> ObtenerTotalAportadoAsync(int idDemanda)
+        {
+            return await _context.AporteCamps
+                .Where(a => a.IdDemanda == idDemanda)
+                .SumAsync(a => a.CantAporte);
+        }
     }
 }
 
