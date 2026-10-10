@@ -108,7 +108,7 @@ namespace CampesinApp.Services
                         d.IdDemanda,
                         Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
                         d.CantidadDeman,
-                        d.DireccionFinal
+                        DireccionFinal = d.IdPuntoAcopioNavigation != null ? d.IdPuntoAcopioNavigation.Direccion : (d.DireccionInicial ?? "Punto de Acopio")
                     })
                     .ToListAsync())
                 .Select(d => new OpcionDto
@@ -210,7 +210,7 @@ namespace CampesinApp.Services
                     v.IdDemanda,
                     Producto = v.IdDemandaNavigation.IdTipoProductoNavigation.Producto + " " + v.IdDemandaNavigation.IdVariedadNavigation.VariedadProd,
                     v.IdDemandaNavigation.CantidadDeman,
-                    v.IdDemandaNavigation.DireccionFinal,
+                    DireccionFinal = v.IdDemandaNavigation.IdPuntoAcopioNavigation != null ? v.IdDemandaNavigation.IdPuntoAcopioNavigation.Direccion : (v.IdDemandaNavigation.DireccionInicial ?? "Punto de Acopio"),
                     v.EstadoEnvio,
                     v.LlegadaNotificada
                 })

@@ -1,4 +1,4 @@
-﻿@model CampesinApp.ViewModels.PantallaPrincipalViewModel
+@model CampesinApp.ViewModels.PantallaPrincipalViewModel
 
 @{
     ViewData["Title"] = "Pantalla Principal - CampesinApp";
@@ -31,17 +31,20 @@
                 @if (Model.RolUsuario == "Campesino")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Mis Cultivos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Catálogo de Demanda</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Registrar">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Comprador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Publicar Demanda</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Mis Pedidos</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Registrar">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Panel Logístico</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Carga DANE</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Registrar">Puntos de Acopio</a></li>
                 }
             </ul>
 

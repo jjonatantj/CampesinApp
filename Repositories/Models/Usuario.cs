@@ -46,4 +46,6 @@ public partial class Usuario
     public virtual ICollection<Producto> Productos { get; set; } = new List<Producto>();
 
     public virtual ICollection<ReporteTransportador> ReporteTransportadors { get; set; } = new List<ReporteTransportador>();
+
+    public virtual ICollection<PuntoAcopio> IdPuntoAcopios { get; set; } = new List<PuntoAcopio>();
 }

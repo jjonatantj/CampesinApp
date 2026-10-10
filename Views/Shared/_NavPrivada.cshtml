@@ -19,6 +19,15 @@
                 <li class="nav-item">
                     <a class="nav-link" asp-controller="PantallaPrincipal" asp-action="Index">Inicio</a>
                 </li>
+                @if (rol == "Campesino" || string.IsNullOrEmpty(rol))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a>
+                    </li>
+                }
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="PuntoAcopio" asp-action="Registrar">Puntos de Acopio</a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link nav-link-highlight" asp-controller="Perfil" asp-action="Index">Perfil de usuario</a>
                 </li>
