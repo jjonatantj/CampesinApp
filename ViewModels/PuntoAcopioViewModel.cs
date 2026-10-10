@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -5,11 +6,12 @@ namespace CampesinApp.ViewModels
 {
     /// <summary>
     /// Modelo de Vista para el formulario de registro de Puntos de Acopio (CU-018).
+    /// Contiene los campos del lugar físico y las propiedades auxiliares para la vista Razor.
     /// </summary>
     public class PuntoAcopioViewModel
     {
         [Required(ErrorMessage = "El nombre del punto de acopio es obligatorio.")]
-        [StringLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres.")]
+        [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
         [Display(Name = "Nombre del Punto")]
         public string NombrePunto { get; set; } = string.Empty;
 
@@ -24,33 +26,43 @@ namespace CampesinApp.ViewModels
         public int IdMunicipio { get; set; }
 
         [Required(ErrorMessage = "La dirección física es obligatoria.")]
-        [StringLength(50, ErrorMessage = "La dirección no puede exceder los 50 caracteres.")]
-        [Display(Name = "Dirección")]
+        [StringLength(150, ErrorMessage = "La dirección no puede superar los 150 caracteres.")]
+        [Display(Name = "Dirección Física")]
         public string Direccion { get; set; } = string.Empty;
 
-        // Regla RN-01-CU018: Latitud y Longitud obligatorias seleccionadas en el mapa
-        [Required(ErrorMessage = "Debe seleccionar la ubicación geográfica en el mapa (Latitud requerida).")]
-        [Display(Name = "Latitud")]
-        public decimal? Latitud { get; set; }
+        [Required(ErrorMessage = "El teléfono de contacto es obligatorio.")]
+        [StringLength(15, ErrorMessage = "El teléfono no puede superar los 15 dígitos.")]
+        [Display(Name = "Teléfono de Contacto")]
+        public string Telefono { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Debe seleccionar la ubicación geográfica en el mapa (Longitud requerida).")]
-        [Display(Name = "Longitud")]
-        public decimal? Longitud { get; set; }
+        [Required(ErrorMessage = "El horario de atención es obligatorio.")]
+        [StringLength(80, ErrorMessage = "El horario no puede superar los 80 caracteres.")]
+        [Display(Name = "Horario de Atención")]
+        public string HorarioAtencion { get; set; } = "Lunes a Viernes: 6:00 AM - 5:00 PM";
 
-        [Required(ErrorMessage = "La capacidad de acopio es obligatoria.")]
-        [Range(1, 10000000, ErrorMessage = "La capacidad debe ser un valor numérico positivo mayor a 0.")]
+        [Required(ErrorMessage = "La capacidad estimada es obligatoria.")]
+        [Range(1, 10000000, ErrorMessage = "La capacidad debe ser un número positivo mayor a 0.")]
         [Display(Name = "Capacidad (Kg / Toneladas)")]
         public decimal Capacidad { get; set; }
 
         // Regla RN-02-CU018: Acceso vehicular para camiones
-        [Display(Name = "¿Cuenta con acceso vehicular accesible para camión?")]
+        [Display(Name = "¿Cuenta con acceso vehicular para camión?")]
         public bool AccesoVehicular { get; set; } = true;
 
-        // Elementos auxiliares para renderizar los desplegables en la vista
+        // Regla RN-01-CU018: Latitud y Longitud geográficas (llenadas automáticamente por el mapa en campos ocultos)
+        [Required(ErrorMessage = "Debe hacer clic en el mapa para marcar la ubicación geográfica (Latitud requerida).")]
+        [Display(Name = "Latitud")]
+        public decimal? Latitud { get; set; }
+
+        [Required(ErrorMessage = "Debe hacer clic en el mapa para marcar la ubicación geográfica (Longitud requerida).")]
+        [Display(Name = "Longitud")]
+        public decimal? Longitud { get; set; }
+
+        // Listas desplegables para la vista Razor
         public List<SelectListItem> Departamentos { get; set; } = new();
         public List<SelectListItem> Municipios { get; set; } = new();
 
-        // Clave de API de Google Maps para inicializar el mapa en el cliente
+        // Clave de API de Google Maps para cargar el mapa interactivo
         public string GoogleMapsApiKey { get; set; } = string.Empty;
     }
 }

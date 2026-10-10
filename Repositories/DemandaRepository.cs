@@ -27,8 +27,9 @@ namespace CampesinApp.Repositories
             var query = _context.Demanda
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
-                .Include(d => d.IdMunicipioNavigation)
-                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
                 .AsQueryable();
 
             // 1. Filtro por Categoría / Variedad
@@ -46,8 +47,9 @@ namespace CampesinApp.Repositories
             // 3. Filtro por Región (Municipio o Departamento)
             if (!string.IsNullOrWhiteSpace(region))
             {
-                query = query.Where(d => d.IdMunicipioNavigation.Municipio1 == region ||
-                                         d.IdMunicipioNavigation.IdDepartamentoNavigation.Departamento1 == region);
+                query = query.Where(d => d.IdPuntoAcopioNavigation != null &&
+                                         (d.IdPuntoAcopioNavigation.IdMunicipioNavigation.Municipio1 == region ||
+                                          d.IdPuntoAcopioNavigation.IdMunicipioNavigation.IdDepartamentoNavigation.Departamento1 == region));
             }
 
             return await query.ToListAsync();
@@ -98,8 +100,9 @@ namespace CampesinApp.Repositories
             return await _context.Demanda
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
-                .Include(d => d.IdMunicipioNavigation)
-                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
                 .Include(d => d.IdUsuarioNavigation)
                     .ThenInclude(u => u.IdMunicipioNavigation)
                 .Include(d => d.AporteCamps)

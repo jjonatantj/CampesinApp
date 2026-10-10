@@ -45,6 +45,8 @@ public partial class Campesinapp3Context : DbContext
 
     public virtual DbSet<Producto> Productos { get; set; }
 
+    public virtual DbSet<PuntoAcopio> PuntoAcopios { get; set; }
+
     public virtual DbSet<ReporteTransportador> ReporteTransportadors { get; set; }
 
     public virtual DbSet<Rol> Rols { get; set; }
@@ -75,6 +77,7 @@ public partial class Campesinapp3Context : DbContext
             entity.Property(e => e.IdAporte).HasColumnName("id_Aporte");
             entity.Property(e => e.CantAporte).HasColumnName("cant_Aporte");
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
+            entity.Property(e => e.IdPuntoAcopio).HasColumnName("id_Punto_Acopio");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
             entity.Property(e => e.Imagen)
                 .HasMaxLength(60)
@@ -85,6 +88,10 @@ public partial class Campesinapp3Context : DbContext
                 .HasForeignKey(d => d.IdDemanda)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_aporte_Camp_demanda");
+
+            entity.HasOne(d => d.IdPuntoAcopioNavigation).WithMany(p => p.AporteCamps)
+                .HasForeignKey(d => d.IdPuntoAcopio)
+                .HasConstraintName("FK_aporte_Camp_punto_Acopio");
 
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.AporteCamps)
                 .HasForeignKey(d => d.IdUsuario)
@@ -185,10 +192,6 @@ public partial class Campesinapp3Context : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("descripcion_Deman");
-            entity.Property(e => e.DireccionFinal)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("direccion_Final");
             entity.Property(e => e.DireccionInicial)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -198,7 +201,7 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("fecha_Entrega");
             entity.Property(e => e.IdCamion).HasColumnName("id_Camion");
             entity.Property(e => e.IdEstadoDeman).HasColumnName("id_Estado_Deman");
-            entity.Property(e => e.IdMunicipio).HasColumnName("id_Municipio");
+            entity.Property(e => e.IdPuntoAcopio).HasColumnName("id_Punto_Acopio");
             entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
             entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
@@ -212,10 +215,9 @@ public partial class Campesinapp3Context : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_demanda_estado_Demanda");
 
-            entity.HasOne(d => d.IdMunicipioNavigation).WithMany(p => p.Demanda)
-                .HasForeignKey(d => d.IdMunicipio)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_demanda_municipio");
+            entity.HasOne(d => d.IdPuntoAcopioNavigation).WithMany(p => p.Demanda)
+                .HasForeignKey(d => d.IdPuntoAcopio)
+                .HasConstraintName("FK_demanda_punto_Acopio");
 
             entity.HasOne(d => d.IdTipoProductoNavigation).WithMany(p => p.Demanda)
                 .HasForeignKey(d => d.IdTipoProducto)
@@ -496,6 +498,52 @@ public partial class Campesinapp3Context : DbContext
                 .HasConstraintName("FK_producto_variedad");
         });
 
+        modelBuilder.Entity<PuntoAcopio>(entity =>
+        {
+            entity.HasKey(e => e.IdPuntoAcopio);
+
+            entity.ToTable("punto_Acopio");
+
+            entity.HasIndex(e => new { e.Latitud, e.Longitud }, "IX_punto_acopio_coordenadas");
+
+            entity.Property(e => e.IdPuntoAcopio).HasColumnName("id_Punto_Acopio");
+            entity.Property(e => e.AccesoVehicular).HasColumnName("acceso_Vehicular");
+            entity.Property(e => e.Capacidad)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("capacidad");
+            entity.Property(e => e.Direccion)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .HasColumnName("direccion");
+            entity.Property(e => e.FechaRegistro)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha_Registro");
+            entity.Property(e => e.HorarioAtencion)
+                .HasMaxLength(80)
+                .IsUnicode(false)
+                .HasColumnName("horario_Atencion");
+            entity.Property(e => e.IdMunicipio).HasColumnName("id_Municipio");
+            entity.Property(e => e.Latitud)
+                .HasColumnType("decimal(10, 7)")
+                .HasColumnName("latitud");
+            entity.Property(e => e.Longitud)
+                .HasColumnType("decimal(10, 7)")
+                .HasColumnName("longitud");
+            entity.Property(e => e.NombrePunto)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("nombre_Punto");
+            entity.Property(e => e.Telefono)
+                .HasMaxLength(15)
+                .IsUnicode(false)
+                .HasColumnName("telefono");
+
+            entity.HasOne(d => d.IdMunicipioNavigation).WithMany(p => p.PuntoAcopios)
+                .HasForeignKey(d => d.IdMunicipio)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_punto_Acopio_municipio");
+        });
+
         modelBuilder.Entity<ReporteTransportador>(entity =>
         {
             entity.HasKey(e => e.IdReporte);
@@ -623,6 +671,25 @@ public partial class Campesinapp3Context : DbContext
                 .HasForeignKey(d => d.IdRol)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_usuario_rol");
+
+            entity.HasMany(d => d.IdPuntoAcopios).WithMany(p => p.IdUsuarios)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UsuarioPuntoAcopio",
+                    r => r.HasOne<PuntoAcopio>().WithMany()
+                        .HasForeignKey("IdPuntoAcopio")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("FK_usuario_Punto_Acopio_punto_Acopio"),
+                    l => l.HasOne<Usuario>().WithMany()
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("FK_usuario_Punto_Acopio_usuario"),
+                    j =>
+                    {
+                        j.HasKey("IdUsuario", "IdPuntoAcopio");
+                        j.ToTable("usuario_Punto_Acopio");
+                        j.IndexerProperty<int>("IdUsuario").HasColumnName("id_Usuario");
+                        j.IndexerProperty<int>("IdPuntoAcopio").HasColumnName("id_Punto_Acopio");
+                    });
         });
 
         modelBuilder.Entity<Variedad>(entity =>

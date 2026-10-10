@@ -1,4 +1,4 @@
-﻿using CampesinApp.Repositories.Models;
+using CampesinApp.Repositories.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -42,9 +42,11 @@ namespace CampesinApp.Repositories
                                      from v in vGroup.DefaultIfEmpty()
                                      join u in _context.Usuarios on d.IdUsuario equals u.IdUsuario into uGroup
                                      from u in uGroup.DefaultIfEmpty()
-                                     join m in _context.Municipios on d.IdMunicipio equals m.IdMunicipio into mGroup
+                                     join p in _context.PuntoAcopios on d.IdPuntoAcopio equals p.IdPuntoAcopio into pGroup
+                                     from p in pGroup.DefaultIfEmpty()
+                                     join m in _context.Municipios on (p != null ? p.IdMunicipio : 1) equals m.IdMunicipio into mGroup
                                      from m in mGroup.DefaultIfEmpty()
-                                     join dep in _context.Departamentos on m.IdDepartamento equals dep.IdDepartamento into depGroup
+                                     join dep in _context.Departamentos on (m != null ? m.IdDepartamento : 1) equals dep.IdDepartamento into depGroup
                                      from dep in depGroup.DefaultIfEmpty()
                                      select new
                                      {

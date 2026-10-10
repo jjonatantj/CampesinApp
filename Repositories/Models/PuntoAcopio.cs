@@ -1,65 +1,37 @@
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace CampesinApp.Repositories.Models
+namespace CampesinApp.Repositories.Models;
+
+public partial class PuntoAcopio
 {
-    /// <summary>
-    /// Entidad para el Caso de Uso CU-018: Registro de Puntos de Acopio.
-    /// Mapea la tabla punto_Acopio en la base de datos de SQL Server.
-    /// </summary>
-    [Table("punto_Acopio")]
-    public class PuntoAcopio
-    {
-        [Key]
-        [Column("id_Punto_Acopio")]
-        public int IdPuntoAcopio { get; set; }
+    public int IdPuntoAcopio { get; set; }
 
-        [Column("id_Usuario")]
-        public int IdUsuario { get; set; }
+    public int IdMunicipio { get; set; }
 
-        [Required]
-        [Column("nombre_Punto")]
-        [StringLength(100)]
-        public string NombrePunto { get; set; } = string.Empty;
+    public string NombrePunto { get; set; } = null!;
 
-        [Column("id_Departamento")]
-        public int IdDepartamento { get; set; }
+    public string Direccion { get; set; } = null!;
 
-        [Column("id_Municipio")]
-        public int IdMunicipio { get; set; }
+    public string Telefono { get; set; } = null!;
 
-        [Required]
-        [Column("direccion")]
-        [StringLength(150)]
-        public string Direccion { get; set; } = string.Empty;
+    public string HorarioAtencion { get; set; } = null!;
 
-        // Regla RN-01-CU018: Ubicación geográfica obligatoria
-        [Column("latitud", TypeName = "decimal(10, 7)")]
-        public decimal Latitud { get; set; }
+    public decimal Latitud { get; set; }
 
-        [Column("longitud", TypeName = "decimal(10, 7)")]
-        public decimal Longitud { get; set; }
+    public decimal Longitud { get; set; }
 
-        [Column("capacidad", TypeName = "decimal(10, 2)")]
-        public decimal Capacidad { get; set; }
+    public decimal Capacidad { get; set; }
 
-        // Regla RN-02-CU018: Acceso vehicular para camiones
-        [Column("acceso_Vehicular")]
-        public bool AccesoVehicular { get; set; }
+    public bool AccesoVehicular { get; set; }
 
-        [Column("fecha_Registro", TypeName = "datetime")]
-        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+    public DateTime FechaRegistro { get; set; }
 
-        // Propiedades de Navegación relacional
-        [ForeignKey("IdUsuario")]
-        public virtual Usuario? IdUsuarioNavigation { get; set; }
+    public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
 
-        [ForeignKey("IdDepartamento")]
-        public virtual Departamento? IdDepartamentoNavigation { get; set; }
+    public virtual ICollection<Demandum> Demanda { get; set; } = new List<Demandum>();
 
-        [ForeignKey("IdMunicipio")]
-        public virtual Municipio? IdMunicipioNavigation { get; set; }
-    }
+    public virtual Municipio IdMunicipioNavigation { get; set; } = null!;
+
+    public virtual ICollection<Usuario> IdUsuarios { get; set; } = new List<Usuario>();
 }
-

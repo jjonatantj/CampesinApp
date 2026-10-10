@@ -15,9 +15,13 @@ public partial class AporteCamp
 
     public string Imagen { get; set; } = null!;
 
+    public int? IdPuntoAcopio { get; set; }
+
     public virtual ICollection<Consignacion> Consignacions { get; set; } = new List<Consignacion>();
 
     public virtual Demandum IdDemandaNavigation { get; set; } = null!;
+
+    public virtual PuntoAcopio? IdPuntoAcopioNavigation { get; set; }
 
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 }

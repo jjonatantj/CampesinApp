@@ -1,9 +1,13 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using CampesinApp.Repositories;
-using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
+using CampesinApp.Dtos;
 
 namespace CampesinApp.Controllers
 {
@@ -12,7 +16,7 @@ namespace CampesinApp.Controllers
     /// 
     /// REGLAS ARQUITECTÓNICAS:
     /// 1. NO accede directamente al DbContext. Utiliza exclusivamente IPuntoAcopioRepository.
-    /// 2. Aplica las reglas de negocio y excepciones según la especificación CU-018.
+    /// 2. Aplica las reglas de negocio (RN-01 y RN-02) y flujos de excepción (FE-01 y FE-02).
     /// </summary>
     public class PuntoAcopioController : Controller
     {
@@ -31,7 +35,7 @@ namespace CampesinApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Registrar()
         {
-            // Verificación de Precondición: Usuario autenticado con rol autorizado
+            // Verificación de Precondición: Usuario autenticado con sesión activa
             if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
             {
                 return RedirectToAction("Login", "InicioSesion");
@@ -55,7 +59,7 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Registrar(PuntoAcopioViewModel model)
         {
-            // Validar sesión
+            // 1. Validar sesión de usuario
             if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
             {
                 return RedirectToAction("Login", "InicioSesion");
@@ -63,29 +67,29 @@ namespace CampesinApp.Controllers
 
             model.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
-            // REGLA DE NEGOCIO RN-01-CU018:
-            // El registro del punto de acopio exige capturar la ubicación geográfica de forma obligatoria.
+            // 2. REGLA DE NEGOCIO RN-01-CU018:
+            // El registro exige capturar la ubicación geográfica obligatoria mediante el mapa.
             if (!model.Latitud.HasValue || !model.Longitud.HasValue || model.Latitud == 0 || model.Longitud == 0)
             {
-                ModelState.AddModelError("Latitud", "Debe capturar la ubicación geográfica obligatoria seleccionando el punto en el mapa interactivo.");
+                ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo para fijar las coordenadas geográficas (Latitud y Longitud).");
             }
 
-            // REGLA DE NEGOCIO RN-02-CU018:
-            // El punto de acopio debe tener acceso vehicular accesible para el camión.
+            // 3. REGLA DE NEGOCIO RN-02-CU018:
+            // El punto de acopio debe contar con acceso vehicular accesible para el camión.
             if (!model.AccesoVehicular)
             {
-                ModelState.AddModelError("AccesoVehicular", "El punto de acopio debe contar obligatoriamente con acceso vehicular accesible para el camión.");
+                ModelState.AddModelError("AccesoVehicular", "El punto de acopio debe contar obligatoriamente con acceso vehicular accesible para camiones.");
             }
 
-            // Validar campos obligatorios del modelo
+            // 4. Validar integridad del formulario
             if (!ModelState.IsValid)
             {
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
 
-            // FLUJO DE EXCEPCIÓN FE-02-CU018:
-            // Punto de acopio duplicado en la misma dirección o coordenadas.
+            // 5. FLUJO DE EXCEPCIÓN FE-02-CU018:
+            // Validar punto de acopio duplicado en la misma dirección o coordenadas.
             try
             {
                 bool esDuplicado = await _puntoAcopioRepo.ExistePuntoDuplicadoAsync(
@@ -95,45 +99,45 @@ namespace CampesinApp.Controllers
 
                 if (esDuplicado)
                 {
-                    // Mensaje emergente de 6 segundos especificado en FE-02-CU018
-                    ViewBag.MensajeErrorDuplicado = "Ya existe un punto de acopio registrado en la dirección ingresada.";
+                    ViewBag.MensajeErrorDuplicado = "Ya existe un punto de acopio registrado en la misma dirección o coordenadas geográficas.";
                     await CargarListasDesplegablesAsync(model);
                     return View(model);
                 }
             }
             catch (Exception)
             {
-                // Error al verificar duplicados por fallo de BD
-                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo";
+                // Fallo de conexión o tiempo de espera con la BD
+                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
 
-            // FLUJO DE EXCEPCIÓN FE-01-CU018:
-            // Error en base de datos o fallo de conexión al intentar guardar.
+            // 6. FLUJO PRINCIPAL DE GUARDADO (Paso 4):
+            // Persistir en 'punto_Acopio' y vincular en 'usuario_Punto_Acopio'
             try
             {
-                var nuevoPuntoDto = new CampesinApp.Dtos.PuntoAcopioRegistroDto
+                var nuevoPuntoDto = new PuntoAcopioRegistroDto
                 {
                     IdUsuario = idUsuario,
-                    NombrePunto = model.NombrePunto.Trim(),
                     IdDepartamento = model.IdDepartamento,
                     IdMunicipio = model.IdMunicipio,
+                    NombrePunto = model.NombrePunto.Trim(),
                     Direccion = model.Direccion.Trim(),
+                    Telefono = model.Telefono.Trim(),
+                    HorarioAtencion = model.HorarioAtencion.Trim(),
                     Latitud = model.Latitud.Value,
                     Longitud = model.Longitud.Value,
                     Capacidad = model.Capacidad,
                     AccesoVehicular = model.AccesoVehicular
                 };
 
-                await _puntoAcopioRepo.GuardarPuntoAcopioAsync(nuevoPuntoDto);
+                // El repositorio inserta en 'punto_Acopio', obtiene el ID generado y lo relaciona en 'usuario_Punto_Acopio'
+                int idPuntoGenerado = await _puntoAcopioRepo.GuardarPuntoAcopioAsync(nuevoPuntoDto);
 
-                // ÉXITO (Paso 4 del CU-018):
-                // Notifica en pantalla "Punto de acopio registrado satisfactoriamente" durante 3 segundos
-                // y redirecciona al perfil de usuario (CU-031).
+                // Mensaje de éxito temporal de 3 segundos antes de redireccionar al perfil
                 ViewBag.RegistroExitoso = true;
-                ViewBag.MensajeExito = "Punto de acopio registrado satisfactoriamente";
-                TempData["MensajeExito"] = "Punto de acopio registrado satisfactoriamente";
+                ViewBag.MensajeExito = $"Punto de acopio '{model.NombrePunto}' registrado satisfactoriamente (ID #{idPuntoGenerado}).";
+                TempData["MensajeExito"] = "Punto de acopio registrado satisfactoriamente.";
 
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
@@ -141,7 +145,7 @@ namespace CampesinApp.Controllers
             catch (Exception)
             {
                 // FE-01-CU018: Error al guardar en base de datos
-                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo";
+                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
@@ -166,13 +170,12 @@ namespace CampesinApp.Controllers
         // =========================================================================
         // MÉTODOS PRIVADOS AUXILIARES
         // =========================================================================
-
         private bool EsUsuarioAutorizado(out int idUsuario, out string rol)
         {
             idUsuario = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
             rol = HttpContext.Session.GetString("RolUsuario") ?? string.Empty;
 
-            // Precondición: El usuario debe contar con una sesión activa en la plataforma
+            // Precondición: El usuario debe tener sesión activa
             return idUsuario > 0;
         }
 
@@ -198,7 +201,7 @@ namespace CampesinApp.Controllers
             }
             else
             {
-                model.Municipios = new List<SelectListItem>();
+                model.Municipios = new System.Collections.Generic.List<SelectListItem>();
             }
         }
     }

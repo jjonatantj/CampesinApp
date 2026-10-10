@@ -54,7 +54,7 @@ namespace CampesinApp.Controllers
                         NombreProducto = d.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar",
                         Variedad = d.IdVariedadNavigation?.VariedadProd ?? "Estándar",
                         CantidadKg = d.CantidadDeman,
-                        LugarDestino = $"{d.DireccionFinal} ({d.IdMunicipioNavigation?.Municipio1 ?? "Municipio"})",
+                        LugarDestino = $"{d.IdPuntoAcopioNavigation?.Direccion ?? "Punto de Acopio"} ({d.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Municipio"})",
                         FechaEntrega = d.FechaEntrega,
                         NombreComprador = $"{d.IdUsuarioNavigation?.NombreCom} {d.IdUsuarioNavigation?.ApellidoCom}".Trim()
                     }).ToList()
@@ -123,7 +123,7 @@ namespace CampesinApp.Controllers
                     LugarOrigen = !string.IsNullOrWhiteSpace(demanda.DireccionInicial) 
                         ? demanda.DireccionInicial 
                         : "Punto de Acopio Departamental",
-                    LugarDestino = $"{demanda.DireccionFinal} - {demanda.IdMunicipioNavigation?.Municipio1 ?? ""}",
+                    LugarDestino = $"{demanda.IdPuntoAcopioNavigation?.Direccion ?? "Punto de Acopio"} - {demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? ""}",
                     FechaEntrega = demanda.FechaEntrega,
                     NombreComprador = $"{demanda.IdUsuarioNavigation?.NombreCom} {demanda.IdUsuarioNavigation?.ApellidoCom}".Trim(),
                     TelefonoComprador = demanda.IdUsuarioNavigation != null && demanda.IdUsuarioNavigation.TelelfonoUsu > 0 

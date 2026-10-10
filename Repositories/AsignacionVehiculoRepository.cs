@@ -29,8 +29,9 @@ namespace CampesinApp.Repositories
             return await _context.Demanda
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
-                .Include(d => d.IdMunicipioNavigation)
-                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
                 .Include(d => d.IdUsuarioNavigation)
                 .Where(d => d.IdCamion == null)
                 .OrderByDescending(d => d.FechaEntrega)
@@ -46,8 +47,9 @@ namespace CampesinApp.Repositories
             return await _context.Demanda
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
-                .Include(d => d.IdMunicipioNavigation)
-                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
                 .Include(d => d.IdUsuarioNavigation)
                     .ThenInclude(u => u.IdMunicipioNavigation)
                 .Include(d => d.AporteCamps)

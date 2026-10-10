@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using CampesinApp.Repositories.Models;
 using CampesinApp.Dtos;
 
@@ -5,24 +7,26 @@ namespace CampesinApp.Repositories
 {
     /// <summary>
     /// Interfaz del Repositorio de Puntos de Acopio (CU-018).
-    /// Opera exclusivamente sobre las tablas existentes en la base de datos (demanda, municipio, departamento).
+    /// Regla: Contiene únicamente la definición de operaciones de acceso a datos con LINQ/EF Core.
     /// </summary>
     public interface IPuntoAcopioRepository
     {
         /// <summary>
         /// Valida si ya existe un punto registrado con la misma dirección o en las mismas coordenadas.
-        /// Requerido para la excepción FE-02-CU018 (Punto duplicado).
+        /// Cumple con la validación de la excepción FE-02-CU018 (Punto duplicado).
         /// </summary>
         Task<bool> ExistePuntoDuplicadoAsync(string direccion, decimal latitud, decimal longitud);
 
         /// <summary>
-        /// Guarda el punto de acopio persistiendo la dirección en la tabla existente 'demanda'
-        /// (direccion_Inicial, direccion_Final, etc.).
+        /// Flujo de guardado CU-018:
+        /// 1. Inserta el nuevo registro en 'punto_Acopio' y obtiene el id_Punto_Acopio generado por SQL Server.
+        /// 2. Inmediatamente después, inserta la relación en 'usuario_Punto_Acopio' con el id_Usuario autenticado.
+        /// Retorna el id_Punto_Acopio autoincremental generado.
         /// </summary>
-        Task<bool> GuardarPuntoAcopioAsync(PuntoAcopioRegistroDto datos);
+        Task<int> GuardarPuntoAcopioAsync(PuntoAcopioRegistroDto datos);
 
         /// <summary>
-        /// Obtiene la lista completa de departamentos para el desplegable.
+        /// Obtiene la lista de departamentos para el desplegable.
         /// </summary>
         Task<List<Departamento>> ObtenerDepartamentosAsync();
 

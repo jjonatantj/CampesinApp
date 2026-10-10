@@ -9,8 +9,6 @@ public partial class Demandum
 
     public int IdUsuario { get; set; }
 
-    public int IdMunicipio { get; set; }
-
     public int IdTipoProducto { get; set; }
 
     public int IdVariedad { get; set; }
@@ -18,8 +16,6 @@ public partial class Demandum
     public int? IdCamion { get; set; }
 
     public int IdEstadoDeman { get; set; }
-
-    public string DireccionFinal { get; set; } = null!;
 
     public int CantidadDeman { get; set; }
 
@@ -33,11 +29,13 @@ public partial class Demandum
 
     public string? DireccionInicial { get; set; }
 
+    public int? IdPuntoAcopio { get; set; }
+
     public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
 
     public virtual EstadoDemandum IdEstadoDemanNavigation { get; set; } = null!;
 
-    public virtual Municipio IdMunicipioNavigation { get; set; } = null!;
+    public virtual PuntoAcopio? IdPuntoAcopioNavigation { get; set; }
 
     public virtual TipoProducto IdTipoProductoNavigation { get; set; } = null!;
 
