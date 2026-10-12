@@ -1,0 +1,548 @@
+@model CampesinApp.ViewModels.PuntoAcopioViewModel
+
+@{
+    ViewData["Title"] = "Registro de Puntos de Acopio";
+    Layout = "_LayoutCasosUso";
+}
+
+<div class="container py-4">
+    <div class="main-container p-4 p-md-5 shadow-sm">
+
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO DE LA VISTA                                         -->
+        <!-- ============================================================== -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-geo-alt-fill fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Registro de Puntos de Acopio</h1>
+                <p class="text-muted mb-0 fw-semibold">CU-018: Registra un punto físico de recepción agrícola con georreferenciación en Google Maps.</p>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- MENSAJES DE NOTIFICACIÓN TEMPORALES (FE-01, FE-02 Y ÉXITO)     -->
+        <!-- ============================================================== -->
+
+        <!-- FE-01-CU018: Error de conexión a la BD o Internet (6 segundos) -->
+        @if (ViewBag.MensajeErrorConexion != null)
+        {
+            <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-wifi-off fs-4 me-3 text-danger"></i>
+                <div class="flex-grow-1">
+                    <strong>⚠️ Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+
+        <!-- FE-02-CU018: Punto de acopio duplicado en misma dirección (6 segundos) -->
+        @if (ViewBag.MensajeErrorDuplicado != null)
+        {
+            <div id="alertaErrorDuplicado" class="alert alert-warning shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                <div class="flex-grow-1">
+                    <strong>⚠️ Punto Duplicado:</strong> @ViewBag.MensajeErrorDuplicado
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+
+        <!-- Notificación de Éxito: 3 segundos y redirección a Perfil (CU-031) -->
+        @if (ViewBag.RegistroExitoso == true)
+        {
+            <div id="alertaExito" class="alert alert-success shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
+                <div class="flex-grow-1">
+                    <strong>✅ ¡Éxito!</strong> @ViewBag.MensajeExito. Redireccionando a tu perfil...
+                </div>
+            </div>
+        }
+
+        <!-- Resumen de validaciones de C# / ModelState -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger shadow-sm mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes campos:</h6>
+                <div asp-validation-summary="All" class="small mb-0"></div>
+            </div>
+        }
+
+        <!-- ============================================================== -->
+        <!-- FORMULARIO DE REGISTRO                                         -->
+        <!-- ============================================================== -->
+        <form asp-controller="PuntoAcopio" asp-action="Registrar" method="post" id="formPuntoAcopio" novalidate>
+            @Html.AntiForgeryToken()
+
+            <!-- CAMPOS OCULTOS DE COORDENADAS (Se llenan solos al hacer clic en el mapa) -->
+            <input type="hidden" asp-for="Latitud" id="latitudHidden" />
+            <input type="hidden" asp-for="Longitud" id="longitudHidden" />
+
+            <div class="row g-4">
+
+                <!-- ───────────────────────────────────────────────────────── -->
+                <!-- COLUMNA IZQUIERDA: FORMULARIO DE DATOS FÍSICOS           -->
+                <!-- ───────────────────────────────────────────────────────── -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-building me-1"></i> Datos del Lugar
+                    </h5>
+
+                    <!-- 1. Nombre del Punto -->
+                    <div class="mb-3">
+                        <label asp-for="NombrePunto" class="form-label fw-bold small text-muted">Nombre del Punto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success"><i class="bi bi-tag-fill"></i></span>
+                            <input asp-for="NombrePunto" class="form-control" placeholder="Ej: Acopio Central La Sabana" maxlength="100" required />
+                        </div>
+                        <span asp-validation-for="NombrePunto" class="text-danger small"></span>
+                    </div>
+
+                    <!-- 2. Departamento (para filtrado y centrado del mapa) -->
+                    <div class="mb-3">
+                        <label asp-for="IdDepartamento" class="form-label fw-bold small text-muted">Departamento *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success"><i class="bi bi-map"></i></span>
+                            <select asp-for="IdDepartamento" class="form-select" id="selectDepartamento" required>
+                                <option value="">-- Seleccione un departamento --</option>
+                                @foreach (var depto in Model.Departamentos)
+                                {
+                                    <option value="@depto.Value" selected="@depto.Selected">@depto.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdDepartamento" class="text-danger small"></span>
+                    </div>
+
+                    <!-- 3. Municipio (Al cambiar, centra el mapa automáticamente con Geocoder) -->
+                    <div class="mb-3">
+                        <label asp-for="IdMunicipio" class="form-label fw-bold small text-muted">Municipio *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success"><i class="bi bi-geo"></i></span>
+                            <select asp-for="IdMunicipio" class="form-select" id="selectMunicipio" required>
+                                <option value="">-- Seleccione primero un departamento --</option>
+                                @foreach (var mun in Model.Municipios)
+                                {
+                                    <option value="@mun.Value" selected="@mun.Selected">@mun.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdMunicipio" class="text-danger small"></span>
+                    </div>
+
+                    <!-- 4. Dirección Física -->
+                    <div class="mb-3">
+                        <label asp-for="Direccion" class="form-label fw-bold small text-muted">Dirección Física *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success"><i class="bi bi-signpost-2"></i></span>
+                            <input asp-for="Direccion" class="form-control" id="inputDireccion" placeholder="Ej: Carrera 5 # 12-40 Vereda El Rosal" maxlength="150" required />
+                        </div>
+                        <span asp-validation-for="Direccion" class="text-danger small"></span>
+                    </div>
+
+                    <!-- 5. Teléfono de Contacto -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label asp-for="Telefono" class="form-label fw-bold small text-muted">Teléfono de Contacto *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-success"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="Telefono" class="form-control" placeholder="Ej: 3101234567" maxlength="15" required />
+                            </div>
+                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                        </div>
+
+                        <!-- 6. Horario de Atención -->
+                        <div class="col-sm-6">
+                            <label asp-for="HorarioAtencion" class="form-label fw-bold small text-muted">Horario de Atención *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-success"><i class="bi bi-clock"></i></span>
+                                <input asp-for="HorarioAtencion" class="form-control" placeholder="Ej: 6:00 AM - 5:00 PM" maxlength="80" required />
+                            </div>
+                            <span asp-validation-for="HorarioAtencion" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- 7. Capacidad de Almacenamiento -->
+                    <div class="mb-3">
+                        <label asp-for="Capacidad" class="form-label fw-bold small text-muted">Capacidad de Almacenamiento (Kg o Toneladas) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-success"><i class="bi bi-box-seam"></i></span>
+                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control" placeholder="Ej: 20000" required />
+                            <span class="input-group-text bg-light text-muted">Kg</span>
+                        </div>
+                        <span asp-validation-for="Capacidad" class="text-danger small"></span>
+                    </div>
+
+                    <!-- 8. Acceso Vehicular (RN-02-CU018) -->
+                    <div class="card p-3 border-success-subtle bg-light mb-3">
+                        <div class="form-check form-switch mb-0">
+                            <input asp-for="AccesoVehicular" class="form-check-input" type="checkbox" id="checkAccesoVehicular" role="switch" checked>
+                            <label class="form-check-label fw-bold text-dark ms-2" for="checkAccesoVehicular">
+                                <i class="bi bi-truck text-success me-1"></i> Cuenta con acceso vehicular para camión
+                            </label>
+                        </div>
+                        <small class="text-muted ms-4 mt-1 d-block">
+                            <strong>RN-02-CU018:</strong> Obligatorio para maniobras de cargue y descargue de cosecha.
+                        </small>
+                        <span asp-validation-for="AccesoVehicular" class="text-danger small ms-4"></span>
+                    </div>
+
+                </div>
+
+                <!-- ───────────────────────────────────────────────────────── -->
+                <!-- COLUMNA DERECHA: MAPA INTERACTIVO GOOGLE MAPS            -->
+                <!-- ───────────────────────────────────────────────────────── -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-map-fill me-1"></i> Ubicación Geográfica en el Mapa
+                    </h5>
+
+                    <p class="small text-muted mb-2">
+                        <strong>Instrucciones:</strong> Al seleccionar Departamento y Municipio, el mapa se centrará automáticamente en esa ciudad. Haz <strong>clic en el mapa</strong> para colocar el marcador exacto de tu punto de acopio.
+                    </p>
+
+                    <!-- Contenedor del Mapa de Google Maps -->
+                    <div id="map" style="width: 100%; height: 420px; border-radius: 12px; background-color: #f1f3f5;" class="border shadow-sm mb-2 position-relative">
+                        <div id="mapLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
+                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                            <div>Cargando Google Maps...</div>
+                        </div>
+                    </div>
+
+                    <!-- Indicador visual amigable del punto marcado -->
+                    <div id="indicadorUbicacion" class="alert alert-light border d-flex align-items-center py-2 px-3 mb-2">
+                        <span class="fs-4 me-2">📍</span>
+                        <div class="small">
+                            <span id="textoCoordenadas" class="fw-semibold text-secondary">
+                                Ningún punto marcado aún. Haz clic sobre el mapa para fijar la ubicación.
+                            </span>
+                        </div>
+                    </div>
+
+                    <span asp-validation-for="Latitud" class="text-danger small d-block"></span>
+                    <span asp-validation-for="Longitud" class="text-danger small d-block"></span>
+                </div>
+
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- BOTONES DE ACCIÓN: Cancelar (Gris) y Guardar (Verde)          -->
+            <!-- ============================================================== -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                <!-- Botón Cancelar -->
+                <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                </a>
+
+                <!-- Botón Guardar -->
+                <button type="submit" class="btn btn-success px-5 py-2 fw-bold rounded-pill shadow-sm" id="btnGuardar">
+                    <i class="bi bi-check-circle me-1"></i> Guardar Punto de Acopio
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Validaciones estándar de ASP.NET Core MVC -->
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- Carga de la API de Google Maps JavaScript -->
+    @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
+    {
+        <script src="https://maps.googleapis.com/maps/api/js?key=@Model.GoogleMapsApiKey&callback=initMap&loading=async" async defer></script>
+    }
+
+    <script>
+        // =========================================================================
+        // VARIABLES GLOBALES DE GOOGLE MAPS
+        // =========================================================================
+        let map;        // Instancia del mapa interactivo
+        let marker;     // Marcador rojo (Pin)
+        let geocoder;   // Servicio Geocoder para transformar nombres de ciudades en coordenadas
+
+        // Coordenadas iniciales por defecto (Centro geográfico de Colombia)
+        const latDefault = 4.570868;
+        const lngDefault = -74.297333;
+
+        // =========================================================================
+        // 1. FUNCIÓN PRINCIPAL DE INICIALIZACIÓN (Llamada al cargar la API)
+        // =========================================================================
+        function initMap() {
+            const mapContainer = document.getElementById('map');
+            const mapLoading = document.getElementById('mapLoading');
+            if (mapLoading) mapLoading.style.display = 'none';
+
+            // Instanciamos el Geocoder de Google Maps
+            geocoder = new google.maps.Geocoder();
+
+            // Verificamos si los campos ocultos ya tenían coordenadas (por ejemplo tras recargar por validación)
+            const latPrevia = parseFloat(document.getElementById('latitudHidden').value);
+            const lngPrevia = parseFloat(document.getElementById('longitudHidden').value);
+            const tieneCoordenadas = !isNaN(latPrevia) && !isNaN(lngPrevia) && latPrevia !== 0;
+
+            const puntoInicial = tieneCoordenadas ? { lat: latPrevia, lng: lngPrevia } : { lat: latDefault, lng: lngDefault };
+
+            // Creamos el mapa centrado en Colombia o en el punto previo
+            map = new google.maps.Map(mapContainer, {
+                center: puntoInicial,
+                zoom: tieneCoordenadas ? 14 : 6,
+                mapTypeControl: false,
+                streetViewControl: false,
+                zoomControl: true
+            });
+
+            // Si ya existían coordenadas previas, creamos el marcador
+            if (tieneCoordenadas) {
+                fijarMarcador(puntoInicial);
+            }
+
+            // =====================================================================
+            // 2. EVENTO DE CLIC EN EL MAPA:
+            // Al hacer clic en cualquier parte del mapa, colocamos el marcador
+            // y guardamos las coordenadas en los campos ocultos de latitud y longitud.
+            // =====================================================================
+            map.addListener('click', function (event) {
+                fijarMarcador(event.latLng);
+            });
+        }
+
+        // =========================================================================
+        // 3. FUNCIÓN PARA FIJAR/MOVER EL MARCADOR Y GUARDAR EN LOS CAMPOS OCULTOS
+        // =========================================================================
+        function fijarMarcador(latLng) {
+            // Obtenemos latitud y longitud numéricas
+            const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
+            const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
+
+            // Si el marcador no ha sido creado, lo instanciamos con animación DROP
+            if (!marker) {
+                marker = new google.maps.Marker({
+                    position: { lat: lat, lng: lng },
+                    map: map,
+                    draggable: true, // Permitimos que el usuario también pueda arrastrarlo
+                    animation: google.maps.Animation.DROP,
+                    title: "Ubicación del Punto de Acopio"
+                });
+
+                // Si el usuario decide arrastrar el pin, actualizamos las coordenadas al soltarlo
+                marker.addListener('dragend', function (event) {
+                    actualizarCamposOcultos(event.latLng.lat(), event.latLng.lng());
+                });
+            } else {
+                // Si el marcador ya existía, simplemente actualizamos su posición en el mapa
+                marker.setPosition({ lat: lat, lng: lng });
+            }
+
+            // Guardamos los valores en los campos ocultos del formulario
+            actualizarCamposOcultos(lat, lng);
+        }
+
+        // Asigna los valores a los inputs ocultos <input type="hidden"> y actualiza el texto visual
+        function actualizarCamposOcultos(lat, lng) {
+            const latFormatted = lat.toFixed(7);
+            const lngFormatted = lng.toFixed(7);
+
+            // Campos ocultos que se enviarán al controlador en el POST
+            document.getElementById('latitudHidden').value = latFormatted;
+            document.getElementById('longitudHidden').value = lngFormatted;
+
+            // Actualización del texto visual informativo para el usuario
+            const texto = document.getElementById('textoCoordenadas');
+            if (texto) {
+                texto.innerHTML = `<span class="text-success fw-bold">✓ Coordenadas capturadas:</span> Lat: <code>${latFormatted}</code>, Lng: <code>${lngFormatted}</code>`;
+            }
+        }
+
+        // =========================================================================
+        // 4. COORDENADAS INSTANTÁNEAS Y GEOCODER PARA CENTRADO DEL MAPA
+        // =========================================================================
+        // Diccionario de departamentos para respuesta inmediata (0ms sin esperas de red)
+        const coordenadasDepartamentos = {
+            "cundinamarca": { lat: 4.86, lng: -74.05, zoom: 9 },
+            "antioquia": { lat: 6.95, lng: -75.40, zoom: 8 },
+            "boyaca": { lat: 5.65, lng: -73.25, zoom: 8 },
+            "boyacá": { lat: 5.65, lng: -73.25, zoom: 8 },
+            "santander": { lat: 6.90, lng: -73.25, zoom: 8 },
+            "norte de santander": { lat: 8.00, lng: -73.00, zoom: 8 },
+            "tolima": { lat: 4.25, lng: -75.15, zoom: 8 },
+            "huila": { lat: 2.65, lng: -75.50, zoom: 8 },
+            "meta": { lat: 3.50, lng: -73.50, zoom: 8 },
+            "caldas": { lat: 5.30, lng: -75.35, zoom: 9 },
+            "risaralda": { lat: 4.95, lng: -75.85, zoom: 9 },
+            "quindio": { lat: 4.45, lng: -75.70, zoom: 10 },
+            "quindío": { lat: 4.45, lng: -75.70, zoom: 10 },
+            "valle del cauca": { lat: 3.85, lng: -76.30, zoom: 8 },
+            "cauca": { lat: 2.50, lng: -76.75, zoom: 8 },
+            "narino": { lat: 1.50, lng: -77.50, zoom: 8 },
+            "nariño": { lat: 1.50, lng: -77.50, zoom: 8 },
+            "bogota": { lat: 4.7110, lng: -74.0721, zoom: 11 },
+            "bogotá": { lat: 4.7110, lng: -74.0721, zoom: 11 },
+            "bogota d.c.": { lat: 4.7110, lng: -74.0721, zoom: 11 },
+            "bogotá d.c.": { lat: 4.7110, lng: -74.0721, zoom: 11 },
+            "atlantico": { lat: 10.75, lng: -74.95, zoom: 9 },
+            "atlántico": { lat: 10.75, lng: -74.95, zoom: 9 },
+            "bolivar": { lat: 9.00, lng: -74.30, zoom: 7 },
+            "bolívar": { lat: 9.00, lng: -74.30, zoom: 7 },
+            "magdalena": { lat: 10.25, lng: -74.25, zoom: 8 },
+            "cesar": { lat: 9.50, lng: -73.50, zoom: 8 },
+            "cordoba": { lat: 8.50, lng: -75.60, zoom: 8 },
+            "córdoba": { lat: 8.50, lng: -75.60, zoom: 8 },
+            "sucre": { lat: 9.00, lng: -75.00, zoom: 8 },
+            "la guajira": { lat: 11.50, lng: -72.75, zoom: 8 },
+            "casanare": { lat: 5.35, lng: -71.85, zoom: 8 },
+            "arauca": { lat: 6.75, lng: -70.75, zoom: 8 },
+            "caqueta": { lat: 1.00, lng: -74.50, zoom: 7 },
+            "caquetá": { lat: 1.00, lng: -74.50, zoom: 7 },
+            "putumayo": { lat: 0.50, lng: -76.50, zoom: 8 },
+            "choco": { lat: 5.50, lng: -76.80, zoom: 8 },
+            "chocó": { lat: 5.50, lng: -76.80, zoom: 8 },
+            "amazonas": { lat: -1.50, lng: -71.50, zoom: 7 },
+            "guainia": { lat: 2.50, lng: -68.50, zoom: 7 },
+            "guainía": { lat: 2.50, lng: -68.50, zoom: 7 },
+            "guaviare": { lat: 2.00, lng: -72.50, zoom: 7 },
+            "vaupes": { lat: 1.00, lng: -70.50, zoom: 7 },
+            "vaupés": { lat: 1.00, lng: -70.50, zoom: 7 },
+            "vichada": { lat: 4.50, lng: -69.50, zoom: 7 },
+            "san andres": { lat: 12.55, lng: -81.70, zoom: 12 },
+            "san andrés": { lat: 12.55, lng: -81.70, zoom: 12 }
+        };
+
+        function centrarMapa(tipo) {
+            if (!map) return;
+
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+
+            const deptoTexto = selectDepto.options[selectDepto.selectedIndex]?.text.trim() || '';
+            const munTexto = selectMun.options[selectMun.selectedIndex]?.text.trim() || '';
+
+            // 1. Si se eligió o cambió el Departamento: centrar y enfocar en el departamento
+            if (tipo === 'departamento' || (!munTexto || munTexto.includes('--'))) {
+                if (!deptoTexto || deptoTexto.includes('--')) return;
+
+                const clave = deptoTexto.toLowerCase();
+                if (coordenadasDepartamentos[clave]) {
+                    const depto = coordenadasDepartamentos[clave];
+                    map.setCenter({ lat: depto.lat, lng: depto.lng });
+                    map.setZoom(depto.zoom);
+                    return;
+                }
+            }
+
+            // 2. Si se seleccionó un Municipio específico (ej: Chaguaní): ampliar la vista a ese municipio
+            if (munTexto && !munTexto.includes('--')) {
+                const consulta = `${munTexto}, ${deptoTexto}, Colombia`;
+
+                // Intentamos primero con Google Geocoder
+                if (geocoder) {
+                    geocoder.geocode({ address: consulta, componentRestrictions: { country: 'CO' } }, function (results, status) {
+                        if (status === 'OK' && results && results[0]) {
+                            map.setCenter(results[0].geometry.location);
+                            map.setZoom(14); // Zoom cercano para el municipio
+                        } else {
+                            // Si Google Geocoder falla o su API no está activada en la consola, usamos el fallback
+                            geocodificarMunicipioFallback(consulta);
+                        }
+                    });
+                } else {
+                    geocodificarMunicipioFallback(consulta);
+                }
+            }
+        }
+
+        // Fallback garantizado: obtiene las coordenadas exactas del municipio y centra el mapa con zoom 14
+        function geocodificarMunicipioFallback(consulta) {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=co&q=${encodeURIComponent(consulta)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        map.setCenter({ lat: lat, lng: lng });
+                        map.setZoom(14); // Zoom 14 para ver calles y veredas del municipio
+                    }
+                })
+                .catch(err => {
+                    console.warn("No fue posible geocodificar el municipio:", err);
+                });
+        }
+
+        // =========================================================================
+        // 5. CARGA DINÁMICA DE MUNICIPIOS AL CAMBIAR DEPARTAMENTO
+        // =========================================================================
+        document.getElementById('selectDepartamento').addEventListener('change', function () {
+            const deptoId = this.value;
+            const selectMun = document.getElementById('selectMunicipio');
+            selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
+
+            // Centramos el mapa inmediatamente en el departamento seleccionado (ej: Cundinamarca)
+            centrarMapa('departamento');
+
+            if (!deptoId) {
+                selectMun.innerHTML = '<option value="">-- Seleccione primero un departamento --</option>';
+                return;
+            }
+
+            // Consulta AJAX al controlador para obtener los municipios del departamento
+            fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=' + deptoId)
+                .then(response => response.json())
+                .then(data => {
+                    selectMun.innerHTML = '<option value="">-- Seleccione un municipio --</option>';
+                    data.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.nombre;
+                        selectMun.appendChild(opt);
+                    });
+                })
+                .catch(() => {
+                    selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
+                });
+        });
+
+        // Evento al seleccionar Municipio: centrar y ampliar inmediatamente sobre el municipio (ej: Chaguaní)
+        document.getElementById('selectMunicipio').addEventListener('change', function () {
+            centrarMapa('municipio');
+        });
+
+        // =========================================================================
+        // 6. CONTROL DE TIEMPO DE ALERTAS FLOTANTES (FE-01, FE-02 Y ÉXITO)
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', function () {
+            // FE-01-CU018: Mensaje de error de conexión dura 6 segundos
+            const alertaConexion = document.getElementById('alertaErrorConexion');
+            if (alertaConexion) {
+                setTimeout(() => {
+                    alertaConexion.style.transition = 'opacity 0.8s ease';
+                    alertaConexion.style.opacity = '0';
+                    setTimeout(() => alertaConexion.remove(), 800);
+                }, 6000);
+            }
+
+            // FE-02-CU018: Mensaje de punto duplicado dura 6 segundos
+            const alertaDuplicado = document.getElementById('alertaErrorDuplicado');
+            if (alertaDuplicado) {
+                setTimeout(() => {
+                    alertaDuplicado.style.transition = 'opacity 0.8s ease';
+                    alertaDuplicado.style.opacity = '0';
+                    setTimeout(() => alertaDuplicado.remove(), 800);
+                }, 6000);
+            }
+
+            // Mensaje de éxito dura 3 segundos y redirige al perfil
+            const alertaExito = document.getElementById('alertaExito');
+            if (alertaExito) {
+                setTimeout(() => {
+                    window.location.href = '@Url.Action("Index", "Perfil")';
+                }, 3000);
+            }
+        });
+    </script>
+}
+

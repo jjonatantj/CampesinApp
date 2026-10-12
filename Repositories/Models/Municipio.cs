@@ -11,9 +11,9 @@ public partial class Municipio
 
     public string Municipio1 { get; set; } = null!;
 
-    public virtual ICollection<Demandum> Demanda { get; set; } = new List<Demandum>();
-
     public virtual Departamento IdDepartamentoNavigation { get; set; } = null!;
+
+    public virtual ICollection<PuntoAcopio> PuntoAcopios { get; set; } = new List<PuntoAcopio>();
 
     public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 }

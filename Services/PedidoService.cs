@@ -87,7 +87,7 @@ namespace CampesinApp.Services
                     d.CantidadDeman,
                     d.PrecioDeman,
                     d.FechaEntrega,
-                    d.DireccionFinal,
+                    DireccionFinal = d.IdPuntoAcopioNavigation != null ? d.IdPuntoAcopioNavigation.Direccion : (d.DireccionInicial ?? "Punto de Acopio"),
                     d.IdUsuario,
                     Comprador = d.IdUsuarioNavigation.NombreCom + " " + d.IdUsuarioNavigation.ApellidoCom,
                     Estado = v == null ? EstadosEnvio.SinTransporte : v.EstadoEnvio,

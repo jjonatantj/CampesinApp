@@ -39,7 +39,7 @@ namespace CampesinApp.Services
                     v.IdViaje,
                     v.IdDemanda,
                     Producto = v.IdDemandaNavigation.IdTipoProductoNavigation.Producto + " " + v.IdDemandaNavigation.IdVariedadNavigation.VariedadProd,
-                    v.IdDemandaNavigation.DireccionFinal,
+                    DireccionFinal = v.IdDemandaNavigation.IdPuntoAcopioNavigation != null ? v.IdDemandaNavigation.IdPuntoAcopioNavigation.Direccion : (v.IdDemandaNavigation.DireccionInicial ?? "Punto de Acopio"),
                     v.Placa
                 })
                 .ToListAsync();

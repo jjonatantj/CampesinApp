@@ -1,201 +1,148 @@
 using Microsoft.AspNetCore.Mvc;
-using CampesinApp.ViewModels;
+using Microsoft.AspNetCore.Http;
+using CampesinApp.Repositories;
+using CampesinApp.Repositories.Models;
 
 namespace CampesinApp.Controllers
 {
     /// <summary>
-    /// Controlador encargado de gestionar el Catálogo de Demanda (CU-011).
-    /// Permite a campesinos e invitados ver las solicitudes de compra de los clientes,
-    /// filtrar por categoría, producto o región, y responder a una demanda (CU-012).
+    /// Controlador encargado de gestionar el Caso de Uso CU-011: Catálogo de Demanda.
+    /// 
+    /// REGLAS ARQUITECTÓNICAS CUMPLIDAS:
+    /// 1. El controlador NO instancia ni llama directamente a DbContext.
+    /// 2. Toda consulta a la BD se realiza exclusivamente a través de DemandaRepository.
+    /// 3. Soporta tanto usuarios 'Invitados' (solo lectura) como usuarios 'Campesino' autenticados (RN01-CU011).
     /// </summary>
     public class catalogoController : Controller
     {
-        // =========================================================================
-        // ACCIÓN PRINCIPAL: Cargar y filtrar el catálogo (Pasos 1 al 4 del CU-011)
-        // =========================================================================
-        // Recibe por parámetro lo que el usuario seleccione en los filtros desplegables.
-        // Si no selecciona nada, los parámetros llegan vacíos (null o "").
-        public IActionResult Index(string? categoria, string? producto, string? region, bool simularError = false)
+        private readonly DemandaRepository _demandaRepository;
+
+        // Inyección de dependencias por constructor
+        public catalogoController(DemandaRepository demandaRepository)
         {
-            var viewModel = new CatalogoDemandaViewModel
+            _demandaRepository = demandaRepository;
+        }
+
+        /// <summary>
+        /// Acción principal Index:
+        /// Recibe por parámetros GET los 3 filtros especificados en CU-011:
+        /// categoría, producto y región.
+        /// </summary>
+        public async Task<IActionResult> Index(string? categoria, string? producto, string? region)
+        {
+            // 1. Obtener el rol del usuario desde la sesión HTTP (si existe)
+            string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
+
+            var modelo = new CatalogoDemandaViewModel
             {
                 CategoriaSeleccionada = categoria,
                 ProductoSeleccionado = producto,
-                RegionSeleccionada = region
+                RegionSeleccionada = region,
+                RolUsuario = rolUsuario
             };
 
             try
             {
-                // Flujo de Excepción FE-01-CU011:
-                // Si ocurre un error con la base de datos (o activamos simularError=true para probarlo),
-                // se captura en el bloque 'catch' inferior.
-                if (simularError)
-                {
-                    throw new Exception("Error simulado de conexión con el servidor de base de datos.");
-                }
+                // 2. Consultar demandas aplicando los 3 filtros a través del repositorio
+                modelo.Demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(categoria, producto, region);
 
-                // 1. Obtenemos la lista de demandas (por ahora datos simulados en memoria)
-                var todasLasDemandas = ObtenerDemandasSimuladas();
-
-                // 2. Extraemos valores únicos para llenar las listas desplegables (dropdowns)
-                viewModel.CategoriasDisponibles = todasLasDemandas
-                    .Select(d => d.Categoria)
-                    .Distinct()
-                    .OrderBy(c => c)
-                    .ToList();
-
-                viewModel.ProductosDisponibles = todasLasDemandas
-                    .Select(d => d.Producto)
-                    .Distinct()
-                    .OrderBy(p => p)
-                    .ToList();
-
-                viewModel.RegionesDisponibles = todasLasDemandas
-                    .Select(d => d.Region)
-                    .Distinct()
-                    .OrderBy(r => r)
-                    .ToList();
-
-                // 3. Aplicamos los filtros de búsqueda seleccionados por el usuario
-                var consulta = todasLasDemandas.AsEnumerable();
-
-                // Filtro por Categoría
-                if (!string.IsNullOrWhiteSpace(categoria))
-                {
-                    consulta = consulta.Where(d => d.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Filtro por Producto
-                if (!string.IsNullOrWhiteSpace(producto))
-                {
-                    consulta = consulta.Where(d => d.Producto.Equals(producto, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Filtro por Región
-                if (!string.IsNullOrWhiteSpace(region))
-                {
-                    consulta = consulta.Where(d => d.Region.Equals(region, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Asignamos la lista filtrada al modelo de la vista
-                viewModel.Demandas = consulta.ToList();
+                // 3. Obtener opciones para poblar los 3 desplegables
+                modelo.CategoriasDisponibles = await _demandaRepository.ObtenerNombresCategoriasAsync();
+                modelo.ProductosDisponibles = await _demandaRepository.ObtenerNombresProductosAsync();
+                modelo.RegionesDisponibles = await _demandaRepository.ObtenerNombresRegionesAsync();
             }
             catch (Exception)
             {
                 // FE-01-CU011: Error en base de datos
-                // Se marca el error para que la vista muestre el mensaje requerido con el botón "Aceptar"
-                viewModel.TieneErrorConexion = true;
-                viewModel.MensajeError = "No fue posible cargar el catálogo de demanda. Intente más tarde";
-                viewModel.Demandas = new List<DemandaItem>();
+                // Si falla la conexión con el servidor de base de datos, el sistema muestra el mensaje de error
+                modelo.TieneErrorConexion = true;
+                modelo.MensajeError = "No fue posible cargar el catálogo de demanda. Intente más tarde";
+                modelo.Demandas = new List<Demandum>();
             }
 
-            // Enviamos el ViewModel a la vista Views/catalogo/Index.cshtml
-            return View(viewModel);
+            // 4. Retornar la vista con el ViewModel completo
+            return View(modelo);
         }
 
         // =========================================================================
-        // PASO 5: Conexión con CU-012 "RESPONDER A DEMANDA DE PRODUCTO"
+        // ACCIÓN DETALLE (CU-012: RESPONDER A DEMANDA DE PRODUCTO)
         // =========================================================================
+        /// <summary>
+        /// Muestra el detalle específico de una demanda seleccionada en el catálogo CU-011.
+        /// Flujo de excepción FE01-CU012: En caso de error o si la demanda no existe,
+        /// redirige al catálogo mostrando una notificación temporal.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Detalle(int id)
+        {
+            if (id <= 0)
+            {
+                TempData["MensajeError"] = "Identificador de demanda no válido.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                // Consultamos la demanda a través del repositorio con todas sus relaciones
+                var demanda = await _demandaRepository.ObtenerDemandaPorIdAsync(id);
+
+                if (demanda == null)
+                {
+                    // FE01-CU012: Demanda inexistente
+                    TempData["MensajeError"] = "La demanda seleccionada no fue encontrada o ya no está disponible.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Consultamos el total aportado previamente por otros campesinos
+                int totalAportado = await _demandaRepository.ObtenerTotalAportadoAsync(id);
+                int cantidadFaltante = Math.Max(0, demanda.CantidadDeman - totalAportado);
+
+                string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
+
+                var viewModel = new CampesinApp.ViewModels.DetalleDemandaViewModel
+                {
+                    IdDemanda = demanda.IdDemanda,
+                    NombreProducto = demanda.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar",
+                    VariedadProducto = demanda.IdVariedadNavigation?.VariedadProd ?? "Variedad estándar",
+                    Descripcion = string.IsNullOrWhiteSpace(demanda.DescripcionDeman) ? "Sin observaciones adicionales." : demanda.DescripcionDeman,
+                    EstadoDemanda = demanda.IdEstadoDemanNavigation?.Estado ?? "Activa",
+                    CantidadTotal = demanda.CantidadDeman,
+                    CantidadAportada = totalAportado,
+                    CantidadFaltante = cantidadFaltante,
+                    PrecioPropuesto = demanda.PrecioDeman,
+                    DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial ?? "Punto de Acopio",
+                    MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Municipio no registrado",
+                    DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "",
+                    FechaLimite = demanda.LimTiemDeman,
+                    FechaEntrega = demanda.FechaEntrega,
+                    CompradorId = demanda.IdUsuario,
+                    CompradorNombreCompleto = $"{demanda.IdUsuarioNavigation?.NombreCom} {demanda.IdUsuarioNavigation?.ApellidoCom}".Trim(),
+                    CompradorTelefono = demanda.IdUsuarioNavigation != null && demanda.IdUsuarioNavigation.TelelfonoUsu > 0
+                        ? demanda.IdUsuarioNavigation.TelelfonoUsu.ToString()
+                        : "No disponible",
+                    CompradorCorreo = demanda.IdUsuarioNavigation?.CorreoUsu ?? "No disponible",
+                    CompradorMunicipio = demanda.IdUsuarioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Colombia",
+                    EsUsuarioAutenticado = !string.IsNullOrEmpty(rolUsuario),
+                    RolUsuario = rolUsuario
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception)
+            {
+                // FE01-CU012: Error al conectar con la base de datos
+                TempData["MensajeError"] = "No fue posible conectar con el servidor para consultar el detalle de la demanda. Intente más tarde.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Alias de enrutamiento: permite ingresar también a través de /catalogo/Responder/{id}
+        /// </summary>
+        [HttpGet]
         public IActionResult Responder(int id)
         {
-            // RN01-CU011: Los usuarios invitados no pueden realizar reservas sin autenticarse.
-            // Aquí puedes validar la sesión en el futuro cuando implementes CU-012.
-            TempData["MensajeExito"] = $"Has seleccionado la demanda #{id}. Aquí se conectará el caso de uso CU-012 (Responder Demanda).";
-            return RedirectToAction(nameof(Index));
-        }
-
-        // =========================================================================
-        // DATOS DE PRUEBA SIMULADOS (temporales hasta implementar CatalogoDemandaRepository)
-        // =========================================================================
-        private List<DemandaItem> ObtenerDemandasSimuladas()
-        {
-            return new List<DemandaItem>
-            {
-                new DemandaItem
-                {
-                    Id = 1,
-                    Titulo = "Demanda urgente de Papa Pastusa lavada",
-                    Comprador = "Distribuidora Central de Abastos",
-                    Categoria = "Tubérculos",
-                    Producto = "Papa Pastusa",
-                    Region = "Cundinamarca",
-                    CantidadRequerida = "4.500 Kilos",
-                    TipoCamion = "Camión Turbo (Capacidad 4.5 Ton)",
-                    PrecioOfrecido = "$ 2.200 / Kg",
-                    FechaPublicacion = DateTime.Now.AddDays(-1),
-                    Descripcion = "Requerimos papa de primera calidad, empacada en bultos de 50 kg para entrega inmediata."
-                },
-                new DemandaItem
-                {
-                    Id = 2,
-                    Titulo = "Compra de Tomate Chonto maduro",
-                    Comprador = "Supermercados El Ahorro",
-                    Categoria = "Hortalizas",
-                    Producto = "Tomate Chonto",
-                    Region = "Boyacá",
-                    CantidadRequerida = "350 Canastillas",
-                    TipoCamion = "Camión Sencillo (Capacidad 8 Ton)",
-                    PrecioOfrecido = "$ 38.000 / Canastilla",
-                    FechaPublicacion = DateTime.Now.AddDays(-2),
-                    Descripcion = "Tomate pintón o maduro, en canastillas plásticas estándar limpias."
-                },
-                new DemandaItem
-                {
-                    Id = 3,
-                    Titulo = "Lote de Aguacate Hass para exportación",
-                    Comprador = "Exportadora Frutas de Colombia",
-                    Categoria = "Frutas",
-                    Producto = "Aguacate Hass",
-                    Region = "Antioquia",
-                    CantidadRequerida = "10 Toneladas",
-                    TipoCamion = "Camión Doble Troque (Refrigerado)",
-                    PrecioOfrecido = "$ 5.500 / Kg",
-                    FechaPublicacion = DateTime.Now.AddHours(-10),
-                    Descripcion = "Fruta con certificado BPA o registro predio exportador ICA. Calibre 14 a 22."
-                },
-                new DemandaItem
-                {
-                    Id = 4,
-                    Titulo = "Requerimiento de Cebolla Junca fresca",
-                    Comprador = "Agrocomercial La Sabana",
-                    Categoria = "Hortalizas",
-                    Producto = "Cebolla Junca",
-                    Region = "Boyacá",
-                    CantidadRequerida = "150 Cargas",
-                    TipoCamion = "Camión Turbo",
-                    PrecioOfrecido = "$ 85.000 / Carga",
-                    FechaPublicacion = DateTime.Now.AddDays(-3),
-                    Descripcion = "Cebolla descolada y lavada, atada según norma tradicional."
-                },
-                new DemandaItem
-                {
-                    Id = 5,
-                    Titulo = "Plátano Hartón Verde por toneladas",
-                    Comprador = "Procesadora de Alimentos del Valle",
-                    Categoria = "Frutas",
-                    Producto = "Plátano Hartón",
-                    Region = "Valle del Cauca",
-                    CantidadRequerida = "12 Toneladas",
-                    TipoCamion = "Tractomula (Capacidad 30 Ton)",
-                    PrecioOfrecido = "$ 1.800 / Kg",
-                    FechaPublicacion = DateTime.Now.AddDays(-4),
-                    Descripcion = "Plátano verde de buen grosor para elaboración de snacks y congelados."
-                },
-                new DemandaItem
-                {
-                    Id = 6,
-                    Titulo = "Zanahoria seleccionada tamaño estándar",
-                    Comprador = "Verduras y Frutas El Campesino",
-                    Categoria = "Tubérculos",
-                    Producto = "Zanahoria",
-                    Region = "Cundinamarca",
-                    CantidadRequerida = "200 Bultos",
-                    TipoCamion = "Camión Turbo",
-                    PrecioOfrecido = "$ 65.000 / Bulto",
-                    FechaPublicacion = DateTime.Now.AddHours(-5),
-                    Descripcion = "Zanahoria lavada de primera, empacada en costales limpios."
-                }
-            };
+            return RedirectToAction(nameof(Detalle), new { id });
         }
     }
 }
