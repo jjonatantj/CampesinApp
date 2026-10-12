@@ -7,6 +7,7 @@ using CampesinApp.Services;
 using System.Linq;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 
 namespace CampesinApp.Controllers
@@ -44,7 +45,7 @@ namespace CampesinApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index(RegistroUsuarioViewModel model)
+        public async Task<IActionResult> Index(RegistroUsuarioViewModel model)
         {
             if (int.TryParse(model.Cedula, out int cedulaInt))
             {
@@ -75,7 +76,7 @@ namespace CampesinApp.Controllers
                     }
                 }
 
-                // Generar código de Correo y código de SMS (Teléfono)
+                // Generar código de Correo y código de WhatsApp (Teléfono)
                 Random rnd = new Random();
                 string codigoCorreo = rnd.Next(100000, 999999).ToString();
                 string codigoSms = rnd.Next(100000, 999999).ToString();
@@ -83,10 +84,13 @@ namespace CampesinApp.Controllers
                 // Límite de caducidad estricto a los 5 minutos
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
-                // Enviar correo real
+                // 1. ENVIAR CORREO REAL CON MAILKIT
                 EmailService.EnviarCodigoVerificacion(model.Correo, model.Nombres, codigoCorreo);
 
-                // Guardar en Session
+                // 2. ENVIAR CÓDIGO POR WHATSAPP API DE META
+                await WhatsAppService.EnviarCodigoWhatsAppAsync(model.Telefono, codigoSms);
+
+                // Guardar información temporal en Session
                 HttpContext.Session.SetString("Reg_Nombres", model.Nombres);
                 HttpContext.Session.SetString("Reg_Apellidos", model.Apellidos);
                 HttpContext.Session.SetString("Reg_Cedula", model.Cedula);
@@ -113,7 +117,6 @@ namespace CampesinApp.Controllers
         {
             string? correo = HttpContext.Session.GetString("Reg_Correo");
             string? telefono = HttpContext.Session.GetString("Reg_Telefono");
-            string? codigoSms = HttpContext.Session.GetString("Reg_CodigoTelefono");
 
             if (string.IsNullOrEmpty(correo))
             {
@@ -126,8 +129,8 @@ namespace CampesinApp.Controllers
                 Telefono = telefono ?? ""
             };
 
-            // Se pasa el código de SMS a la vista para pruebas de desarrollo
-            ViewBag.CodigoSmsPrueba = codigoSms;
+            // La vista 'VerificacionCodigo.cshtml' solo captura los dos inputs del usuario.
+            // Se eliminó ViewBag.CodigoSmsPrueba para evitar quemar datos en pantalla.
 
             return View("VerificacionCodigo", model);
         }
@@ -154,13 +157,13 @@ namespace CampesinApp.Controllers
                 return View("VerificacionCodigo", model);
             }
 
-            // 2. VALIDACIÓN OBLIGATORIA DE AMBOS CÓDIGOS
+            // 2. VALIDACIÓN DE CÓDIGOS RECIBIDOS EN CORREO Y WHATSAPP
             bool correoValido = (model.Codigo == codigoCorreoReal);
             bool telefonoValido = (model.CodigoTelefono == codigoTelefonoReal);
 
             if (!correoValido && !telefonoValido)
             {
-                ModelState.AddModelError(string.Empty, "Ambos códigos (correo y teléfono) son incorrectos.");
+                ModelState.AddModelError(string.Empty, "Ambos códigos (correo y WhatsApp) son incorrectos.");
             }
             else if (!correoValido)
             {
@@ -168,11 +171,11 @@ namespace CampesinApp.Controllers
             }
             else if (!telefonoValido)
             {
-                ModelState.AddModelError("CodigoTelefono", "El código enviado al teléfono es incorrecto.");
+                ModelState.AddModelError("CodigoTelefono", "El código enviado a tu WhatsApp es incorrecto.");
             }
             else
             {
-                // AMBOS CÓDIGOS SON CORRECTOS Y ESTÁN EN TIEMPO -> GUARDAR EN BD
+                // AMBOS CÓDIGOS SON CORRECTOS Y DENTRO DEL TIEMPO -> GUARDAR EN BD
                 string nombres = HttpContext.Session.GetString("Reg_Nombres")!;
                 string apellidos = HttpContext.Session.GetString("Reg_Apellidos")!;
                 string correo = HttpContext.Session.GetString("Reg_Correo")!;
@@ -207,7 +210,6 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
-            ViewBag.CodigoSmsPrueba = codigoTelefonoReal;
             return View("VerificacionCodigo", model);
         }
 

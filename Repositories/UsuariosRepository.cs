@@ -76,7 +76,7 @@ namespace CampesinApp.Repositories
                 .Include(u => u.IdRolNavigation)
                 .Include(u => u.IdMunicipioNavigation)
                     .ThenInclude(m => m.IdDepartamentoNavigation)
-                .FirstOrDefault(u => u.IdUsuario == idUsuario);
+                .FirstOrDefault(u => u.IdUsuario == idUsuario && u.Estado);
         }
     }
 }

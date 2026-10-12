@@ -110,7 +110,7 @@ namespace CampesinApp.Services
             var opciones = new List<OpcionPerfilDto>
             {
                 new() { Texto = "Actualizar perfil", Icono = "bi-pencil-square" },
-                new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro" },
+                new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro", UrlPagina = "/EliminarUsuario" },
                 new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt" }
             };
 
@@ -149,7 +149,7 @@ namespace CampesinApp.Services
             },
             RolUsuario.Administrador => new List<OpcionPerfilDto>
             {
-                new() { Texto = "Registro Administrador", Icono = "bi-person-plus" },
+                new() { Texto = "Registro Administrador", Icono = "bi-person-plus", UrlPagina = "/RegistroAdmin" },
                 new() { Texto = "Cargar Datos DANE", Icono = "bi-cloud-upload" },
                 new() { Texto = "Asignar Camión", Icono = "bi-truck-front" },
                 new() { Texto = "Gestión de Envíos", Icono = "bi-signpost-split", UrlModal = "/Transporte/Asignar", Estilo = "principal" },

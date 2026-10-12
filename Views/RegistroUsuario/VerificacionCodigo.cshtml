@@ -18,7 +18,7 @@
                 <div class="mb-3 mt-3">
                     <h3 class="brand-title mt-2">Verificación de Datos</h3>
                     <p class="text-muted small mt-2">
-                        Hemos enviado un código de verificación de 6 dígitos a tu correo (<strong class="text-dark">@Model.Correo</strong>) y a tu teléfono (<strong class="text-dark">@Model.Telefono</strong>).
+                        Hemos enviado un código de verificación de 6 dígitos a tu correo (<strong class="text-dark">@Model.Correo</strong>) y a tu WhatsApp (<strong class="text-dark">@Model.Telefono</strong>).
                     </p>
                     
                     <!-- TEMPORIZADOR REGRESIVO EN AZUL PROFESIONAL -->
@@ -27,15 +27,6 @@
                             El código expira en <span id="tiempoRestante">04:59</span>
                         </span>
                     </div>
-
-                    <!-- MUESTRA DEL CÓDIGO SMS/TELÉFONO EN PANTALLA -->
-                    @if (ViewBag.CodigoSmsPrueba != null)
-                    {
-                        <div class="alert alert-info text-center mt-3 mb-2 py-2" style="font-size: 0.85rem; border-radius: 12px;">
-                            <strong>📱 Código de Teléfono (Prueba):</strong> 
-                            <span class="badge bg-primary fs-6 ms-1" style="letter-spacing: 2px;">@ViewBag.CodigoSmsPrueba</span>
-                        </div>
-                    }
                 </div>
 
                 <form asp-action="Verificacion" method="post" id="formVerificacion">
@@ -43,22 +34,23 @@
                     <input type="hidden" asp-for="Telefono" />
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
+                    <!-- CÓDIGO DE CORREO -->
                     <div class="mb-3 text-start">
-                        <label asp-for="CodigoCorreo" class="form-label fw-bold text-dark small"></label>
-                        <input asp-for="CodigoCorreo" id="txtCodigoCorreo" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos" maxlength="6" autocomplete="off" />
-                        <span asp-validation-for="CodigoCorreo" class="text-danger small"></span>
+                        <label asp-for="Codigo" class="form-label fw-bold text-dark small">Código de Verificación por Correo</label>
+                        <input asp-for="Codigo" id="txtCodigoCorreo" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos del correo" maxlength="6" autocomplete="off" />
+                        <span asp-validation-for="Codigo" class="text-danger small"></span>
                         <span id="errorCorreo" class="text-danger small d-block"></span>
                     </div>
 
+                    <!-- CÓDIGO DE WHATSAPP / TELÉFONO -->
                     <div class="mb-4 text-start">
-                        <label asp-for="CodigoTelefono" class="form-label fw-bold text-dark small"></label>
-                        <input asp-for="CodigoTelefono" id="txtCodigoTelefono" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos" maxlength="6" autocomplete="off" />
+                        <label asp-for="CodigoTelefono" class="form-label fw-bold text-dark small">Código de Verificación por WhatsApp</label>
+                        <input asp-for="CodigoTelefono" id="txtCodigoTelefono" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos de WhatsApp" maxlength="6" autocomplete="off" />
                         <span asp-validation-for="CodigoTelefono" class="text-danger small"></span>
                         <span id="errorTelefono" class="text-danger small d-block"></span>
                     </div>
 
                     <div class="d-grid gap-2 mb-3">
-                        <!-- BOTÓN -->
                         <button type="button" id="btnFinalizar" class="btn btn-nav-register py-2 justify-content-center" style="font-size: 1rem;">
                             Finalizar Registro
                         </button>
