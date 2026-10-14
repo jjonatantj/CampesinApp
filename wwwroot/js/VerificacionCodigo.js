@@ -1,6 +1,4 @@
-﻿// Lógica para el temporizador y validación de códigos de verificación
-
-document.addEventListener("DOMContentLoaded", function () {
+﻿document.addEventListener("DOMContentLoaded", function () {
     // Lógica del temporizador de 4:59
     let tiempoTotal = 4 * 60 + 59;
     const elementoTiempo = document.getElementById("tiempoRestante");
@@ -34,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Control estricto al hacer clic en el botón de finalizar
+    // Control al hacer clic en 'Finalizar Registro'
     if (btnFinalizar) {
         btnFinalizar.addEventListener("click", function() {
             const inputCorreo = document.getElementById("txtCodigoCorreo");
@@ -50,18 +48,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const valCorreo = inputCorreo.value.trim();
             const valTelefono = inputTelefono.value.trim();
 
-            // Verificación que ambos tengan estrictamente 6 dígitos
             if (valCorreo.length !== 6) {
                 errorCorreo.textContent = "El código del correo debe tener exactamente 6 dígitos.";
                 valido = false;
             }
 
             if (valTelefono.length !== 6) {
-                errorTelefono.textContent = "El código del teléfono debe tener exactamente 6 dígitos.";
+                errorTelefono.textContent = "El código de WhatsApp debe tener exactamente 6 dígitos.";
                 valido = false;
             }
 
-            // Si ambos son válidos de 6 dígitos, se envía el formulario
             if (valido) {
                 document.getElementById("formVerificacion").submit();
             } else {
