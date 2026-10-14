@@ -110,8 +110,8 @@ namespace CampesinApp.Services
             var opciones = new List<OpcionPerfilDto>
             {
                 new() { Texto = "Actualizar perfil", Icono = "bi-pencil-square" },
-                new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro" },
-                new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt" }
+                new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro", UrlPagina = "/EliminarUsuario" },
+                new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt", UrlPagina = "/PuntoAcopio/Registrar"  }
             };
 
             // CU-027: el transportador no consulta el historial de ventas.
