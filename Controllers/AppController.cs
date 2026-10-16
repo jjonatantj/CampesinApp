@@ -29,6 +29,17 @@ namespace CampesinApp.Controllers
             return PartialView(vista, modelo);
         }
 
+        /// <summary>Vista parcial que se muestra dentro del panel de una pantalla completa (#panelPagina), no en una ventana.</summary>
+        protected IActionResult PanelPagina(string vista, object? modelo = null)
+        {
+            Response.Headers[ModalHeaders.Destino] = "pagina";
+            return PartialView(vista, modelo);
+        }
+
+        /// <summary>true cuando la petición la hizo modales.js con fetch (actualiza el panel); false cuando es una navegación normal.</summary>
+        protected bool EsPeticionAjax() =>
+            string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>Vista parcial que se muestra en la ventana superpuesta (por encima de la principal).</summary>
         protected IActionResult ModalSuperpuesto(string vista, object? modelo = null)
         {

@@ -28,6 +28,7 @@ namespace CampesinApp.Services
             services.AddScoped<TransporteService>();
             services.AddScoped<EntregaService>();
             services.AddScoped<HistorialService>();
+            services.AddScoped<HistorialPdfService>();
             services.AddScoped<PreciosService>();
             services.AddScoped<PerfilService>();
 
