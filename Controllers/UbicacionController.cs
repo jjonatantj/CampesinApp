@@ -32,13 +32,15 @@ namespace CampesinApp.Controllers
             var dto = new ReporteUbicacionDto
             {
                 IdViaje = idViaje,
-                Viajes = await _ubicacion.ObtenerViajesActivosAsync(usuario)
+                Viajes = await _ubicacion.ObtenerViajesActivosAsync(usuario),
+                Puntos = await _ubicacion.ObtenerPuntosAcopioAsync()
             };
             if (idViaje == null && dto.Viajes.Count == 1)
             {
                 dto.IdViaje = dto.Viajes[0].IdViaje;
             }
-            return ModalPrincipal("_ReporteForm", dto);
+            // Pantalla completa (el mapa necesita espacio); el formulario se vuelve a pintar en el panel al enviarlo.
+            return View("ReportarPagina", dto);
         }
 
         /// <summary>
@@ -52,10 +54,11 @@ namespace CampesinApp.Controllers
             var usuario = (await ObtenerUsuarioAsync())!;
             var llegada = accion == "llegada";
             dto.Viajes = await _ubicacion.ObtenerViajesActivosAsync(usuario);
+            dto.Puntos = await _ubicacion.ObtenerPuntosAcopioAsync();
 
             if (!ValidarReporte(dto, llegada))
             {
-                return ModalPrincipal("_ReporteForm", dto);
+                return PanelPagina("_ReporteForm", dto);
             }
 
             try
@@ -64,11 +67,11 @@ namespace CampesinApp.Controllers
                 if (!resultado.Exitoso)
                 {
                     ViewData["ErrorNegocio"] = resultado.Mensaje;
-                    return ModalPrincipal("_ReporteForm", dto);
+                    return PanelPagina("_ReporteForm", dto);
                 }
 
                 ViewData["Llegada"] = llegada;
-                return ModalPrincipal("_ReporteExito", resultado.Datos);
+                return PanelPagina("_ReporteExito", resultado.Datos);
             }
             catch (Exception ex) when (ex is DbUpdateException or Microsoft.Data.SqlClient.SqlException or TimeoutException or InvalidOperationException)
             {
@@ -76,7 +79,7 @@ namespace CampesinApp.Controllers
                 await _log.RegistrarAsync(NivelesLog.Error, "CU-021 Reporte ubicación", $"{ex.GetType().Name}: {ex.Message}", usuario.Id);
                 ViewData["ErrorBd"] = MensajeErrorBd;
                 ViewData["AccionPrevia"] = accion;
-                return ModalPrincipal("_ReporteForm", dto);
+                return PanelPagina("_ReporteForm", dto);
             }
         }
 

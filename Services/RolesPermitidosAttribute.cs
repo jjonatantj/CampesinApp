@@ -34,6 +34,28 @@ namespace CampesinApp.Services
                 return;
             }
 
+            // Navegación normal (pantallas completas): sin sesión va al inicio de sesión; sin permiso, a una pantalla de aviso.
+            if (!string.Equals(context.HttpContext.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                && context.HttpContext.Request.Method == HttpMethods.Get)
+            {
+                if (usuario == null)
+                {
+                    context.Result = new RedirectResult("/InicioSesion/Login");
+                    return;
+                }
+
+                context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Result = new ViewResult
+                {
+                    ViewName = "~/Views/Shared/AccesoDenegado.cshtml",
+                    ViewData = new ViewDataDictionary<string>(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+                    {
+                        Model = Mensaje ?? "No tiene permisos para realizar esta acción."
+                    }
+                };
+                return;
+            }
+
             var aviso = usuario == null
                 ? AppController.AvisoSinSesion()
                 : new AvisoDto

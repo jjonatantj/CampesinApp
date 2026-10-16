@@ -2,6 +2,8 @@ using CampesinApp.Repositories.Models;
 using CampesinApp.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CampesinApp.Repositories
 {
@@ -27,21 +29,20 @@ namespace CampesinApp.Repositories
 
             if (usuario == null) return null;
 
-            // 1. Desencriptar la contraseña de la BD y comparar
-            string contrasenaDesencriptada = EncriptacionService.Desencriptar(usuario.ContrasenaUsu);
-            if (contrasenaDesencriptada == contrasenaIngresada)
+            // Validación por hash, sin desencriptar nunca lo guardado en la BD: la contraseña ingresada se cifra con el
+            // mismo método del registro (EncriptacionService.Encriptar, determinístico) y se compara el resultado con el
+            // valor almacenado. La comparación es de tiempo constante para no filtrar información por el tiempo de respuesta.
+            if (string.IsNullOrEmpty(contrasenaIngresada) || string.IsNullOrEmpty(usuario.ContrasenaUsu))
             {
-                return usuario;
+                return null;
             }
 
-            // 2. Comparar directamente si en la BD se guardó encriptada
-            string contrasenaIngresadaEncriptada = EncriptacionService.Encriptar(contrasenaIngresada);
-            if (usuario.ContrasenaUsu == contrasenaIngresadaEncriptada)
-            {
-                return usuario;
-            }
+            string hashIngresado = EncriptacionService.Encriptar(contrasenaIngresada);
+            bool coincide = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(hashIngresado),
+                Encoding.UTF8.GetBytes(usuario.ContrasenaUsu));
 
-            return null; // Credenciales inválidas
+            return coincide ? usuario : null; // null = credenciales inválidas
         }
 
         public Usuario? BuscarPorCedula(string cedula)

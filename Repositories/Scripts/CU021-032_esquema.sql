@@ -2,18 +2,11 @@
    CampesinApp - Esquema para los casos de uso CU-021 a CU-032
    Base de datos: CAMPESINAPP_3 (SQL Server)
 
-   - Solo CREA tablas nuevas; no modifica ni elimina ninguna tabla existente.
+   - Solo CREA tablas nuevas; no modifica ni elimina ninguna tabla existente (no altera columnas de tus tablas).
    - Es idempotente: se puede ejecutar varias veces.
    - Las tablas existentes que usa (usuario, demanda, aporte_Camp, tipo_Producto,
      variedad, dato_Dane...) deben estar creadas previamente.
    ============================================================================ */
-
--- Compatibilidad con CU-004 / CU-003: el inicio de sesion y el registro guardan la contrasena CIFRADA (AES + Base64,
--- 24 caracteres o mas), pero el esquema original definia usuario.contrasena_Usu como VARCHAR(10).
--- Solo se ensancha la columna (no se pierde ningun dato) y unicamente si aun es mas corta de lo necesario.
-IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.usuario') AND name = N'contrasena_Usu' AND max_length < 100)
-    ALTER TABLE dbo.usuario ALTER COLUMN contrasena_Usu VARCHAR(100) NOT NULL;
-GO
 
 -- CU-024 / CU-023 / CU-025: servicio de transporte asignado a un pedido y su estado de envio
 IF OBJECT_ID(N'dbo.viaje', N'U') IS NULL

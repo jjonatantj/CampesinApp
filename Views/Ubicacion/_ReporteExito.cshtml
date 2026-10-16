@@ -15,4 +15,11 @@
         <p class="small text-muted mt-3 mb-0">Volverá a su pantalla principal en unos segundos…</p>
         <span class="d-none" data-autoredirigir="6000" data-url="/Perfil/Index"></span>
     </div>
+    @if (Model.Latitud != null && Model.Longitud != null)
+    {
+        <div class="px-3 pt-3 pb-3">
+            <div data-mapa="ver" data-puntos="@VistaHelpers.PuntosJson(new[] { new PuntoMapaDto { Lat = Model.Latitud.Value, Lng = Model.Longitud.Value, Titulo = Model.Lugar, Hito = Model.Hito, Fecha = Formato.FechaHora(Model.FechaHora) } })" class="mapa-contenedor mapa-pequeno" aria-label="Mapa con la ubicación reportada"></div>
+            <p class="small text-center text-muted mt-1 mb-0">Coordenadas reportadas: @VistaHelpers.Coordenadas(Model.Latitud, Model.Longitud)</p>
+        </div>
+    }
 </div>

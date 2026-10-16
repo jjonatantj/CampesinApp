@@ -1,7 +1,6 @@
 @model HistorialTransaccionesDto
 <div class="modal-header">
     <h5 class="modal-title">Historial de Transacciones</h5>
-    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
 </div>
 <div class="modal-body">
     <form method="get" asp-controller="Historial" asp-action="Transacciones" data-ajax-form class="d-flex gap-2 mb-3" role="search">
@@ -36,5 +35,5 @@
     }
 </div>
 <div class="modal-footer justify-content-center">
-    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+    <a class="btn btn-dark" href="/Perfil/Index"><i class="bi bi-arrow-left me-1"></i>Regresar al perfil</a>
 </div>
