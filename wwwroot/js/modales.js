@@ -15,6 +15,8 @@
  *   form[data-ajax-form]         envía el formulario por fetch y pinta la respuesta en su mismo modal.
  *   data-modal-cerrar="..."      cierra: "" = su modal, "superpuesta", "todas". Con data-recargar-url vuelve a cargar
  *                                esa URL en la ventana principal; con data-redirigir navega a esa URL.
+ *   #panelPagina                 (en pantallas completas) recibe el HTML cuando el servidor responde X-Modal-Destino: pagina,
+ *                                o cuando el formulario / enlace que lo pidió está dentro del panel.
  *   data-modal-estatico          (en el contenido) el modal no se puede cerrar con ESC, clic fuera ni "X".
  *   data-confirmar="texto"       (en data-modal-post) pide confirmación antes de enviar.
  *   select[data-copiar-extra]    al elegir una opción copia su data-extra en el campo indicado (selector CSS).
@@ -32,6 +34,9 @@
         return;
     }
 
+    // Panel de una pantalla completa (#panelPagina): recibe el mismo HTML parcial que las ventanas, pero dentro de la página.
+    const panelPagina = document.getElementById('panelPagina');
+
     const instancias = {
         principal: new bootstrap.Modal(modales.principal),
         superpuesta: new bootstrap.Modal(modales.superpuesta)
@@ -45,10 +50,12 @@
     function modalDe(elemento) {
         if (elemento.closest('#modalSuperpuesta')) return 'superpuesta';
         if (elemento.closest('#modalPrincipal')) return 'principal';
+        if (elemento.closest('#panelPagina')) return 'pagina';
         return null;
     }
 
     function cerrar(nombre) {
+        if (!modales[nombre]) return; // el panel de página no se cierra: se navega con data-redirigir
         modales[nombre].dataset.forzarCierre = '1';
         instancias[nombre].hide();
     }
@@ -76,6 +83,21 @@
 
     function renderizar(nombre, html) {
         clearTimeout(temporizadorRedireccion);
+
+        if (nombre === 'pagina') {
+            if (panelPagina) {
+                panelPagina.innerHTML = html;
+                const autoPagina = panelPagina.querySelector('[data-autoredirigir]');
+                if (autoPagina) {
+                    temporizadorRedireccion = setTimeout(
+                        () => window.location.assign(autoPagina.dataset.url),
+                        parseInt(autoPagina.dataset.autoredirigir, 10) || 6000);
+                }
+                return;
+            }
+            nombre = 'principal';
+        }
+
         contenido(nombre).innerHTML = html;
 
         if (!modales[nombre].classList.contains('show')) {

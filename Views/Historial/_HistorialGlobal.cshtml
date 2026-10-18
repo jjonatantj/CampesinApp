@@ -4,18 +4,19 @@
     var enVentas = filtro.Pestana != "logs";
     string UrlPestana(string pestana) =>
         $"/Historial/Global?pestana={pestana}&IdUsuario={filtro.IdUsuario}&Rol={filtro.Rol}&Desde={filtro.Desde:yyyy-MM-dd}&Hasta={filtro.Hasta:yyyy-MM-dd}";
+    // El PDF incluye ventas y logs con los mismos filtros de la ventana.
+    var UrlPdf = $"/Historial/GlobalPdf?IdUsuario={filtro.IdUsuario}&Rol={filtro.Rol}&Desde={filtro.Desde:yyyy-MM-dd}&Hasta={filtro.Hasta:yyyy-MM-dd}";
 }
 <div class="modal-header">
     <h5 class="modal-title">Historial Global del Aplicativo</h5>
-    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
 </div>
 <div class="modal-body">
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <button type="button" class="nav-link @(enVentas ? "active" : "")" data-modal-url="@UrlPestana("ventas")" data-modal-destino="principal">Historial de Ventas General</button>
+            <button type="button" class="nav-link @(enVentas ? "active" : "")" data-modal-url="@UrlPestana("ventas")" data-modal-destino="pagina">Historial de Ventas General</button>
         </li>
         <li class="nav-item">
-            <button type="button" class="nav-link @(enVentas ? "" : "active")" data-modal-url="@UrlPestana("logs")" data-modal-destino="principal">Logs del Sistema</button>
+            <button type="button" class="nav-link @(enVentas ? "" : "active")" data-modal-url="@UrlPestana("logs")" data-modal-destino="pagina">Logs del Sistema</button>
         </li>
     </ul>
 
@@ -117,6 +118,9 @@
         }
     }
 </div>
-<div class="modal-footer justify-content-center">
-    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+<div class="modal-footer justify-content-center gap-2">
+    <a class="btn btn-outline-dark" href="@UrlPdf" target="_blank" rel="noopener" download>
+        <i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF
+    </a>
+    <a class="btn btn-dark" href="/Perfil/Index"><i class="bi bi-arrow-left me-1"></i>Regresar al perfil</a>
 </div>

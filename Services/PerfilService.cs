@@ -117,7 +117,7 @@ namespace CampesinApp.Services
             // CU-027: el transportador no consulta el historial de ventas.
             if (rol != RolUsuario.Transportador)
             {
-                opciones.Add(new() { Texto = "Historial de transacciones", Icono = "bi-receipt", UrlModal = "/Historial/Transacciones" });
+                opciones.Add(new() { Texto = "Historial de transacciones", Icono = "bi-receipt", UrlPagina = "/Historial/Transacciones" });
             }
 
             opciones.Add(new() { Texto = "Cerrar sesión", Icono = "bi-box-arrow-right", UrlModal = "/Sesion/Confirmar", Estilo = "principal" });
@@ -131,7 +131,7 @@ namespace CampesinApp.Services
                 new() { Texto = "Mi perfil", Icono = "bi-person-vcard", UrlPagina = $"/Perfil/ConsultaPerfilCampesino/{idUsuario}" },
                 new() { Texto = "Perfil de pago", Icono = "bi-wallet2" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
-                new() { Texto = "Historial ventas", Icono = "bi-receipt", UrlModal = "/Historial/Transacciones" },
+                new() { Texto = "Historial ventas", Icono = "bi-receipt", UrlPagina = "/Historial/Transacciones" },
                 new() { Texto = "Mis pedidos", Icono = "bi-box-seam", UrlModal = "/Pedidos/Lista", Estilo = "principal" }
             },
             RolUsuario.Comprador => new List<OpcionPerfilDto>
@@ -140,12 +140,12 @@ namespace CampesinApp.Services
                 new() { Texto = "Perfil de pago", Icono = "bi-wallet2" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
                 new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/catalogo/Index" },
-                new() { Texto = "Historial de ventas", Icono = "bi-receipt", UrlModal = "/Historial/Transacciones" },
+                new() { Texto = "Historial de ventas", Icono = "bi-receipt", UrlPagina = "/Historial/Transacciones" },
                 new() { Texto = "Mis pedidos", Icono = "bi-box-seam", UrlModal = "/Pedidos/Lista", Estilo = "principal" }
             },
             RolUsuario.Transportador => new List<OpcionPerfilDto>
             {
-                new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlModal = "/Ubicacion/Reportar", Estilo = "principal" },
+                new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar", Estilo = "principal" },
                 new() { Texto = "Consultar Mis Viajes", Icono = "bi-truck", UrlModal = "/Transporte/MisViajes", Estilo = "principal" },
                 new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/catalogo/Index" }
             },
@@ -155,9 +155,9 @@ namespace CampesinApp.Services
                 new() { Texto = "Cargar Datos DANE", Icono = "bi-cloud-upload" },
                 new() { Texto = "Asignar Camión", Icono = "bi-truck-front", UrlPagina = "/AsignacionVehiculo/Index" },
                 new() { Texto = "Gestión de Envíos", Icono = "bi-signpost-split", UrlModal = "/Transporte/Asignar", Estilo = "principal" },
-                new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlModal = "/Ubicacion/Reportar" },
+                new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
-                new() { Texto = "Historial Global del Aplicativo", Icono = "bi-journal-text", UrlModal = "/Historial/Global", Estilo = "principal" }
+                new() { Texto = "Historial Global del Aplicativo", Icono = "bi-journal-text", UrlPagina = "/Historial/Global", Estilo = "principal" }
             },
             _ => new List<OpcionPerfilDto>()
         };

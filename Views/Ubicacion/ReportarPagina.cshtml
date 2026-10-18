@@ -1,0 +1,17 @@
+@model ReporteUbicacionDto
+@{
+    Layout = "_LayoutCasosUso";
+    ViewData["Title"] = "Reporte de Ubicación";
+}
+
+@* CU-021: pantalla completa del reporte de ubicación. El formulario (y luego la confirmación) se pinta dentro de #panelPagina. *@
+<div class="container pb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="brand-title fs-2 mb-0" style="color: #1b5e20;">Reporte de Ubicación</h1>
+        <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Regresar al perfil</a>
+    </div>
+
+    <div id="panelPagina" class="modal-content">
+        <partial name="_ReporteForm" model="Model" />
+    </div>
+</div>

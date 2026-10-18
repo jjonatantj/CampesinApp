@@ -37,6 +37,9 @@ namespace CampesinApp.Dtos
         [Required]
         public string? Hito { get; set; }
 
+        /// <summary>Puntos de acopio registrados (tabla punto_Acopio) entre los que se elige el lugar y que se dibujan en el mapa.</summary>
+        public List<PuntoAcopioOpcionDto> Puntos { get; set; } = new();
+
         public List<ViajeOpcionDto> Viajes { get; set; } = new();
     }
 
@@ -56,6 +59,48 @@ namespace CampesinApp.Dtos
         public DateTime FechaHora { get; set; }
 
         public bool Guardado { get; set; }
+
+        /// <summary>Posición del reporte (null si es un reporte anterior a las coordenadas).</summary>
+        public double? Latitud { get; set; }
+
+        public double? Longitud { get; set; }
+
+        /// <summary>Recorrido del pedido con coordenadas, en orden cronológico (el último es la posición actual).</summary>
+        public List<PuntoMapaDto> Recorrido { get; set; } = new();
+
+        /// <summary>Punto de acopio de entrega del pedido, si lo tiene.</summary>
+        public PuntoMapaDto? Destino { get; set; }
+    }
+
+    /// <summary>Punto de acopio de la tabla punto_Acopio con las coordenadas que usa Google Maps.</summary>
+    public class PuntoAcopioOpcionDto
+    {
+        public int Id { get; set; }
+
+        public string Nombre { get; set; } = string.Empty;
+
+        public string Direccion { get; set; } = string.Empty;
+
+        public double Lat { get; set; }
+
+        public double Lng { get; set; }
+    }
+
+    /// <summary>Punto de un mapa: posición, título y hito, serializado a JSON para mapas.js.</summary>
+    public class PuntoMapaDto
+    {
+        public double Lat { get; set; }
+
+        public double Lng { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public string Hito { get; set; } = string.Empty;
+
+        public string Fecha { get; set; } = string.Empty;
+
+        /// <summary>"reporte" (posición del transportador) o "destino" (punto de acopio de entrega del pedido).</summary>
+        public string Tipo { get; set; } = "reporte";
     }
 
     public class ReporteGuardadoVistaDto
