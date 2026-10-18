@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace CampesinApp.Controllers
 {
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class RegistroUsuarioController : Controller
     {
         private readonly Campesinapp3Context _context;
@@ -26,7 +27,13 @@ namespace CampesinApp.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            var model = new RegistroUsuarioViewModel();
+            // Si viene de un registro exitoso, activamos la bandera para la vista mediante ViewBag
+            if (TempData["RegistroExitoso"] != null)
+            {
+                ViewBag.RegistroExitoso = true;
+            }
+
+            var model = new RegistroUsuarioViewModel { Paso = 1 };
             CargarCombosBD(model);
             return View("RegistroUsuario", model);
         }
@@ -47,153 +54,165 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(RegistroUsuarioViewModel model)
         {
-            if (int.TryParse(model.Cedula, out int cedulaInt))
+            // PASO 1: Validación inicial del formulario de registro
+            if (model.Paso == 1)
             {
-                if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaInt))
+                ModelState.Remove("MetodoSeleccionado");
+                ModelState.Remove("CodigoVerificacion");
+                ModelState.Remove("CorreoEnmascarado");
+                ModelState.Remove("TelefonoEnmascarado");
+
+                if (long.TryParse(model.Cedula, out long cedulaLong))
                 {
-                    ModelState.AddModelError("Cedula", "La cédula ingresada ya se encuentra registrada.");
-                }
-            }
-
-            if (_context.Usuarios.Any(u => u.CorreoUsu == model.Correo))
-            {
-                ModelState.AddModelError("Correo", "El correo electrónico ingresado ya se encuentra registrado.");
-            }
-
-            if (ModelState.IsValid)
-            {
-                string nombreImagen = "default_user.png";
-                if (model.FotoPerfil != null && model.FotoPerfil.Length > 0)
-                {
-                    string folder = Path.Combine(_environment.WebRootPath, "images/perfiles");
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil.FileName);
-                    string filePath = Path.Combine(folder, nombreImagen);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaLong))
                     {
-                        model.FotoPerfil.CopyTo(stream);
+                        ModelState.AddModelError("Cedula", "La cédula ingresada ya se encuentra registrada.");
                     }
                 }
 
-                // Generar código de Correo y código de WhatsApp (Teléfono)
-                Random rnd = new Random();
-                string codigoCorreo = rnd.Next(100000, 999999).ToString();
-                string codigoSms = rnd.Next(100000, 999999).ToString();
+                if (_context.Usuarios.Any(u => u.CorreoUsu == model.Correo))
+                {
+                    ModelState.AddModelError("Correo", "El correo electrónico ingresado ya se encuentra registrado.");
+                }
 
-                // Límite de caducidad estricto a los 5 minutos
+                if (ModelState.IsValid)
+                {
+                    string nombreImagen = "default_user.png";
+                    if (model.FotoPerfil != null && model.FotoPerfil.Length > 0)
+                    {
+                        string folder = Path.Combine(_environment.WebRootPath, "images/perfiles");
+                        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                        nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil.FileName);
+                        string filePath = Path.Combine(folder, nombreImagen);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            model.FotoPerfil.CopyTo(stream);
+                        }
+                    }
+
+                    // Guardar datos temporalmente en Session
+                    HttpContext.Session.SetString("Reg_Nombres", model.Nombres);
+                    HttpContext.Session.SetString("Reg_Apellidos", model.Apellidos);
+                    HttpContext.Session.SetString("Reg_Cedula", model.Cedula);
+                    HttpContext.Session.SetString("Reg_Correo", model.Correo);
+                    HttpContext.Session.SetString("Reg_Telefono", model.Telefono);
+                    HttpContext.Session.SetString("Reg_Contrasena", model.Contrasena);
+                    HttpContext.Session.SetInt32("Reg_IdRol", model.IdRol);
+                    HttpContext.Session.SetInt32("Reg_IdMunicipio", model.IdMunicipio);
+                    HttpContext.Session.SetString("Reg_Direccion", model.Direccion);
+                    HttpContext.Session.SetString("Reg_Imagen", nombreImagen);
+
+                    // Avanzar al Paso 2 (Seleccionar método) y enmascarar datos
+                    model.Paso = 2;
+                    model.CorreoEnmascarado = EnmascararCorreo(model.Correo);
+                    model.TelefonoEnmascarado = EnmascararTelefono(model.Telefono);
+                    ModelState.Clear();
+                    return View("RegistroUsuario", model);
+                }
+
+                model.Contrasena = string.Empty;
+                model.ConfirmarContrasena = string.Empty;
+                CargarCombosBD(model);
+                return View("RegistroUsuario", model);
+            }
+
+            // PASO 2: El usuario seleccionó el método de envío o regresó a él
+            if (model.Paso == 2)
+            {
+                string? correo = HttpContext.Session.GetString("Reg_Correo");
+                string? telefono = HttpContext.Session.GetString("Reg_Telefono");
+
+                if (string.IsNullOrEmpty(correo)) return RedirectToAction("Index");
+
+                if (string.IsNullOrEmpty(model.MetodoSeleccionado))
+                {
+                    model.Paso = 2;
+                    model.CorreoEnmascarado = EnmascararCorreo(correo);
+                    model.TelefonoEnmascarado = EnmascararTelefono(telefono ?? "");
+                    ModelState.Clear();
+                    return View("RegistroUsuario", model);
+                }
+
+                Random rnd = new Random();
+                string codigoGenerado = rnd.Next(100000, 999999).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
-                // 1. ENVIAR CORREO REAL CON MAILKIT
-                EmailService.EnviarCodigoVerificacion(model.Correo, model.Nombres, codigoCorreo);
-
-                // 2. ENVIAR CÓDIGO POR WHATSAPP API DE META
-                await WhatsAppService.EnviarCodigoWhatsAppAsync(model.Telefono, codigoSms);
-
-                // Guardar información temporal en Session
-                HttpContext.Session.SetString("Reg_Nombres", model.Nombres);
-                HttpContext.Session.SetString("Reg_Apellidos", model.Apellidos);
-                HttpContext.Session.SetString("Reg_Cedula", model.Cedula);
-                HttpContext.Session.SetString("Reg_Correo", model.Correo);
-                HttpContext.Session.SetString("Reg_Telefono", model.Telefono);
-                HttpContext.Session.SetString("Reg_Contrasena", model.Contrasena);
-                HttpContext.Session.SetInt32("Reg_IdRol", model.IdRol);
-                HttpContext.Session.SetInt32("Reg_IdMunicipio", model.IdMunicipio);
-                HttpContext.Session.SetString("Reg_Imagen", nombreImagen);
-
-                HttpContext.Session.SetString("Reg_CodigoCorreo", codigoCorreo);
-                HttpContext.Session.SetString("Reg_CodigoTelefono", codigoSms);
+                HttpContext.Session.SetString("Reg_MetodoElegido", model.MetodoSeleccionado);
                 HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
 
-                return RedirectToAction("Verificacion");
+                if (model.MetodoSeleccionado == "telefono")
+                {
+                    HttpContext.Session.SetString("Reg_CodigoWhatsAppSimulado", codigoGenerado);
+                    ViewBag.CodigoWhatsappSimulado = codigoGenerado;
+                }
+                else
+                {
+                    string nombres = HttpContext.Session.GetString("Reg_Nombres") ?? "Usuario";
+                    EmailService.EnviarCodigoVerificacion(correo, nombres, codigoGenerado, _environment);
+                    HttpContext.Session.SetString("Reg_CodigoCorreo", codigoGenerado);
+                }
+
+                model.Paso = 3;
+                model.Correo = correo;
+                model.Telefono = telefono ?? "";
+                ModelState.Clear();
+                return View("RegistroUsuario", model);
             }
 
-            CargarCombosBD(model);
-            return View("RegistroUsuario", model);
-        }
-
-        [HttpGet]
-        public IActionResult Verificacion()
-        {
-            string? correo = HttpContext.Session.GetString("Reg_Correo");
-            string? telefono = HttpContext.Session.GetString("Reg_Telefono");
-
-            if (string.IsNullOrEmpty(correo))
+            // PASO 3: Validar el código ingresado y guardar en base de datos
+            if (model.Paso == 3)
             {
-                return RedirectToAction("Index");
-            }
+                string? metodo = HttpContext.Session.GetString("Reg_MetodoElegido");
+                string? expiracionStr = HttpContext.Session.GetString("Reg_Expiracion");
+                string? cedula = HttpContext.Session.GetString("Reg_Cedula");
 
-            var model = new VerificacionCodigoViewModel
-            {
-                Correo = correo,
-                Telefono = telefono ?? ""
-            };
+                if (string.IsNullOrEmpty(metodo) || string.IsNullOrEmpty(expiracionStr) || string.IsNullOrEmpty(cedula))
+                {
+                    return RedirectToAction("Index");
+                }
 
-            // La vista 'VerificacionCodigo.cshtml' solo captura los dos inputs del usuario.
-            // Se eliminó ViewBag.CodigoSmsPrueba para evitar quemar datos en pantalla.
+                DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
+                if (DateTime.Now > fechaExpiracion)
+                {
+                    ModelState.AddModelError(string.Empty, "El código ha caducado. Inicie el registro nuevamente.");
+                    model.Paso = 3;
+                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = HttpContext.Session.GetString("Reg_CodigoWhatsAppSimulado");
+                    return View("RegistroUsuario", model);
+                }
 
-            return View("VerificacionCodigo", model);
-        }
+                string codigoReal = (metodo == "telefono")
+                    ? HttpContext.Session.GetString("Reg_CodigoWhatsAppSimulado")!
+                    : HttpContext.Session.GetString("Reg_CodigoCorreo")!;
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Verificacion(VerificacionCodigoViewModel model)
-        {
-            string? codigoCorreoReal = HttpContext.Session.GetString("Reg_CodigoCorreo");
-            string? codigoTelefonoReal = HttpContext.Session.GetString("Reg_CodigoTelefono");
-            string? expiracionStr = HttpContext.Session.GetString("Reg_Expiracion");
-            string? cedula = HttpContext.Session.GetString("Reg_Cedula");
+                if (model.CodigoVerificacion != codigoReal)
+                {
+                    ModelState.AddModelError("CodigoVerificacion", "El código de verificación ingresado es incorrecto.");
+                    model.Paso = 3;
+                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
+                    return View("RegistroUsuario", model);
+                }
 
-            if (string.IsNullOrEmpty(codigoCorreoReal) || string.IsNullOrEmpty(expiracionStr))
-            {
-                return RedirectToAction("Index");
-            }
-
-            // 1. VALIDACIÓN DE CADUCIDAD A LOS 5 MINUTOS
-            DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
-            if (DateTime.Now > fechaExpiracion)
-            {
-                ModelState.AddModelError(string.Empty, "Los códigos han caducado (tiempo límite de 5 minutos excedido). Inicie el registro nuevamente.");
-                return View("VerificacionCodigo", model);
-            }
-
-            // 2. VALIDACIÓN DE CÓDIGOS RECIBIDOS EN CORREO Y WHATSAPP
-            bool correoValido = (model.Codigo == codigoCorreoReal);
-            bool telefonoValido = (model.CodigoTelefono == codigoTelefonoReal);
-
-            if (!correoValido && !telefonoValido)
-            {
-                ModelState.AddModelError(string.Empty, "Ambos códigos (correo y WhatsApp) son incorrectos.");
-            }
-            else if (!correoValido)
-            {
-                ModelState.AddModelError("Codigo", "El código enviado al correo electrónico es incorrecto.");
-            }
-            else if (!telefonoValido)
-            {
-                ModelState.AddModelError("CodigoTelefono", "El código enviado a tu WhatsApp es incorrecto.");
-            }
-            else
-            {
-                // AMBOS CÓDIGOS SON CORRECTOS Y DENTRO DEL TIEMPO -> GUARDAR EN BD
+                // CREAR USUARIO EN BASE DE DATOS
                 string nombres = HttpContext.Session.GetString("Reg_Nombres")!;
                 string apellidos = HttpContext.Session.GetString("Reg_Apellidos")!;
                 string correo = HttpContext.Session.GetString("Reg_Correo")!;
-                string telefono = HttpContext.Session.GetString("Reg_Telefono")!;
+                string telefonoStr = HttpContext.Session.GetString("Reg_Telefono") ?? "3000000000";
                 string contrasena = HttpContext.Session.GetString("Reg_Contrasena")!;
                 int idRol = HttpContext.Session.GetInt32("Reg_IdRol") ?? 1;
                 int idMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio") ?? 1;
-                string imagen = HttpContext.Session.GetString("Reg_Imagen")!;
+                string imagen = HttpContext.Session.GetString("Reg_Imagen") ?? "default_user.png";
 
-                int.TryParse(telefono.Length > 9 ? telefono.Substring(telefono.Length - 9) : telefono, out int telefonoInt);
+                if (idRol == 4) idRol = 1;
 
+                long.TryParse(telefonoStr, out long telefonoLong);
                 var nuevoUsuario = new Usuario
                 {
                     NombreCom = nombres,
                     ApellidoCom = apellidos,
                     CedulaUsu = int.Parse(cedula!),
                     CorreoUsu = correo,
-                    TelelfonoUsu = telefonoInt,
+                    TelelfonoUsu = telefonoLong,
                     ContrasenaUsu = EncriptacionService.Encriptar(contrasena),
                     IdRol = idRol,
                     IdMunicipio = idMunicipio,
@@ -206,17 +225,64 @@ namespace CampesinApp.Controllers
 
                 HttpContext.Session.Clear();
 
-                TempData["MensajeExito"] = "¡Cuenta verificada y registrada con éxito en la base de datos!";
-                return RedirectToAction("Login", "InicioSesion");
+                // Usamos TempData para garantizar que la alerta aparezca tras la redirección
+                TempData["RegistroExitoso"] = true;
+                return RedirectToAction("Index");
             }
 
-            return View("VerificacionCodigo", model);
+            return View("RegistroUsuario", model);
+        }
+
+        [HttpGet]
+        public IActionResult CambiarMetodo()
+        {
+            string? correo = HttpContext.Session.GetString("Reg_Correo");
+            string? telefono = HttpContext.Session.GetString("Reg_Telefono");
+
+            if (string.IsNullOrEmpty(correo)) return RedirectToAction("Index");
+
+            var model = new RegistroUsuarioViewModel
+            {
+                Paso = 2,
+                CorreoEnmascarado = EnmascararCorreo(correo),
+                TelefonoEnmascarado = EnmascararTelefono(telefono ?? "")
+            };
+
+            return View("RegistroUsuario", model);
+        }
+
+        [HttpGet]
+        public IActionResult VolverARegistro()
+        {
+            string? nombres = HttpContext.Session.GetString("Reg_Nombres");
+
+            if (string.IsNullOrEmpty(nombres))
+            {
+                return RedirectToAction("Index");
+            }
+
+            var model = new RegistroUsuarioViewModel
+            {
+                Paso = 1,
+                Nombres = nombres,
+                Apellidos = HttpContext.Session.GetString("Reg_Apellidos") ?? "",
+                Cedula = HttpContext.Session.GetString("Reg_Cedula") ?? "",
+                Correo = HttpContext.Session.GetString("Reg_Correo") ?? "",
+                Telefono = HttpContext.Session.GetString("Reg_Telefono") ?? "",
+                Direccion = HttpContext.Session.GetString("Reg_Direccion") ?? "",
+                IdRol = HttpContext.Session.GetInt32("Reg_IdRol") ?? 0,
+                IdDepartamento = HttpContext.Session.GetInt32("Reg_IdDepartamento") ?? 0,
+                IdMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio") ?? 0
+            };
+
+            CargarCombosBD(model);
+            return View("RegistroUsuario", model);
         }
 
         private void CargarCombosBD(RegistroUsuarioViewModel model)
         {
             model.ListaRoles = _context.Rols
-                .Where(r => r.TipoRol != "Administrador" && r.IdRol != 4)
+                .Where(r => r.TipoRol != "Administrador" && r.TipoRol != "Transportador" && r.IdRol != 4)
                 .Select(r => new SelectListItem { Value = r.IdRol.ToString(), Text = r.TipoRol })
                 .ToList();
 
@@ -231,6 +297,22 @@ namespace CampesinApp.Controllers
                     .Select(m => new SelectListItem { Value = m.IdMunicipio.ToString(), Text = m.Municipio1 })
                     .ToList();
             }
+        }
+
+        private string EnmascararCorreo(string correo)
+        {
+            if (string.IsNullOrEmpty(correo) || !correo.Contains("@")) return correo;
+            var partes = correo.Split('@');
+            var nombre = partes[0];
+            var dominio = partes[1];
+            if (nombre.Length <= 2) return "***@" + dominio;
+            return nombre.Substring(0, 2 + 1) + "***@" + dominio;
+        }
+
+        private string EnmascararTelefono(string telefono)
+        {
+            if (string.IsNullOrEmpty(telefono) || telefono.Length < 4) return telefono;
+            return new string('*', telefono.Length - 4) + telefono.Substring(telefono.Length - 4);
         }
     }
 }
