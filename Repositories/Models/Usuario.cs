@@ -13,7 +13,7 @@ public partial class Usuario
 
     public string CorreoUsu { get; set; } = null!;
 
-    public string ContrasenaUsu { get; set; } = null!;
+    public string? ContrasenaUsu { get; set; }
 
     public int CedulaUsu { get; set; }
 
@@ -21,7 +21,7 @@ public partial class Usuario
 
     public string ApellidoCom { get; set; } = null!;
 
-    public int TelelfonoUsu { get; set; }
+    public long TelelfonoUsu { get; set; }
 
     public bool Estado { get; set; }
 
