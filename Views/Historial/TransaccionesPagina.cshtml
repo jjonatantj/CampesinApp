@@ -1,0 +1,16 @@
+@model HistorialTransaccionesDto
+@{
+    Layout = "_LayoutCasosUso";
+    ViewData["Title"] = "Historial de Transacciones";
+}
+
+@* CU-027: pantalla completa del historial de transacciones; la búsqueda actualiza solo el panel y "Ver Detalle" abre una ventana encima. *@
+<div class="container pb-4">
+    <div class="d-flex justify-content-end mb-3">
+        <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Regresar al perfil</a>
+    </div>
+
+    <div id="panelPagina" class="modal-content">
+        <partial name="_HistorialTransacciones" model="Model" />
+    </div>
+</div>

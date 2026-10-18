@@ -78,6 +78,13 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Conflicto, "La llegada de este viaje ya fue notificada.");
             }
 
+            // El lugar debe ser un punto de acopio registrado (tabla punto_Acopio): de ahí salen las coordenadas del mapa.
+            var punto = await BuscarPuntoPorNombreAsync(dto.Lugar);
+            if (punto == null)
+            {
+                return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El lugar seleccionado no es un punto de acopio registrado.");
+            }
+
             var hito = notificarLlegada ? Hitos.DestinoFinal : dto.Hito!;
             if (!Hitos.Todos.Contains(hito) || !Regiones.Todas.Contains(dto.Region!))
             {
@@ -102,7 +109,7 @@ namespace CampesinApp.Services
                 Region = dto.Region!,
                 PuntoOrigen = dto.PuntoOrigen!.Trim(),
                 PuntoDestino = dto.PuntoDestino!.Trim(),
-                Lugar = dto.Lugar!.Trim(),
+                Lugar = punto.NombrePunto,
                 Hito = hito,
                 FechaHora = ahora
             };
@@ -152,7 +159,10 @@ namespace CampesinApp.Services
 
             await _log.RegistrarAsync(NivelesLog.Info, "CU-021 Reporte ubicación", $"Reporte '{hito}' en '{reporte.Lugar}' del pedido {codigo}.", usuario.Id);
 
-            return ResultadoOperacion<ReporteVistaDto>.Ok(ConvertirReporte(reporte, codigo, false));
+            var vista = ConvertirReporte(reporte, codigo, false);
+            vista.Latitud = (double)punto.Latitud;
+            vista.Longitud = (double)punto.Longitud;
+            return ResultadoOperacion<ReporteVistaDto>.Ok(vista);
         }
 
         /// <summary>Último reporte del pedido, que es el que muestra "Seguimiento de Pedido" (CU-022).</summary>
@@ -176,7 +186,57 @@ namespace CampesinApp.Services
             }
 
             var guardado = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporteUbicacion == reporte.IdReporteUbicacion && a.IdUsuario == usuario.Id);
-            return ResultadoOperacion<ReporteVistaDto>.Ok(ConvertirReporte(reporte, CodigoPedido.Formatear(idDemanda), guardado));
+            var dto = ConvertirReporte(reporte, CodigoPedido.Formatear(idDemanda), guardado);
+
+            // Recorrido del pedido para dibujarlo en el mapa de "Seguimiento de Pedido": cada reporte se ubica con las
+            // coordenadas de su punto de acopio (tabla punto_Acopio).
+            var reportes = await _db.ReporteUbicacions
+                .AsNoTracking()
+                .Where(r => r.IdDemanda == idDemanda)
+                .OrderBy(r => r.FechaHora)
+                .ThenBy(r => r.IdReporteUbicacion)
+                .ToListAsync();
+            var nombres = reportes.Select(r => r.Lugar).Distinct().ToList();
+            var puntos = (await _db.PuntoAcopios.AsNoTracking().Where(p => nombres.Contains(p.NombrePunto)).ToListAsync())
+                .GroupBy(p => p.NombrePunto, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            dto.Recorrido = reportes
+                .Where(r => puntos.ContainsKey(r.Lugar))
+                .Select(r => new PuntoMapaDto
+                {
+                    Lat = (double)puntos[r.Lugar].Latitud,
+                    Lng = (double)puntos[r.Lugar].Longitud,
+                    Titulo = r.Lugar,
+                    Hito = r.Hito,
+                    Fecha = Formato.FechaHora(r.FechaHora)
+                }).ToList();
+
+            if (puntos.TryGetValue(reporte.Lugar, out var actual))
+            {
+                dto.Latitud = (double)actual.Latitud;
+                dto.Longitud = (double)actual.Longitud;
+            }
+
+            // Punto de acopio de entrega del pedido (destino), si lo tiene.
+            var destino = await _db.Demanda
+                .AsNoTracking()
+                .Where(d => d.IdDemanda == idDemanda && d.IdPuntoAcopio != null)
+                .Select(d => d.IdPuntoAcopioNavigation)
+                .FirstOrDefaultAsync();
+            if (destino != null)
+            {
+                dto.Destino = new PuntoMapaDto
+                {
+                    Lat = (double)destino.Latitud,
+                    Lng = (double)destino.Longitud,
+                    Titulo = destino.NombrePunto,
+                    Hito = "Destino del pedido",
+                    Tipo = "destino"
+                };
+            }
+
+            return ResultadoOperacion<ReporteVistaDto>.Ok(dto);
         }
 
         /// <summary>"Guardar reporte" (CU-022, RN-03): guarda la alerta en el historial permanente del usuario.</summary>
@@ -259,6 +319,27 @@ namespace CampesinApp.Services
                 .Where(f => f.Ultimo != null && f.Ultimo <= limite)
                 .Select(f => new ReporteVencidoDto { IdViaje = f.IdViaje, CodigoPedido = CodigoPedido.Formatear(f.IdDemanda) })
                 .ToList();
+        }
+
+        /// <summary>Puntos de acopio registrados (tabla punto_Acopio) con sus coordenadas, para elegir el lugar y dibujarlos en el mapa.</summary>
+        public async Task<List<PuntoAcopioOpcionDto>> ObtenerPuntosAcopioAsync()
+        {
+            var puntos = await _db.PuntoAcopios.AsNoTracking().OrderBy(p => p.NombrePunto).ToListAsync();
+            return puntos.Select(p => new PuntoAcopioOpcionDto
+            {
+                Id = p.IdPuntoAcopio,
+                Nombre = p.NombrePunto,
+                Direccion = p.Direccion,
+                Lat = (double)p.Latitud,
+                Lng = (double)p.Longitud
+            }).ToList();
+        }
+
+        private async Task<PuntoAcopio?> BuscarPuntoPorNombreAsync(string? nombre)
+        {
+            var buscado = nombre?.Trim();
+            if (string.IsNullOrEmpty(buscado)) return null;
+            return await _db.PuntoAcopios.AsNoTracking().OrderBy(p => p.IdPuntoAcopio).FirstOrDefaultAsync(p => p.NombrePunto == buscado);
         }
 
         private static ReporteVistaDto ConvertirReporte(ReporteUbicacion r, string codigo, bool guardado) => new()

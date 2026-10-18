@@ -17,8 +17,9 @@
 </button>
 
 <div class="dropdown">
-    <button type="button" id="menuUsuario" class="btn btn-nav-register rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" data-bs-toggle="dropdown" aria-expanded="false" title="Mi cuenta" aria-label="Menú de la cuenta">
-        <i class="bi bi-person-fill"></i>
+    @* Único acceso al perfil: el botón verde "Perfil" despliega el menú de la cuenta (perfil y cierre de sesión). *@
+    <button type="button" id="menuUsuario" class="btn btn-nav-register text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" title="Mi cuenta" aria-label="Perfil y menú de la cuenta">
+        <i class="bi bi-person-circle me-1"></i> Perfil
     </button>
     <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="menuUsuario">
         <li><h6 class="dropdown-header">@(string.IsNullOrEmpty(rolSesion) ? "Mi cuenta" : rolSesion)</h6></li>

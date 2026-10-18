@@ -1,0 +1,16 @@
+@model HistorialGlobalDto
+@{
+    Layout = "_LayoutCasosUso";
+    ViewData["Title"] = "Historial Global del Aplicativo";
+}
+
+@* CU-030: pantalla completa del historial global; las pestañas y los filtros actualizan solo el panel. *@
+<div class="container pb-4">
+    <div class="d-flex justify-content-end mb-3">
+        <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Regresar al perfil</a>
+    </div>
+
+    <div id="panelPagina" class="modal-content">
+        <partial name="_HistorialGlobal" model="Model" />
+    </div>
+</div>

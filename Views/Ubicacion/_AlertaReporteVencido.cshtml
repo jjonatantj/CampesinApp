@@ -3,5 +3,5 @@
     <h5 class="mb-2">Es hora de su siguiente informe de avance</h5>
     <p class="mb-2">Han pasado 2 horas desde su último reporte de ubicación.</p>
     <p class="small text-muted mb-3">Pedidos pendientes: @string.Join(", ", Model.Select(v => v.CodigoPedido))</p>
-    <button type="button" class="btn btn-primary" data-modal-url="/Ubicacion/Reportar" data-modal-destino="principal" data-cerrar-origen>Registrar informe de avance</button>
+    <a class="btn btn-primary" href="/Ubicacion/Reportar">Registrar informe de avance</a>
 </div>

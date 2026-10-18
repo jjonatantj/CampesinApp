@@ -77,7 +77,7 @@ namespace CampesinApp.Services
         }
 
         /// <summary>Pestaña "Historial de Ventas General" y "Logs del Sistema" del historial global (CU-030).</summary>
-        public async Task<HistorialGlobalDto> ObtenerGlobalAsync(FiltroHistorialGlobalDto filtro)
+        public async Task<HistorialGlobalDto> ObtenerGlobalAsync(FiltroHistorialGlobalDto filtro, int limite = MaximoFilas)
         {
             var resultado = new HistorialGlobalDto { Filtro = filtro };
             var desde = filtro.Desde?.Date;
@@ -93,7 +93,7 @@ namespace CampesinApp.Services
                 var filas = await logs
                     .OrderByDescending(l => l.Fecha)
                     .ThenByDescending(l => l.IdLog)
-                    .Take(MaximoFilas)
+                    .Take(limite)
                     .ToListAsync();
 
                 var idsUsuario = filas.Where(l => l.IdUsuario != null).Select(l => l.IdUsuario!.Value).Distinct().ToList();
@@ -134,7 +134,7 @@ namespace CampesinApp.Services
 
             var admin = new UsuarioActual(0, string.Empty, string.Empty, RolUsuario.Administrador);
             resultado.Ventas = await ProyectarAsync(
-                ventas.OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion).Take(MaximoFilas),
+                ventas.OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion).Take(limite),
                 admin);
             return resultado;
         }

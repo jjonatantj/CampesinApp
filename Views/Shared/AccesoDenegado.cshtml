@@ -1,0 +1,13 @@
+@model string
+@{
+    Layout = "_LayoutCasosUso";
+    ViewData["Title"] = "Acceso denegado";
+}
+
+<div class="container py-4">
+    <div class="main-container p-5 text-center shadow-sm mx-auto" style="max-width: 36rem;" role="alert">
+        <i class="bi bi-slash-circle fs-1 text-danger d-block mb-3"></i>
+        <p class="fw-bold fs-5">@Model</p>
+        <a asp-controller="Perfil" asp-action="Index" class="btn btn-dark px-4">Cerrar</a>
+    </div>
+</div>
