@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
@@ -31,6 +32,9 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Index", "Perfil");
             }
 
+            // LIMPIAR EXPLICITAMENTE EL TEMPጌDATA PARA QUE EL MODAL NO APAREZCA SOLO AL ENTRAR
+            TempData.Remove("MensajeExito");
+
             var model = new RegistroAdminViewModel();
             return View("RegistroAdmin", model);
         }
@@ -52,9 +56,9 @@ namespace CampesinApp.Controllers
             }
 
             // RN-1-CU003: Valida que cédula o correo no existan previamente
-            if (int.TryParse(model.Cedula, out int cedulaInt))
+            if (long.TryParse(model.Cedula, out long cedulaLong))
             {
-                if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaInt))
+                if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaLong))
                 {
                     ModelState.AddModelError("Cedula", "El número de documento ya se encuentra registrado.");
                 }
@@ -67,7 +71,8 @@ namespace CampesinApp.Controllers
 
             if (ModelState.IsValid)
             {
-                int.TryParse(model.Telefono.Length > 9 ? model.Telefono.Substring(model.Telefono.Length - 9) : model.Telefono, out int telefonoInt);
+                // CORRECCIÓN: Usar long.TryParse para conservar el teléfono completo de 10 dígitos (con el '3' al inicio)
+                long.TryParse(model.Telefono, out long telefonoLong);
 
                 int idMunicipioDefecto = _context.Municipios.Select(m => m.IdMunicipio).FirstOrDefault();
 
@@ -77,7 +82,7 @@ namespace CampesinApp.Controllers
                     ApellidoCom = model.Apellidos,
                     CedulaUsu = int.Parse(model.Cedula),
                     CorreoUsu = model.Correo,
-                    TelelfonoUsu = telefonoInt,
+                    TelelfonoUsu = telefonoLong, // Guardado completo para BIGINT
                     ContrasenaUsu = EncriptacionService.Encriptar(model.Contrasena), // Encriptación de contraseña
                     IdRol = 4, // Rol Administrador
                     IdMunicipio = idMunicipioDefecto,

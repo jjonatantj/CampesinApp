@@ -7,6 +7,9 @@ namespace CampesinApp.ViewModels
 {
     public class RegistroUsuarioViewModel
     {
+        // Control de Pasos (1: Formulario principal, 2: Seleccionar Método, 3: Ingresar Código)
+        public int Paso { get; set; } = 1;
+
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         [Display(Name = "Nombres")]
         public string Nombres { get; set; } = string.Empty;
@@ -62,10 +65,17 @@ namespace CampesinApp.ViewModels
         [Display(Name = "Foto de Perfil")]
         public IFormFile? FotoPerfil { get; set; }
 
-        // Listas dinámicas para poblar los combobox desde la Base de Datos
+        // Propiedades para los Pasos 2 y 3 (Selección de método y verificación)
+        public string? MetodoSeleccionado { get; set; } // "correo" o "telefono"
+        public string? CorreoEnmascarado { get; set; }
+        public string? TelefonoEnmascarado { get; set; }
+
+        [Display(Name = "Código de Verificación")]
+        public string? CodigoVerificacion { get; set; }
+
+        // Listas dinámicas
         public List<SelectListItem> ListaRoles { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> ListaDepartamentos { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> ListaMunicipios { get; set; } = new List<SelectListItem>();
     }
-
 }
