@@ -87,10 +87,17 @@ namespace CampesinApp.Services
                 .AsNoTracking()
                 .Where(c => c.IdUsuarioEvaluado == idUsuario)
                 .OrderByDescending(c => c.Fecha)
-                .Select(c => new { c.Estrellas, c.Comentario })
+                .Select(c => new
+                {
+                    c.Estrellas,
+                    c.Comentario,
+                    c.Fecha,
+                    Autor = c.IdUsuarioEvaluaNavigation.NombreCom + " " + c.IdUsuarioEvaluaNavigation.ApellidoCom,
+                    RolAutor = c.IdUsuarioEvaluaNavigation.IdRolNavigation.TipoRol
+                })
                 .ToListAsync();
 
-            return new PerfilPublicoDto
+            var perfil = new PerfilPublicoDto
             {
                 Id = u.IdUsuario,
                 NombreCompleto = $"{u.NombreCom} {u.ApellidoCom}".Trim(),
@@ -99,7 +106,145 @@ namespace CampesinApp.Services
                 FotoUrl = ResolverFoto(u.Imagen),
                 TotalCalificaciones = calificaciones.Count,
                 PromedioEstrellas = calificaciones.Count == 0 ? null : Math.Round(calificaciones.Average(c => c.Estrellas), 1),
-                Comentarios = calificaciones.Where(c => !string.IsNullOrWhiteSpace(c.Comentario)).Take(5).Select(c => c.Comentario).ToList()
+                Comentarios = calificaciones.Where(c => !string.IsNullOrWhiteSpace(c.Comentario)).Take(5).Select(c => c.Comentario).ToList(),
+                Opiniones = calificaciones
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Comentario))
+                    .Take(6)
+                    .Select(c => new OpinionPerfilDto
+                    {
+                        Autor = c.Autor.Trim(),
+                        RolAutor = c.RolAutor,
+                        Estrellas = c.Estrellas,
+                        Texto = c.Comentario,
+                        Fecha = c.Fecha
+                    }).ToList()
+            };
+
+            for (var estrellas = 1; estrellas <= 5; estrellas++)
+            {
+                perfil.Distribucion[estrellas - 1] = calificaciones.Count(c => c.Estrellas == estrellas);
+            }
+
+            // Cifras y secciones propias de cada rol (solo lectura de la base de datos).
+            switch (RolUsuarioExtensions.Desde(rolEsperado))
+            {
+                case RolUsuario.Campesino:
+                    await CompletarCampesinoAsync(perfil, idUsuario);
+                    break;
+                case RolUsuario.Comprador:
+                    await CompletarCompradorAsync(perfil, idUsuario);
+                    break;
+                case RolUsuario.Transportador:
+                    await CompletarTransportadorAsync(perfil, idUsuario);
+                    break;
+            }
+
+            return perfil;
+        }
+
+        private async Task CompletarCampesinoAsync(PerfilPublicoDto perfil, int idUsuario)
+        {
+            var entregados = await _db.AporteCamps
+                .AsNoTracking()
+                .Where(a => a.IdUsuario == idUsuario && _db.Viajes.Any(v => v.IdDemanda == a.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio)))
+                .Select(a => new { a.IdDemanda, a.CantAporte })
+                .ToListAsync();
+
+            var enCurso = await _db.AporteCamps
+                .AsNoTracking()
+                .Where(a => a.IdUsuario == idUsuario && !_db.Viajes.Any(v => v.IdDemanda == a.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio)))
+                .Select(a => a.IdDemanda)
+                .Distinct()
+                .CountAsync();
+
+            perfil.Productos = (await _db.Productos
+                .AsNoTracking()
+                .Where(p => p.IdUsuario == idUsuario)
+                .OrderBy(p => p.IdTipoProductoNavigation.Producto)
+                .Select(p => new
+                {
+                    Nombre = p.IdTipoProductoNavigation.Producto,
+                    Variedad = p.IdVariedadNavigation.VariedadProd,
+                    p.DescripcionProduc,
+                    p.UbicacionCultivo
+                })
+                .ToListAsync())
+                .Select(p => new ProductoPerfilDto { Nombre = p.Nombre, Variedad = p.Variedad, Descripcion = p.DescripcionProduc, Cultivo = p.UbicacionCultivo })
+                .ToList();
+
+            perfil.Puntos = (await _db.PuntoAcopios
+                .AsNoTracking()
+                .Where(p => p.IdUsuarios.Any(x => x.IdUsuario == idUsuario))
+                .OrderBy(p => p.NombrePunto)
+                .ToListAsync())
+                .Select(p => new PuntoPerfilDto { Nombre = p.NombrePunto, Direccion = p.Direccion, Horario = p.HorarioAtencion, AccesoVehicular = p.AccesoVehicular })
+                .ToList();
+
+            perfil.Estadisticas = new List<DatoPerfilDto>
+            {
+                new() { Titulo = "Ventas completadas", Valor = Formato.Entero(entregados.Select(e => e.IdDemanda).Distinct().Count()), Icono = "bi-bag-check-fill" },
+                new() { Titulo = "Producto entregado", Valor = $"{Formato.Entero(entregados.Sum(e => e.CantAporte))} kg", Icono = "bi-box-seam-fill" },
+                new() { Titulo = "Pedidos en curso", Valor = Formato.Entero(enCurso), Icono = "bi-hourglass-split" },
+                new() { Titulo = "Productos publicados", Valor = Formato.Entero(perfil.Productos.Count), Icono = "bi-basket2-fill" }
+            };
+        }
+
+        private async Task CompletarCompradorAsync(PerfilPublicoDto perfil, int idUsuario)
+        {
+            var pedidos = await _db.Demanda
+                .AsNoTracking()
+                .Where(d => d.IdUsuario == idUsuario)
+                .Select(d => new
+                {
+                    d.IdDemanda,
+                    d.CantidadDeman,
+                    Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
+                    Finalizado = _db.Viajes.Any(v => v.IdDemanda == d.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio))
+                })
+                .ToListAsync();
+
+            var completados = pedidos.Where(p => p.Finalizado).ToList();
+            perfil.ProductosDeInteres = pedidos.Select(p => p.Producto.Trim()).Distinct().OrderBy(p => p).ToList();
+
+            perfil.Estadisticas = new List<DatoPerfilDto>
+            {
+                new() { Titulo = "Pedidos realizados", Valor = Formato.Entero(pedidos.Count), Icono = "bi-cart-check-fill" },
+                new() { Titulo = "Compras completadas", Valor = Formato.Entero(completados.Count), Icono = "bi-patch-check-fill" },
+                new() { Titulo = "Volumen comprado", Valor = $"{Formato.Entero(completados.Sum(p => p.CantidadDeman))} kg", Icono = "bi-box-seam-fill" },
+                new() { Titulo = "Pedidos en curso", Valor = Formato.Entero(pedidos.Count - completados.Count), Icono = "bi-hourglass-split" }
+            };
+        }
+
+        private async Task CompletarTransportadorAsync(PerfilPublicoDto perfil, int idUsuario)
+        {
+            var viajes = await _db.Viajes
+                .AsNoTracking()
+                .Where(v => v.IdUsuarioTransportador == idUsuario)
+                .Select(v => v.EstadoEnvio)
+                .ToListAsync();
+
+            perfil.Vehiculos = (await _db.Camions
+                .AsNoTracking()
+                .Where(c => c.IdUsuario == idUsuario)
+                .OrderBy(c => c.PlacaCami)
+                .ToListAsync())
+                .Select(c => new VehiculoPerfilDto
+                {
+                    Placa = c.PlacaCami,
+                    Modelo = c.ModeloCami,
+                    CapacidadToneladas = c.CapacidadCami,
+                    PaseAlDia = c.EstadoPase,
+                    SeguroAlDia = c.EstadoSeguro,
+                    TecnomecanicaAlDia = c.EstadoTecno
+                }).ToList();
+
+            var completados = viajes.Count(e => EstadosEnvio.Finalizados.Contains(e));
+            perfil.Estadisticas = new List<DatoPerfilDto>
+            {
+                new() { Titulo = "Viajes completados", Valor = Formato.Entero(completados), Icono = "bi-truck" },
+                new() { Titulo = "Viajes en curso", Valor = Formato.Entero(viajes.Count - completados), Icono = "bi-signpost-split-fill" },
+                new() { Titulo = "Vehículos registrados", Valor = Formato.Entero(perfil.Vehiculos.Count), Icono = "bi-truck-front-fill" },
+                new() { Titulo = "Capacidad total", Valor = $"{Formato.Entero(perfil.Vehiculos.Sum(v => v.CapacidadToneladas))} t", Icono = "bi-speedometer2" }
             };
         }
 
