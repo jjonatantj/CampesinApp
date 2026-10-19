@@ -1,14 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
-using System.Linq;
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
 
 namespace CampesinApp.Controllers
 {
