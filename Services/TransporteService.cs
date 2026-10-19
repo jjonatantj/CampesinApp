@@ -45,6 +45,7 @@ namespace CampesinApp.Services
             {
                 IdDemanda = idDemanda,
                 CodigoPedido = CodigoPedido.Formatear(idDemanda),
+                IdTransportador = viaje.IdUsuarioTransportador,
                 NombreTransportador = viaje.NombreTransportador,
                 TelefonoTransportador = viaje.TelefonoTransportador,
                 Placa = viaje.Placa,

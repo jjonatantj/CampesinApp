@@ -25,27 +25,37 @@
 
         <div class="row g-4">
             <div class="col-lg-5">
-                <div class="feature-card h-100 text-center">
-                    @if (!string.IsNullOrEmpty(Model.FotoUrl))
-                    {
-                        <img src="@Model.FotoUrl" alt="Foto de @Model.Nombres" width="130" height="130" class="rounded-circle border border-3 border-success shadow-sm mb-3" style="object-fit: cover;" />
-                    }
-                    else
-                    {
-                        <div class="rounded-circle border border-3 border-success shadow-sm mb-3 mx-auto d-flex align-items-center justify-content-center fw-bold bg-white" style="width: 130px; height: 130px; font-size: 2.6rem; color: #2e7d32;" aria-hidden="true">@Model.Iniciales</div>
-                    }
-                    <h2 class="h4 fw-bold text-dark mb-1">@Model.Nombres @Model.Apellidos</h2>
-                    <span class="badge bg-success text-white px-3 py-2 rounded-pill mb-3">@Model.Rol</span>
+                @{
+                    var tema = Model.Rol switch { "Campesino" => "pf-campesino", "Comprador" => "pf-comprador", "Transportador" => "pf-transportador", _ => "pf-admin" };
+                }
+                <div class="pf @tema h-100">
+                    <div class="pf-portada shadow-sm h-100">
+                        <div class="pf-banner" style="height: 110px;" aria-hidden="true">
+                            <span class="pf-hoja pf-hoja-1"></span><span class="pf-hoja pf-hoja-2"></span><span class="pf-hoja pf-hoja-3"></span>
+                        </div>
+                        <div class="text-center px-3 pb-4">
+                            @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                            {
+                                <img src="@Model.FotoUrl" alt="Foto de @Model.Nombres" class="pf-avatar mx-auto d-block" />
+                            }
+                            else
+                            {
+                                <div class="pf-avatar pf-avatar-iniciales mx-auto" aria-hidden="true">@Model.Iniciales</div>
+                            }
+                            <h2 class="pf-nombre fs-3 mt-2">@Model.Nombres @Model.Apellidos</h2>
+                            <span class="badge pf-insignia pf-insignia-grande mb-3">@Model.Rol</span>
 
-                    <dl class="text-start mb-0 small">
-                        <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold">Correo</dt><dd class="mb-0 text-break text-end">@Model.Correo</dd></div>
-                        <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold">Teléfono</dt><dd class="mb-0">@Model.Telefono</dd></div>
-                        <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold">Identificación</dt><dd class="mb-0">@Model.Cedula</dd></div>
-                        @if (!string.IsNullOrEmpty(Model.Municipio))
-                        {
-                            <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold">Municipio</dt><dd class="mb-0">@Model.Municipio</dd></div>
-                        }
-                    </dl>
+                            <dl class="text-start mb-0 small">
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-envelope me-1"></i>Correo</dt><dd class="mb-0 text-break text-end">@Model.Correo</dd></div>
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-telephone me-1"></i>Teléfono</dt><dd class="mb-0">@Model.Telefono</dd></div>
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-person-vcard me-1"></i>Identificación</dt><dd class="mb-0">@Model.Cedula</dd></div>
+                                @if (!string.IsNullOrEmpty(Model.Municipio))
+                                {
+                                    <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-geo-alt me-1"></i>Municipio</dt><dd class="mb-0">@Model.Municipio</dd></div>
+                                }
+                            </dl>
+                        </div>
+                    </div>
                 </div>
             </div>
 
