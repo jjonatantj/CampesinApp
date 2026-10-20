@@ -26,22 +26,24 @@ namespace CampesinApp.Services
         /// <summary>Viajes sobre los que el usuario puede reportar: los suyos (transportador) o todos los activos (administrador).</summary>
         public async Task<List<ViajeOpcionDto>> ObtenerViajesActivosAsync(UsuarioActual usuario)
         {
-            var consulta = _db.Viajes.AsNoTracking().Where(v => !EstadosEnvio.Finalizados.Contains(v.EstadoEnvio));
+            var consulta = _db.Viajes().AsNoTracking().Where(v => !EstadosEnvio.Finalizados.Contains(v.EstadoEnvio));
             if (!usuario.EsAdmin)
             {
                 consulta = consulta.Where(v => v.IdUsuarioTransportador == usuario.Id && v.VisibleTransportador);
             }
 
-            var filas = await consulta
-                .OrderBy(v => v.IdViaje)
-                .Select(v => new
-                {
-                    v.IdViaje,
-                    v.IdDemanda,
-                    Producto = v.IdDemandaNavigation.IdTipoProductoNavigation.Producto + " " + v.IdDemandaNavigation.IdVariedadNavigation.VariedadProd,
-                    DireccionFinal = v.IdDemandaNavigation.IdPuntoAcopioNavigation != null ? v.IdDemandaNavigation.IdPuntoAcopioNavigation.Direccion : (v.IdDemandaNavigation.DireccionInicial ?? "Punto de Acopio"),
-                    v.Placa
-                })
+            var filas = await (
+                    from v in consulta
+                    join d in _db.Demanda on v.IdDemanda equals d.IdDemanda
+                    orderby v.IdViaje
+                    select new
+                    {
+                        v.IdViaje,
+                        v.IdDemanda,
+                        Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
+                        DireccionFinal = d.IdPuntoAcopioNavigation != null ? d.IdPuntoAcopioNavigation.Direccion : (d.DireccionInicial ?? "Punto de Acopio"),
+                        v.Placa
+                    })
                 .ToListAsync();
 
             return filas.Select(f => new ViajeOpcionDto
@@ -57,7 +59,7 @@ namespace CampesinApp.Services
         /// </summary>
         public async Task<ResultadoOperacion<ReporteVistaDto>> RegistrarAsync(UsuarioActual usuario, ReporteUbicacionDto dto, bool notificarLlegada)
         {
-            var viaje = await _db.Viajes.FirstOrDefaultAsync(v => v.IdViaje == dto.IdViaje);
+            var viaje = await _db.Viajes().AsNoTracking().FirstOrDefaultAsync(v => v.IdViaje == dto.IdViaje);
             if (viaje == null)
             {
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.NoEncontrado, "El viaje seleccionado no existe.");
@@ -92,42 +94,31 @@ namespace CampesinApp.Services
             }
 
             // RN01-CU021: el primer registro del servicio es la posición de arranque.
-            var tieneReportes = await _db.ReporteUbicacions.AnyAsync(r => r.IdViaje == viaje.IdViaje);
+            var tieneReportes = await _db.ReporteTransportadors.AnyAsync(r => r.IdDemanda == viaje.IdDemanda);
             if (!tieneReportes && hito != Hitos.Salida)
             {
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El primer reporte del viaje debe ser la salida del punto de origen.");
             }
 
             var ahora = DateTime.Now;
-            var reporte = new ReporteUbicacion
+            // Tabla reporte_Transportador: ubicacion_Actual = punto de acopio, fecha_Actual = fecha y hora del reporte.
+            // El estado del envío (En tránsito) y la llegada se calculan a partir de estos reportes.
+            var reporte = new ReporteTransportador
             {
-                IdViaje = viaje.IdViaje,
                 IdDemanda = viaje.IdDemanda,
                 IdUsuario = usuario.Id,
-                FechaInicial = dto.FechaInicial!.Value.Date,
+                FechaInicio = dto.FechaInicial!.Value.Date,
                 FechaFinal = dto.FechaFinal!.Value.Date,
                 Region = dto.Region!,
                 PuntoOrigen = dto.PuntoOrigen!.Trim(),
                 PuntoDestino = dto.PuntoDestino!.Trim(),
-                Lugar = punto.NombrePunto,
+                UbicacionActual = punto.NombrePunto,
                 Hito = hito,
-                FechaHora = ahora
+                FechaActual = ahora
             };
 
             await using var transaccion = await _db.Database.BeginTransactionAsync();
-            _db.ReporteUbicacions.Add(reporte);
-
-            if (viaje.EstadoEnvio == EstadosEnvio.Asignado)
-            {
-                viaje.EstadoEnvio = EstadosEnvio.EnTransito;
-            }
-
-            if (hito == Hitos.DestinoFinal)
-            {
-                viaje.LlegadaNotificada = true;
-                viaje.FechaLlegada = ahora;
-            }
-
+            _db.ReporteTransportadors.Add(reporte);
             await _db.SaveChangesAsync();
 
             var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { viaje.IdDemanda }))[viaje.IdDemanda];
@@ -139,9 +130,9 @@ namespace CampesinApp.Services
             _notificaciones.Agregar(
                 destinatarios,
                 TiposNotificacion.Ubicacion,
-                $"Nueva actualización de ubicación recibida: {reporte.Lugar} ({hito}) - pedido {codigo}.",
+                $"Nueva actualización de ubicación recibida: {reporte.UbicacionActual} ({hito}) - pedido {codigo}.",
                 viaje.IdDemanda,
-                reporte.IdReporteUbicacion);
+                reporte.IdReporte);
 
             if (hito == Hitos.DestinoFinal)
             {
@@ -151,13 +142,13 @@ namespace CampesinApp.Services
                     TiposNotificacion.Llegada,
                     "Su pedido ha arribado al punto de entrega. Por favor verifique la mercancía.",
                     viaje.IdDemanda,
-                    reporte.IdReporteUbicacion);
+                    reporte.IdReporte);
             }
 
             await _db.SaveChangesAsync();
             await transaccion.CommitAsync();
 
-            await _log.RegistrarAsync(NivelesLog.Info, "CU-021 Reporte ubicación", $"Reporte '{hito}' en '{reporte.Lugar}' del pedido {codigo}.", usuario.Id);
+            await _log.RegistrarAsync(NivelesLog.Info, "CU-021 Reporte ubicación", $"Reporte '{hito}' en '{reporte.UbicacionActual}' del pedido {codigo}.", usuario.Id);
 
             var vista = ConvertirReporte(reporte, codigo, false);
             vista.Latitud = (double)punto.Latitud;
@@ -173,11 +164,11 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.NoAutorizado, "No tiene permisos para consultar la ubicación de este pedido.");
             }
 
-            var reporte = await _db.ReporteUbicacions
+            var reporte = await _db.ReporteTransportadors
                 .AsNoTracking()
                 .Where(r => r.IdDemanda == idDemanda)
-                .OrderByDescending(r => r.FechaHora)
-                .ThenByDescending(r => r.IdReporteUbicacion)
+                .OrderByDescending(r => r.FechaActual)
+                .ThenByDescending(r => r.IdReporte)
                 .FirstOrDefaultAsync();
 
             if (reporte == null)
@@ -185,34 +176,34 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.NoEncontrado, "La ubicación no se encuentra disponible momentáneamente");
             }
 
-            var guardado = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporteUbicacion == reporte.IdReporteUbicacion && a.IdUsuario == usuario.Id);
+            var guardado = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporte == reporte.IdReporte && a.IdUsuario == usuario.Id);
             var dto = ConvertirReporte(reporte, CodigoPedido.Formatear(idDemanda), guardado);
 
             // Recorrido del pedido para dibujarlo en el mapa de "Seguimiento de Pedido": cada reporte se ubica con las
             // coordenadas de su punto de acopio (tabla punto_Acopio).
-            var reportes = await _db.ReporteUbicacions
+            var reportes = await _db.ReporteTransportadors
                 .AsNoTracking()
                 .Where(r => r.IdDemanda == idDemanda)
-                .OrderBy(r => r.FechaHora)
-                .ThenBy(r => r.IdReporteUbicacion)
+                .OrderBy(r => r.FechaActual)
+                .ThenBy(r => r.IdReporte)
                 .ToListAsync();
-            var nombres = reportes.Select(r => r.Lugar).Distinct().ToList();
+            var nombres = reportes.Select(r => r.UbicacionActual).Distinct().ToList();
             var puntos = (await _db.PuntoAcopios.AsNoTracking().Where(p => nombres.Contains(p.NombrePunto)).ToListAsync())
                 .GroupBy(p => p.NombrePunto, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             dto.Recorrido = reportes
-                .Where(r => puntos.ContainsKey(r.Lugar))
+                .Where(r => puntos.ContainsKey(r.UbicacionActual))
                 .Select(r => new PuntoMapaDto
                 {
-                    Lat = (double)puntos[r.Lugar].Latitud,
-                    Lng = (double)puntos[r.Lugar].Longitud,
-                    Titulo = r.Lugar,
-                    Hito = r.Hito,
-                    Fecha = Formato.FechaHora(r.FechaHora)
+                    Lat = (double)puntos[r.UbicacionActual].Latitud,
+                    Lng = (double)puntos[r.UbicacionActual].Longitud,
+                    Titulo = r.UbicacionActual,
+                    Hito = r.Hito ?? string.Empty,
+                    Fecha = Formato.FechaHora(r.FechaActual)
                 }).ToList();
 
-            if (puntos.TryGetValue(reporte.Lugar, out var actual))
+            if (puntos.TryGetValue(reporte.UbicacionActual, out var actual))
             {
                 dto.Latitud = (double)actual.Latitud;
                 dto.Longitud = (double)actual.Longitud;
@@ -242,7 +233,7 @@ namespace CampesinApp.Services
         /// <summary>"Guardar reporte" (CU-022, RN-03): guarda la alerta en el historial permanente del usuario.</summary>
         public async Task<ResultadoOperacion> GuardarAlertaAsync(UsuarioActual usuario, int idReporte)
         {
-            var reporte = await _db.ReporteUbicacions.AsNoTracking().FirstOrDefaultAsync(r => r.IdReporteUbicacion == idReporte);
+            var reporte = await _db.ReporteTransportadors.AsNoTracking().FirstOrDefaultAsync(r => r.IdReporte == idReporte);
             if (reporte == null)
             {
                 return ResultadoOperacion.Falla(TipoError.NoEncontrado, "El reporte de ubicación ya no está disponible.");
@@ -253,12 +244,12 @@ namespace CampesinApp.Services
                 return ResultadoOperacion.Falla(TipoError.NoAutorizado, "No tiene permisos para guardar reportes de este pedido.");
             }
 
-            var existe = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporteUbicacion == idReporte && a.IdUsuario == usuario.Id);
+            var existe = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporte == idReporte && a.IdUsuario == usuario.Id);
             if (!existe)
             {
                 _db.AlertaGuardadas.Add(new AlertaGuardada
                 {
-                    IdReporteUbicacion = idReporte,
+                    IdReporte = idReporte,
                     IdUsuario = usuario.Id,
                     FechaGuardado = DateTime.Now
                 });
@@ -278,9 +269,9 @@ namespace CampesinApp.Services
 
             var reportes = await _db.AlertaGuardadas
                 .AsNoTracking()
-                .Where(a => a.IdUsuario == usuario.Id && a.IdReporteUbicacionNavigation.IdDemanda == idDemanda)
-                .OrderByDescending(a => a.IdReporteUbicacionNavigation.FechaHora)
-                .Select(a => a.IdReporteUbicacionNavigation)
+                .Where(a => a.IdUsuario == usuario.Id && a.IdReporteNavigation.IdDemanda == idDemanda)
+                .OrderByDescending(a => a.IdReporteNavigation.FechaActual)
+                .Select(a => a.IdReporteNavigation)
                 .ToListAsync();
 
             var codigo = CodigoPedido.Formatear(idDemanda);
@@ -301,18 +292,19 @@ namespace CampesinApp.Services
             if (usuario.Rol != RolUsuario.Transportador) return new List<ReporteVencidoDto>();
 
             var limite = DateTime.Now - IntervaloReporte;
-            var filas = await _db.Viajes
+            var filas = await (
+                    from v in _db.Viajes()
+                    where v.IdUsuarioTransportador == usuario.Id
+                          && v.VisibleTransportador
+                          && v.EstadoEnvio == EstadosEnvio.EnTransito
+                          && !v.LlegadaNotificada
+                    select new
+                    {
+                        v.IdViaje,
+                        v.IdDemanda,
+                        Ultimo = _db.ReporteTransportadors.Where(r => r.IdDemanda == v.IdDemanda).Max(r => (DateTime?)r.FechaActual)
+                    })
                 .AsNoTracking()
-                .Where(v => v.IdUsuarioTransportador == usuario.Id
-                            && v.VisibleTransportador
-                            && v.EstadoEnvio == EstadosEnvio.EnTransito
-                            && !v.LlegadaNotificada)
-                .Select(v => new
-                {
-                    v.IdViaje,
-                    v.IdDemanda,
-                    Ultimo = v.ReporteUbicacions.Max(r => (DateTime?)r.FechaHora)
-                })
                 .ToListAsync();
 
             return filas
@@ -342,14 +334,14 @@ namespace CampesinApp.Services
             return await _db.PuntoAcopios.AsNoTracking().OrderBy(p => p.IdPuntoAcopio).FirstOrDefaultAsync(p => p.NombrePunto == buscado);
         }
 
-        private static ReporteVistaDto ConvertirReporte(ReporteUbicacion r, string codigo, bool guardado) => new()
+        private static ReporteVistaDto ConvertirReporte(ReporteTransportador r, string codigo, bool guardado) => new()
         {
-            IdReporteUbicacion = r.IdReporteUbicacion,
+            IdReporteUbicacion = r.IdReporte,
             IdDemanda = r.IdDemanda,
             CodigoPedido = codigo,
-            Lugar = r.Lugar,
-            Hito = r.Hito,
-            FechaHora = r.FechaHora,
+            Lugar = r.UbicacionActual,
+            Hito = r.Hito ?? string.Empty,
+            FechaHora = r.FechaActual,
             Guardado = guardado
         };
     }

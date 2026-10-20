@@ -558,14 +558,26 @@ public partial class Campesinapp3Context : DbContext
             entity.Property(e => e.FechaInicio)
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Inicio");
-            entity.Property(e => e.IdDemanada).HasColumnName("id_Demanada");
+            entity.Property(e => e.Hito)
+                .HasMaxLength(60)
+                .HasColumnName("hito");
+            entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
-            entity.Property(e => e.UbucacionActual)
-                .HasColumnType("datetime")
-                .HasColumnName("ubucacion_Actual");
+            entity.Property(e => e.PuntoDestino)
+                .HasMaxLength(200)
+                .HasColumnName("punto_Destino");
+            entity.Property(e => e.PuntoOrigen)
+                .HasMaxLength(200)
+                .HasColumnName("punto_Origen");
+            entity.Property(e => e.Region)
+                .HasMaxLength(80)
+                .HasColumnName("region");
+            entity.Property(e => e.UbicacionActual)
+                .HasMaxLength(300)
+                .HasColumnName("ubicacion_Actual");
 
-            entity.HasOne(d => d.IdDemanadaNavigation).WithMany(p => p.ReporteTransportadors)
-                .HasForeignKey(d => d.IdDemanada)
+            entity.HasOne(d => d.IdDemandaNavigation).WithMany(p => p.ReporteTransportadors)
+                .HasForeignKey(d => d.IdDemanda)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_reporte_Transportador_demanda");
 

@@ -37,7 +37,10 @@
             @foreach (var calificacion in Model.Calificaciones)
             {
                 <li class="list-group-item">
-                    <span class="estrellas-fijas" aria-label="@calificacion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(calificacion.Estrellas)</span>
+                    @if (calificacion.Estrellas >= 1)
+                    {
+                        <span class="estrellas-fijas" aria-label="@calificacion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(calificacion.Estrellas)</span>
+                    }
                     <span class="small">@calificacion.Evaluador → @calificacion.Evaluado</span>
                     <div class="small text-muted">@calificacion.Comentario</div>
                 </li>

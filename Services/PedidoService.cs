@@ -6,7 +6,7 @@ namespace CampesinApp.Services
 {
     /// <summary>
     /// Consulta de pedidos. Un pedido es una demanda del comprador: el comprador es quien la publicó, los campesinos
-    /// son quienes aportaron (aporte_Camp) y el transportador es el asignado en el viaje (CU-024).
+    /// son quienes aportaron (aporte_Camp) y el transportador es el dueño del camión asignado (demanda.id_Camion, CU-024).
     /// </summary>
     public class PedidoService
     {
@@ -25,7 +25,7 @@ namespace CampesinApp.Services
                 RolUsuario.Administrador => _db.Demanda,
                 RolUsuario.Comprador => _db.Demanda.Where(d => d.IdUsuario == usuario.Id),
                 RolUsuario.Campesino => _db.Demanda.Where(d => d.AporteCamps.Any(a => a.IdUsuario == usuario.Id)),
-                RolUsuario.Transportador => _db.Demanda.Where(d => _db.Viajes.Any(v => v.IdDemanda == d.IdDemanda && v.IdUsuarioTransportador == usuario.Id)),
+                RolUsuario.Transportador => _db.Demanda.Where(d => d.IdCamion != null && _db.Camions.Any(c => c.IdCamion == d.IdCamion && c.IdUsuario == usuario.Id)),
                 _ => _db.Demanda.Where(d => false)
             };
         }
@@ -60,14 +60,16 @@ namespace CampesinApp.Services
                 resultado[c.IdDemanda].Add(new ParticipantePedido(c.IdUsuario, $"{c.NombreCom} {c.ApellidoCom}".Trim(), RolUsuario.Campesino));
             }
 
-            var transportadores = await _db.Viajes
+            var transportadores = await (
+                    from d in _db.Demanda
+                    where idsDemanda.Contains(d.IdDemanda) && d.IdCamion != null
+                    join c in _db.Camions on d.IdCamion.Value equals c.IdCamion
+                    select new { d.IdDemanda, c.IdUsuario, c.IdUsuarioNavigation.NombreCom, c.IdUsuarioNavigation.ApellidoCom })
                 .AsNoTracking()
-                .Where(v => idsDemanda.Contains(v.IdDemanda))
-                .Select(v => new { v.IdDemanda, v.IdUsuarioTransportador, v.NombreTransportador })
                 .ToListAsync();
             foreach (var t in transportadores)
             {
-                resultado[t.IdDemanda].Add(new ParticipantePedido(t.IdUsuarioTransportador, t.NombreTransportador, RolUsuario.Transportador));
+                resultado[t.IdDemanda].Add(new ParticipantePedido(t.IdUsuario, $"{t.NombreCom} {t.ApellidoCom}".Trim(), RolUsuario.Transportador));
             }
 
             return resultado;
@@ -76,11 +78,10 @@ namespace CampesinApp.Services
         /// <summary>Lista "Mis Pedidos" (CU-022), con filtro opcional por estado del envío (FA-02-CU023).</summary>
         public async Task<List<PedidoResumenDto>> ListarAsync(UsuarioActual usuario, string? estadoEnvio)
         {
-            var consulta =
-                from d in PedidosVisibles(usuario)
-                join v in _db.Viajes on d.IdDemanda equals v.IdDemanda into viajes
-                from v in viajes.DefaultIfEmpty()
-                select new
+            var filas = await PedidosVisibles(usuario)
+                .AsNoTracking()
+                .OrderByDescending(d => d.IdDemanda)
+                .Select(d => new
                 {
                     d.IdDemanda,
                     Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
@@ -89,39 +90,46 @@ namespace CampesinApp.Services
                     d.FechaEntrega,
                     DireccionFinal = d.IdPuntoAcopioNavigation != null ? d.IdPuntoAcopioNavigation.Direccion : (d.DireccionInicial ?? "Punto de Acopio"),
                     d.IdUsuario,
-                    Comprador = d.IdUsuarioNavigation.NombreCom + " " + d.IdUsuarioNavigation.ApellidoCom,
-                    Estado = v == null ? EstadosEnvio.SinTransporte : v.EstadoEnvio,
+                    Comprador = d.IdUsuarioNavigation.NombreCom + " " + d.IdUsuarioNavigation.ApellidoCom
+                })
+                .ToListAsync();
+
+            var ids = filas.Select(f => f.IdDemanda).ToList();
+            var viajes = (await _db.Viajes().AsNoTracking().Where(v => ids.Contains(v.IdDemanda)).ToListAsync())
+                .ToDictionary(v => v.IdDemanda);
+
+            var pedidos = filas.Select(x =>
+            {
+                viajes.TryGetValue(x.IdDemanda, out var v);
+                return new PedidoResumenDto
+                {
+                    IdDemanda = x.IdDemanda,
+                    Producto = x.Producto,
+                    Cantidad = x.CantidadDeman,
+                    PrecioUnitario = (decimal)x.PrecioDeman,
+                    FechaEntrega = x.FechaEntrega,
+                    DireccionFinal = x.DireccionFinal,
+                    EstadoEnvio = v == null ? EstadosEnvio.SinTransporte : v.EstadoEnvio,
                     TieneViaje = v != null,
-                    Llegada = v != null && v.LlegadaNotificada,
-                    CompradorConfirma = v != null && v.CompradorConfirma
+                    NombreComprador = x.Comprador,
+                    PuedeValidarEntrega = usuario.Rol == RolUsuario.Comprador && x.IdUsuario == usuario.Id && v is { LlegadaNotificada: true, CompradorConfirma: false }
                 };
+            }).ToList();
 
             if (!string.IsNullOrWhiteSpace(estadoEnvio))
             {
-                consulta = consulta.Where(x => x.Estado == estadoEnvio);
+                pedidos = pedidos.Where(p => p.EstadoEnvio == estadoEnvio).ToList();
             }
 
-            var filas = await consulta.AsNoTracking().OrderByDescending(x => x.IdDemanda).ToListAsync();
-
-            var pedidos = filas.Select(x => new PedidoResumenDto
-            {
-                IdDemanda = x.IdDemanda,
-                Producto = x.Producto,
-                Cantidad = x.CantidadDeman,
-                PrecioUnitario = (decimal)x.PrecioDeman,
-                FechaEntrega = x.FechaEntrega,
-                DireccionFinal = x.DireccionFinal,
-                EstadoEnvio = x.Estado,
-                TieneViaje = x.TieneViaje,
-                NombreComprador = x.Comprador,
-                PuedeValidarEntrega = usuario.Rol == RolUsuario.Comprador && x.IdUsuario == usuario.Id && x.Llegada && !x.CompradorConfirma
-            }).ToList();
-
-            await MarcarCalificablesAsync(usuario, pedidos);
+            await MarcarObservacionesAsync(usuario, pedidos);
             return pedidos;
         }
 
-        private async Task MarcarCalificablesAsync(UsuarioActual usuario, List<PedidoResumenDto> pedidos)
+        /// <summary>
+        /// Marca en cada pedido finalizado si el usuario puede calificar (comprador: estrellas y comentario; transportador:
+        /// comentario) o solo consultar las observaciones (CU-026). Los datos están en la tabla observacion.
+        /// </summary>
+        private async Task MarcarObservacionesAsync(UsuarioActual usuario, List<PedidoResumenDto> pedidos)
         {
             if (usuario.Rol == RolUsuario.Administrador) return;
 
@@ -129,21 +137,24 @@ namespace CampesinApp.Services
             if (candidatos.Count == 0) return;
 
             var ids = candidatos.Select(p => p.IdDemanda).ToList();
-            var participantes = await ObtenerParticipantesAsync(ids);
-            var yaCalificados = await _db.Calificacions
-                .AsNoTracking()
-                .Where(c => c.IdUsuarioEvalua == usuario.Id && ids.Contains(c.IdDemanda))
-                .Select(c => new { c.IdDemanda, c.IdUsuarioEvaluado })
-                .ToListAsync();
+            var observaciones = (await _db.Observacions
+                    .AsNoTracking()
+                    .Where(o => ids.Contains(o.IdDemanda))
+                    .OrderBy(o => o.IdObservacion)
+                    .ToListAsync())
+                .GroupBy(o => o.IdDemanda)
+                .ToDictionary(g => g.Key, g => g.Last());
 
             foreach (var pedido in candidatos)
             {
-                var pendientes = participantes[pedido.IdDemanda]
-                    .Where(p => p.IdUsuario != usuario.Id)
-                    .Select(p => p.IdUsuario)
-                    .Distinct()
-                    .Count(id => !yaCalificados.Any(c => c.IdDemanda == pedido.IdDemanda && c.IdUsuarioEvaluado == id));
-                pedido.PuedeCalificar = pendientes > 0;
+                observaciones.TryGetValue(pedido.IdDemanda, out var obs);
+                pedido.PuedeCalificar = usuario.Rol switch
+                {
+                    RolUsuario.Comprador => obs == null || obs.CalificacionEstre < 1,
+                    RolUsuario.Transportador => obs?.ObserTransportador == null || !obs.ObserTransportador.Contains(MarcasObservacion.Separador),
+                    _ => false
+                };
+                pedido.PuedeVerObservaciones = !pedido.PuedeCalificar;
             }
         }
     }
