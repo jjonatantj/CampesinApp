@@ -27,6 +27,8 @@ public partial class Usuario
 
     public string Imagen { get; set; } = null!;
 
+    public virtual ICollection<AlertaGuardadum> AlertaGuardada { get; set; } = new List<AlertaGuardadum>();
+
     public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
 
     public virtual ICollection<Camion> Camions { get; set; } = new List<Camion>();
@@ -38,6 +40,10 @@ public partial class Usuario
     public virtual Municipio IdMunicipioNavigation { get; set; } = null!;
 
     public virtual Rol IdRolNavigation { get; set; } = null!;
+
+    public virtual ICollection<LogSistema> LogSistemas { get; set; } = new List<LogSistema>();
+
+    public virtual ICollection<Notificacion> Notificacions { get; set; } = new List<Notificacion>();
 
     public virtual ICollection<PagoTransportador> PagoTransportadors { get; set; } = new List<PagoTransportador>();
 
