@@ -52,6 +52,10 @@
                 {
                     <button type="button" class="btn btn-sm btn-dark" data-modal-url="/Calificacion/Formulario?idDemanda=@pedido.IdDemanda">Calificar</button>
                 }
+                else if (pedido.PuedeVerObservaciones)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Calificacion/Ver?idDemanda=@pedido.IdDemanda">Ver Observaciones</button>
+                }
             </div>
         </div>
     }

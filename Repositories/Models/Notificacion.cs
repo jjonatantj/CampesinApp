@@ -14,7 +14,7 @@ public partial class Notificacion
 
     public int? IdDemanda { get; set; }
 
-    public int? IdReporteUbicacion { get; set; }
+    public int? IdReporte { get; set; }
 
     public string Tipo { get; set; } = null!;
 

@@ -27,8 +27,11 @@ namespace CampesinApp.Dtos
         /// <summary>El comprador de este pedido puede validar la recepción (CU-025).</summary>
         public bool PuedeValidarEntrega { get; set; }
 
-        /// <summary>El usuario tiene participantes pendientes por calificar (CU-026).</summary>
+        /// <summary>El usuario puede calificar el pedido: el comprador con estrellas y comentario, el transportador con un comentario (CU-026).</summary>
         public bool PuedeCalificar { get; set; }
+
+        /// <summary>El pedido ya está finalizado y el usuario solo puede consultar las observaciones y la calificación (CU-026).</summary>
+        public bool PuedeVerObservaciones { get; set; }
     }
 
     public class ListaPedidosDto

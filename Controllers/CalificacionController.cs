@@ -24,13 +24,23 @@ namespace CampesinApp.Controllers
             return resultado.Exitoso ? ModalSuperpuesto("_CalificacionForm", resultado.Datos) : AvisoDeError(resultado);
         }
 
+        /// <summary>"Ver Observaciones": calificación y comentarios ya registrados del pedido.</summary>
+        [HttpGet]
+        public async Task<IActionResult> Ver(int idDemanda)
+        {
+            var usuario = (await ObtenerUsuarioAsync())!;
+            var resultado = await _calificaciones.ObtenerObservacionesAsync(usuario, idDemanda);
+            return resultado.Exitoso ? ModalSuperpuesto("_Observaciones", resultado.Datos) : AvisoDeError(resultado);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Enviar(FormularioCalificacionDto dto)
         {
             var usuario = (await ObtenerUsuarioAsync())!;
 
-            // FE-01-CU026: la ventana se mantiene bloqueada hasta que estrellas y comentario estén completos.
-            if (dto.Estrellas is < 1 or > 5 || string.IsNullOrWhiteSpace(dto.Comentario) || dto.IdUsuarioEvaluado == null)
+            // FE-01-CU026: la ventana se mantiene bloqueada hasta que estrellas (comprador) y comentario estén completos.
+            var requiereEstrellas = usuario.Rol == RolUsuario.Comprador;
+            if (string.IsNullOrWhiteSpace(dto.Comentario) || (requiereEstrellas && dto.Estrellas is < 1 or > 5))
             {
                 return await ReMostrarFormularioAsync(usuario, dto, "Debe seleccionar las estrellas y completar el comentario obligatorio para continuar");
             }
@@ -56,7 +66,6 @@ namespace CampesinApp.Controllers
 
             formulario.Datos!.Estrellas = dto.Estrellas;
             formulario.Datos.Comentario = dto.Comentario;
-            formulario.Datos.IdUsuarioEvaluado = dto.IdUsuarioEvaluado;
             ViewData["Error"] = mensaje;
             return ModalSuperpuesto("_CalificacionForm", formulario.Datos);
         }

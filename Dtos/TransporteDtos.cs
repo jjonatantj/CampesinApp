@@ -67,25 +67,13 @@ namespace CampesinApp.Dtos
         [Required]
         public int? IdDemanda { get; set; }
 
-        /// <summary>Transportador registrado en la plataforma (se elige por nombre).</summary>
+        /// <summary>Camión registrado (tabla camion): de él salen el transportador, la placa, el modelo y la capacidad.</summary>
         [Required]
-        public int? IdTransportador { get; set; }
-
-        [Required, StringLength(20)]
-        public string? Telefono { get; set; }
-
-        [Required, StringLength(8)]
-        public string? Placa { get; set; }
-
-        [Required, StringLength(20)]
-        public string? Modelo { get; set; }
-
-        [Required]
-        public int? Capacidad { get; set; }
+        public int? IdCamion { get; set; }
 
         public List<OpcionDto> Pedidos { get; set; } = new();
 
-        public List<OpcionDto> Transportadores { get; set; } = new();
+        public List<OpcionDto> Camiones { get; set; } = new();
     }
 
     /// <summary>Fila de la pantalla "Mis Viajes" del transportador.</summary>
