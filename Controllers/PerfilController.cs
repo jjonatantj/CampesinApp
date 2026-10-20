@@ -62,6 +62,9 @@ namespace CampesinApp.Controllers
         [HttpGet("Perfil/ConsultaPerfilComprador/{id:int}")]
         public Task<IActionResult> ConsultaPerfilComprador(int id) => ConsultarPerfilAsync(id, "Comprador");
 
+        [HttpGet("Perfil/ConsultaPerfilTransportador/{id:int}")]
+        public Task<IActionResult> ConsultaPerfilTransportador(int id) => ConsultarPerfilAsync(id, "Transportador");
+
         private async Task<IActionResult> ConsultarPerfilAsync(int id, string rol)
         {
             if (HttpContext.Session.GetInt32("IdUsuario") == null)

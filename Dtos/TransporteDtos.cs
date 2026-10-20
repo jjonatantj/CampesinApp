@@ -31,6 +31,8 @@ namespace CampesinApp.Dtos
 
         public string CodigoPedido { get; set; } = string.Empty;
 
+        public int IdTransportador { get; set; }
+
         public string NombreTransportador { get; set; } = string.Empty;
 
         public string TelefonoTransportador { get; set; } = string.Empty;
