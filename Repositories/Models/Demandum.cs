@@ -27,11 +27,13 @@ public partial class Demandum
 
     public string DescripcionDeman { get; set; } = null!;
 
-    public int? IdPuntoAcopio { get; set; }
-
     public string? DireccionInicial { get; set; }
 
+    public int? IdPuntoAcopio { get; set; }
+
     public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
+
+    public virtual Camion? IdCamionNavigation { get; set; }
 
     public virtual EstadoDemandum IdEstadoDemanNavigation { get; set; } = null!;
 
@@ -42,6 +44,8 @@ public partial class Demandum
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 
     public virtual Variedad IdVariedadNavigation { get; set; } = null!;
+
+    public virtual ICollection<Notificacion> Notificacions { get; set; } = new List<Notificacion>();
 
     public virtual ICollection<Observacion> Observacions { get; set; } = new List<Observacion>();
 
