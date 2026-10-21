@@ -29,41 +29,20 @@
             }
         </div>
 
-        <div class="row g-3 mb-3">
-            <div class="col-sm-7">
-                <label for="IdTransportador" class="form-label">Nombre del Transportador</label>
-                <select id="IdTransportador" name="IdTransportador" data-copiar-extra="#Telefono"
-                        class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdTransportador))">
-                    <option value="">Seleccione…</option>
-                    @foreach (var transportador in Model.Transportadores)
-                    {
-                        <option value="@transportador.Id" data-extra="@transportador.Extra" selected="@(Model.IdTransportador == transportador.Id)">@transportador.Texto</option>
-                    }
-                </select>
-            </div>
-            <div class="col-sm-5">
-                <label for="Telefono" class="form-label">Teléfono de Contacto</label>
-                <input type="text" id="Telefono" name="Telefono" value="@Model.Telefono" maxlength="20" inputmode="tel"
-                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.Telefono))" />
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-sm-4">
-                <label for="Placa" class="form-label">Placa del Camión</label>
-                <input type="text" id="Placa" name="Placa" value="@Model.Placa" maxlength="8" autocomplete="off"
-                       class="form-control text-uppercase @VistaHelpers.ClaseError(ViewData, nameof(Model.Placa))" />
-            </div>
-            <div class="col-sm-4">
-                <label for="Modelo" class="form-label">Modelo del Vehículo</label>
-                <input type="text" id="Modelo" name="Modelo" value="@Model.Modelo" maxlength="20" autocomplete="off"
-                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.Modelo))" />
-            </div>
-            <div class="col-sm-4">
-                <label for="Capacidad" class="form-label">Capacidad de Carga (kg)</label>
-                <input type="number" id="Capacidad" name="Capacidad" value="@Model.Capacidad" min="1" step="1"
-                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.Capacidad))" />
-            </div>
+        <div class="mb-3">
+            <label for="IdCamion" class="form-label">Camión y transportador</label>
+            <select id="IdCamion" name="IdCamion" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdCamion))">
+                <option value="">Seleccione el camión registrado…</option>
+                @foreach (var camion in Model.Camiones)
+                {
+                    <option value="@camion.Id" selected="@(Model.IdCamion == camion.Id)">@camion.Texto</option>
+                }
+            </select>
+            @if (Model.Camiones.Count == 0)
+            {
+                <div class="mensaje-campo">No hay camiones registrados de transportadores activos.</div>
+            }
+            <div class="small text-muted mt-1">La placa, el modelo, la capacidad de carga y el teléfono del conductor salen del camión registrado.</div>
         </div>
 
         <div class="d-flex justify-content-center gap-2 mt-4">

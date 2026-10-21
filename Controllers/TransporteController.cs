@@ -95,11 +95,7 @@ namespace CampesinApp.Controllers
             // FE-01-CU024: se resaltan las casillas vacías.
             ModelState.Clear();
             if (dto.IdDemanda == null) ModelState.AddModelError(nameof(dto.IdDemanda), "Campo obligatorio");
-            if (dto.IdTransportador == null) ModelState.AddModelError(nameof(dto.IdTransportador), "Campo obligatorio");
-            if (string.IsNullOrWhiteSpace(dto.Telefono)) ModelState.AddModelError(nameof(dto.Telefono), "Campo obligatorio");
-            if (string.IsNullOrWhiteSpace(dto.Placa)) ModelState.AddModelError(nameof(dto.Placa), "Campo obligatorio");
-            if (string.IsNullOrWhiteSpace(dto.Modelo)) ModelState.AddModelError(nameof(dto.Modelo), "Campo obligatorio");
-            if (dto.Capacidad == null) ModelState.AddModelError(nameof(dto.Capacidad), "Campo obligatorio");
+            if (dto.IdCamion == null) ModelState.AddModelError(nameof(dto.IdCamion), "Campo obligatorio");
 
             if (!ModelState.IsValid)
             {

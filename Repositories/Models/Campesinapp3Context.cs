@@ -663,21 +663,21 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Inicio");
             entity.Property(e => e.Hito)
-                .HasMaxLength(30)
+                .HasMaxLength(60)
                 .HasColumnName("hito");
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
             entity.Property(e => e.PuntoDestino)
-                .HasMaxLength(100)
+                .HasMaxLength(200)
                 .HasColumnName("punto_Destino");
             entity.Property(e => e.PuntoOrigen)
-                .HasMaxLength(100)
+                .HasMaxLength(200)
                 .HasColumnName("punto_Origen");
             entity.Property(e => e.Region)
-                .HasMaxLength(40)
+                .HasMaxLength(80)
                 .HasColumnName("region");
             entity.Property(e => e.UbicacionActual)
-                .HasMaxLength(150)
+                .HasMaxLength(300)
                 .HasColumnName("ubicacion_Actual");
 
             entity.HasOne(d => d.IdDemandaNavigation).WithMany(p => p.ReporteTransportadors)

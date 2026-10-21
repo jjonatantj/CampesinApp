@@ -23,9 +23,9 @@ namespace CampesinApp.Services
                 {
                     IdUsuario = idUsuario,
                     IdDemanda = idDemanda,
-                    IdReporteUbicacion = idReporte,
+                    IdReporte = idReporte,
                     Tipo = tipo,
-                    Mensaje = mensaje.Length <= 300 ? mensaje : mensaje[..300],
+                    Mensaje = mensaje.Length <= 600 ? mensaje : mensaje[..600],
                     Fecha = ahora
                 });
             }

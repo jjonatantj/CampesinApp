@@ -83,19 +83,9 @@ namespace CampesinApp.Services
 
             if (u == null) return null;
 
-            var calificaciones = await _db.Calificacions
-                .AsNoTracking()
-                .Where(c => c.IdUsuarioEvaluado == idUsuario)
-                .OrderByDescending(c => c.Fecha)
-                .Select(c => new
-                {
-                    c.Estrellas,
-                    c.Comentario,
-                    c.Fecha,
-                    Autor = c.IdUsuarioEvaluaNavigation.NombreCom + " " + c.IdUsuarioEvaluaNavigation.ApellidoCom,
-                    RolAutor = c.IdUsuarioEvaluaNavigation.IdRolNavigation.TipoRol
-                })
-                .ToListAsync();
+            var rolPerfil = RolUsuarioExtensions.Desde(rolEsperado);
+            var calificaciones = await ObtenerCalificacionesAsync(idUsuario, rolPerfil);
+            var conEstrellas = calificaciones.Where(c => c.Estrellas >= 1).ToList();
 
             var perfil = new PerfilPublicoDto
             {
@@ -104,8 +94,8 @@ namespace CampesinApp.Services
                 Rol = u.TipoRol,
                 Ubicacion = $"{u.Municipio} / {u.Departamento}",
                 FotoUrl = ResolverFoto(u.Imagen),
-                TotalCalificaciones = calificaciones.Count,
-                PromedioEstrellas = calificaciones.Count == 0 ? null : Math.Round(calificaciones.Average(c => c.Estrellas), 1),
+                TotalCalificaciones = conEstrellas.Count,
+                PromedioEstrellas = conEstrellas.Count == 0 ? null : Math.Round(conEstrellas.Average(c => c.Estrellas), 1),
                 Comentarios = calificaciones.Where(c => !string.IsNullOrWhiteSpace(c.Comentario)).Take(5).Select(c => c.Comentario).ToList(),
                 Opiniones = calificaciones
                     .Where(c => !string.IsNullOrWhiteSpace(c.Comentario))
@@ -122,11 +112,11 @@ namespace CampesinApp.Services
 
             for (var estrellas = 1; estrellas <= 5; estrellas++)
             {
-                perfil.Distribucion[estrellas - 1] = calificaciones.Count(c => c.Estrellas == estrellas);
+                perfil.Distribucion[estrellas - 1] = conEstrellas.Count(c => c.Estrellas == estrellas);
             }
 
             // Cifras y secciones propias de cada rol (solo lectura de la base de datos).
-            switch (RolUsuarioExtensions.Desde(rolEsperado))
+            switch (rolPerfil)
             {
                 case RolUsuario.Campesino:
                     await CompletarCampesinoAsync(perfil, idUsuario);
@@ -142,20 +132,90 @@ namespace CampesinApp.Services
             return perfil;
         }
 
-        private async Task CompletarCampesinoAsync(PerfilPublicoDto perfil, int idUsuario)
+        private sealed record CalificacionRecibida(int Estrellas, string Comentario, DateTime Fecha, string Autor, string RolAutor);
+
+        /// <summary>
+        /// Calificaciones y comentarios que recibió el usuario, tomados de la tabla observacion: el campesino y el transportador
+        /// reciben las estrellas y el comentario del comprador de sus pedidos; el comprador recibe los comentarios de los transportadores.
+        /// </summary>
+        private async Task<List<CalificacionRecibida>> ObtenerCalificacionesAsync(int idUsuario, RolUsuario rol)
         {
-            var entregados = await _db.AporteCamps
+            IQueryable<int> pedidos = rol switch
+            {
+                RolUsuario.Campesino => _db.AporteCamps.Where(a => a.IdUsuario == idUsuario).Select(a => a.IdDemanda),
+                RolUsuario.Transportador => _db.Demanda.Where(d => d.IdCamion != null && _db.Camions.Any(c => c.IdCamion == d.IdCamion && c.IdUsuario == idUsuario)).Select(d => d.IdDemanda),
+                RolUsuario.Comprador => _db.Demanda.Where(d => d.IdUsuario == idUsuario).Select(d => d.IdDemanda),
+                _ => _db.Demanda.Where(d => false).Select(d => d.IdDemanda)
+            };
+
+            var filas = await (
+                    from o in _db.Observacions
+                    where pedidos.Contains(o.IdDemanda)
+                    join d in _db.Demanda on o.IdDemanda equals d.IdDemanda
+                    orderby o.HoraObser descending
+                    select new
+                    {
+                        o.CalificacionEstre,
+                        o.ObserComprador,
+                        o.ObserTransportador,
+                        o.HoraObser,
+                        Comprador = d.IdUsuarioNavigation.NombreCom + " " + d.IdUsuarioNavigation.ApellidoCom,
+                        d.IdCamion
+                    })
                 .AsNoTracking()
-                .Where(a => a.IdUsuario == idUsuario && _db.Viajes.Any(v => v.IdDemanda == a.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio)))
-                .Select(a => new { a.IdDemanda, a.CantAporte })
                 .ToListAsync();
 
-            var enCurso = await _db.AporteCamps
+            var idsCamion = filas.Where(f => f.IdCamion != null).Select(f => f.IdCamion!.Value).Distinct().ToList();
+            var duenos = (await _db.Camions
+                    .AsNoTracking()
+                    .Where(c => idsCamion.Contains(c.IdCamion))
+                    .Select(c => new { c.IdCamion, Nombre = c.IdUsuarioNavigation.NombreCom + " " + c.IdUsuarioNavigation.ApellidoCom })
+                    .ToListAsync())
+                .ToDictionary(c => c.IdCamion, c => c.Nombre);
+
+            var lista = new List<CalificacionRecibida>();
+            foreach (var f in filas)
+            {
+                if (rol == RolUsuario.Comprador)
+                {
+                    var comentario = CalificacionService.ParsearTransportador(f.ObserTransportador);
+                    if (!string.IsNullOrWhiteSpace(comentario))
+                    {
+                        var autor = f.IdCamion != null && duenos.TryGetValue(f.IdCamion.Value, out var nombre) ? nombre : "Transportador";
+                        lista.Add(new CalificacionRecibida(0, comentario, f.HoraObser, autor, "Transportador"));
+                    }
+                }
+                else if (f.CalificacionEstre >= 1)
+                {
+                    var comentario = CalificacionService.ParsearComprador(f.ObserComprador).Comentario ?? string.Empty;
+                    lista.Add(new CalificacionRecibida(f.CalificacionEstre, comentario, f.HoraObser, f.Comprador, "Comprador"));
+                }
+            }
+
+            return lista;
+        }
+
+        /// <summary>Pedidos cuyo envío ya terminó (entregados, con o sin observaciones).</summary>
+        private async Task<HashSet<int>> IdsPedidosFinalizadosAsync()
+        {
+            var ids = await _db.Viajes()
                 .AsNoTracking()
-                .Where(a => a.IdUsuario == idUsuario && !_db.Viajes.Any(v => v.IdDemanda == a.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio)))
-                .Select(a => a.IdDemanda)
-                .Distinct()
-                .CountAsync();
+                .Where(v => EstadosEnvio.Finalizados.Contains(v.EstadoEnvio))
+                .Select(v => v.IdDemanda)
+                .ToListAsync();
+            return ids.ToHashSet();
+        }
+
+        private async Task CompletarCampesinoAsync(PerfilPublicoDto perfil, int idUsuario)
+        {
+            var finalizados = await IdsPedidosFinalizadosAsync();
+            var aportes = await _db.AporteCamps
+                .AsNoTracking()
+                .Where(a => a.IdUsuario == idUsuario)
+                .Select(a => new { a.IdDemanda, a.CantAporte })
+                .ToListAsync();
+            var entregados = aportes.Where(a => finalizados.Contains(a.IdDemanda)).ToList();
+            var enCurso = aportes.Where(a => !finalizados.Contains(a.IdDemanda)).Select(a => a.IdDemanda).Distinct().Count();
 
             perfil.Productos = (await _db.Productos
                 .AsNoTracking()
@@ -191,6 +251,7 @@ namespace CampesinApp.Services
 
         private async Task CompletarCompradorAsync(PerfilPublicoDto perfil, int idUsuario)
         {
+            var finalizados = await IdsPedidosFinalizadosAsync();
             var pedidos = await _db.Demanda
                 .AsNoTracking()
                 .Where(d => d.IdUsuario == idUsuario)
@@ -198,12 +259,11 @@ namespace CampesinApp.Services
                 {
                     d.IdDemanda,
                     d.CantidadDeman,
-                    Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
-                    Finalizado = _db.Viajes.Any(v => v.IdDemanda == d.IdDemanda && EstadosEnvio.Finalizados.Contains(v.EstadoEnvio))
+                    Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd
                 })
                 .ToListAsync();
 
-            var completados = pedidos.Where(p => p.Finalizado).ToList();
+            var completados = pedidos.Where(p => finalizados.Contains(p.IdDemanda)).ToList();
             perfil.ProductosDeInteres = pedidos.Select(p => p.Producto.Trim()).Distinct().OrderBy(p => p).ToList();
 
             perfil.Estadisticas = new List<DatoPerfilDto>
@@ -217,7 +277,7 @@ namespace CampesinApp.Services
 
         private async Task CompletarTransportadorAsync(PerfilPublicoDto perfil, int idUsuario)
         {
-            var viajes = await _db.Viajes
+            var viajes = await _db.Viajes()
                 .AsNoTracking()
                 .Where(v => v.IdUsuarioTransportador == idUsuario)
                 .Select(v => v.EstadoEnvio)

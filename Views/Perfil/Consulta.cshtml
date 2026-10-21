@@ -220,7 +220,10 @@
                     <article class="pf-opinion">
                         <div class="pf-opinion-cabecera">
                             <span class="pf-opinion-autor">@opinion.Autor <span class="pf-opinion-rol">· @opinion.RolAutor</span></span>
-                            <span class="pf-estrellas pf-estrellas-chicas" aria-label="@opinion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(opinion.Estrellas)</span>
+                            @if (opinion.Estrellas >= 1)
+                            {
+                                <span class="pf-estrellas pf-estrellas-chicas" aria-label="@opinion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(opinion.Estrellas)</span>
+                            }
                         </div>
                         <p class="mb-1">“@opinion.Texto”</p>
                         <div class="small text-muted">@Formato.Fecha(opinion.Fecha)</div>

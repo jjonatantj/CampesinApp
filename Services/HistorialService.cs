@@ -53,19 +53,39 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<DetalleTransaccionDto>.Falla(TipoError.NoEncontrado, "No se encontró la transacción solicitada.");
             }
 
-            var viaje = await _db.Viajes.AsNoTracking().FirstAsync(v => v.IdDemanda == idDemanda);
-            var calificaciones = await _db.Calificacions
-                .AsNoTracking()
-                .Where(c => c.IdDemanda == idDemanda)
-                .OrderBy(c => c.Fecha)
-                .Select(c => new CalificacionVistaDto
+            var viaje = await _db.Viajes().AsNoTracking().FirstAsync(v => v.IdDemanda == idDemanda);
+
+            // Calificación y comentarios del pedido: tabla observacion (una fila por pedido).
+            var obs = await _db.Observacions.AsNoTracking().Where(o => o.IdDemanda == idDemanda).OrderByDescending(o => o.IdObservacion).FirstOrDefaultAsync();
+            var calificaciones = new List<CalificacionVistaDto>();
+            if (obs != null)
+            {
+                var compradorTexto = CalificacionService.ParsearComprador(obs.ObserComprador);
+                if (obs.CalificacionEstre >= 1 || !string.IsNullOrWhiteSpace(compradorTexto.Comentario) || compradorTexto.EsNovedad)
                 {
-                    Evaluador = c.IdUsuarioEvaluaNavigation.NombreCom + " " + c.IdUsuarioEvaluaNavigation.ApellidoCom,
-                    Evaluado = c.IdUsuarioEvaluadoNavigation.NombreCom + " " + c.IdUsuarioEvaluadoNavigation.ApellidoCom,
-                    Estrellas = c.Estrellas,
-                    Comentario = c.Comentario
-                })
-                .ToListAsync();
+                    calificaciones.Add(new CalificacionVistaDto
+                    {
+                        Evaluador = transaccion.Comprador,
+                        Evaluado = "Productores y transportador",
+                        Estrellas = obs.CalificacionEstre,
+                        Comentario = compradorTexto.EsNovedad
+                            ? $"Novedad: {compradorTexto.Novedad}" + (string.IsNullOrWhiteSpace(compradorTexto.Comentario) ? string.Empty : $" · {compradorTexto.Comentario}")
+                            : compradorTexto.Comentario ?? string.Empty
+                    });
+                }
+
+                var transportadorTexto = CalificacionService.ParsearTransportador(obs.ObserTransportador);
+                if (!string.IsNullOrWhiteSpace(transportadorTexto))
+                {
+                    calificaciones.Add(new CalificacionVistaDto
+                    {
+                        Evaluador = transaccion.Transportador,
+                        Evaluado = transaccion.Comprador,
+                        Estrellas = 0,
+                        Comentario = transportadorTexto
+                    });
+                }
+            }
 
             return ResultadoOperacion<DetalleTransaccionDto>.Ok(new DetalleTransaccionDto
             {
@@ -142,7 +162,7 @@ namespace CampesinApp.Services
         private IQueryable<PedidoViaje> FinalizadosDe(IQueryable<Demandum> pedidos)
         {
             return from d in pedidos
-                   join v in _db.Viajes on d.IdDemanda equals v.IdDemanda
+                   join v in _db.Viajes() on d.IdDemanda equals v.IdDemanda
                    where EstadosEnvio.Finalizados.Contains(v.EstadoEnvio)
                    select new PedidoViaje { Pedido = d, Viaje = v };
         }
@@ -198,7 +218,7 @@ namespace CampesinApp.Services
         {
             public Demandum Pedido { get; set; } = null!;
 
-            public Viaje Viaje { get; set; } = null!;
+            public ViajeVista Viaje { get; set; } = null!;
         }
     }
 }

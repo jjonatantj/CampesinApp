@@ -1,8 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CampesinApp.Repositories.Models;
 
+/// <summary>
+/// Reporte manual de ubicación que el transportador registra durante el viaje (CU-021). Tabla reporte_Transportador:
+/// ubicacion_Actual guarda el punto de acopio donde se encuentra y fecha_Actual la fecha y hora del reporte.
+/// </summary>
 public partial class ReporteTransportador
 {
     public int IdReporte { get; set; }
@@ -27,11 +31,9 @@ public partial class ReporteTransportador
 
     public string? Hito { get; set; }
 
-    public virtual ICollection<AlertaGuardadum> AlertaGuardada { get; set; } = new List<AlertaGuardadum>();
-
     public virtual Demandum IdDemandaNavigation { get; set; } = null!;
 
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 
-    public virtual ICollection<Notificacion> Notificacions { get; set; } = new List<Notificacion>();
+    public virtual ICollection<AlertaGuardada> AlertaGuardadas { get; set; } = new List<AlertaGuardada>();
 }
