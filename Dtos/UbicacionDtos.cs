@@ -7,6 +7,13 @@ namespace CampesinApp.Dtos
         public int IdViaje { get; set; }
 
         public string Texto { get; set; } = string.Empty;
+
+        /// <summary>Origen y destino del primer reporte del viaje: se piden una sola vez y después se reutilizan.</summary>
+        public string? Origen { get; set; }
+
+        public string? Destino { get; set; }
+
+        public bool TieneReportes { get; set; }
     }
 
     /// <summary>Formulario "Filtros del Reporte" de CU-021.</summary>
@@ -37,10 +44,32 @@ namespace CampesinApp.Dtos
         [Required]
         public string? Hito { get; set; }
 
+        /// <summary>Coordenadas que toma el navegador cuando el lugar es "En carretera" (texto con punto decimal).</summary>
+        public string? Latitud { get; set; }
+
+        public string? Longitud { get; set; }
+
         /// <summary>Puntos de acopio registrados (tabla punto_Acopio) entre los que se elige el lugar y que se dibujan en el mapa.</summary>
         public List<PuntoAcopioOpcionDto> Puntos { get; set; } = new();
 
         public List<ViajeOpcionDto> Viajes { get; set; } = new();
+
+        /// <summary>Municipios registrados (tabla municipio) con su región natural, para el desplegable dependiente de la región.</summary>
+        public List<MunicipioOpcionDto> Municipios { get; set; } = new();
+    }
+
+    /// <summary>Municipio con su región natural y, si algún punto de acopio está en él, sus coordenadas.</summary>
+    public class MunicipioOpcionDto
+    {
+        public string Nombre { get; set; } = string.Empty;
+
+        public string Departamento { get; set; } = string.Empty;
+
+        public string Region { get; set; } = string.Empty;
+
+        public double? Lat { get; set; }
+
+        public double? Lng { get; set; }
     }
 
     /// <summary>Datos del reporte de ubicación tal como se muestran en las notificaciones y el historial.</summary>

@@ -46,10 +46,25 @@ namespace CampesinApp.Services
                     })
                 .ToListAsync();
 
-            return filas.Select(f => new ViajeOpcionDto
+            var demandas = filas.Select(f => f.IdDemanda).Distinct().ToList();
+            var primeros = (await _db.ReporteTransportadors.AsNoTracking()
+                    .Where(r => demandas.Contains(r.IdDemanda))
+                    .OrderBy(r => r.FechaActual).ThenBy(r => r.IdReporte)
+                    .ToListAsync())
+                .GroupBy(r => r.IdDemanda)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            return filas.Select(f =>
             {
-                IdViaje = f.IdViaje,
-                Texto = $"{CodigoPedido.Formatear(f.IdDemanda)} · {f.Producto} · {f.Placa} → {f.DireccionFinal}"
+                primeros.TryGetValue(f.IdDemanda, out var primero);
+                return new ViajeOpcionDto
+                {
+                    IdViaje = f.IdViaje,
+                    Texto = $"{CodigoPedido.Formatear(f.IdDemanda)} · {f.Producto} · {f.Placa} → {f.DireccionFinal}",
+                    Origen = primero?.PuntoOrigen,
+                    Destino = primero?.PuntoDestino,
+                    TieneReportes = primero != null
+                };
             }).ToList();
         }
 
@@ -80,24 +95,53 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Conflicto, "La llegada de este viaje ya fue notificada.");
             }
 
-            // El lugar debe ser un punto de acopio registrado (tabla punto_Acopio): de ahí salen las coordenadas del mapa.
-            var punto = await BuscarPuntoPorNombreAsync(dto.Lugar);
-            if (punto == null)
-            {
-                return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El lugar seleccionado no es un punto de acopio registrado.");
-            }
-
             var hito = notificarLlegada ? Hitos.DestinoFinal : dto.Hito!;
-            if (!Hitos.Todos.Contains(hito) || !Regiones.Todas.Contains(dto.Region!))
+            if (!Hitos.Todos.Contains(hito) || !await _db.Municipios.AnyAsync(m => m.Municipio1 == dto.Region!))
             {
-                return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El hito o la región seleccionados no son válidos.");
+                return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El tipo de reporte o el municipio seleccionados no son válidos.");
             }
 
-            // RN01-CU021: el primer registro del servicio es la posición de arranque.
-            var tieneReportes = await _db.ReporteTransportadors.AnyAsync(r => r.IdDemanda == viaje.IdDemanda);
-            if (!tieneReportes && hito != Hitos.Salida)
+            // RN01-CU021: el primer registro del servicio es la posición de arranque; su origen y destino se reutilizan después.
+            var primero = await _db.ReporteTransportadors.AsNoTracking()
+                .Where(r => r.IdDemanda == viaje.IdDemanda)
+                .OrderBy(r => r.FechaActual).ThenBy(r => r.IdReporte)
+                .FirstOrDefaultAsync();
+            if (primero == null && hito != Hitos.Salida)
             {
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El primer reporte del viaje debe ser la salida del punto de origen.");
+            }
+            if (!string.IsNullOrWhiteSpace(primero?.PuntoOrigen)) dto.PuntoOrigen = primero!.PuntoOrigen;
+            if (!string.IsNullOrWhiteSpace(primero?.PuntoDestino)) dto.PuntoDestino = primero!.PuntoDestino;
+
+            // El lugar es un punto de acopio registrado (tabla punto_Acopio) o, solo en el reporte de avance cada 2 horas,
+            // "En carretera" con las coordenadas que tomó el navegador.
+            string ubicacion;
+            double latitud, longitud;
+            if (dto.Lugar!.Trim() == Carretera.Nombre)
+            {
+                if (hito != Hitos.Avance)
+                {
+                    return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "\"En carretera\" solo se puede usar en el reporte de avance cada 2 horas.");
+                }
+                var c = System.Globalization.CultureInfo.InvariantCulture;
+                if (!double.TryParse(dto.Latitud, System.Globalization.NumberStyles.Float, c, out latitud)
+                    || !double.TryParse(dto.Longitud, System.Globalization.NumberStyles.Float, c, out longitud)
+                    || latitud is < -90 or > 90 || longitud is < -180 or > 180)
+                {
+                    return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "No se pudo obtener su ubicación actual. Permita el acceso a la ubicación en el navegador e intente de nuevo.");
+                }
+                ubicacion = Carretera.Formatear(latitud, longitud);
+            }
+            else
+            {
+                var punto = await BuscarPuntoPorNombreAsync(dto.Lugar);
+                if (punto == null)
+                {
+                    return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.Validacion, "El lugar seleccionado no es un punto de acopio registrado.");
+                }
+                ubicacion = punto.NombrePunto;
+                latitud = (double)punto.Latitud;
+                longitud = (double)punto.Longitud;
             }
 
             var ahora = DateTime.Now;
@@ -112,7 +156,7 @@ namespace CampesinApp.Services
                 Region = dto.Region!,
                 PuntoOrigen = dto.PuntoOrigen!.Trim(),
                 PuntoDestino = dto.PuntoDestino!.Trim(),
-                UbicacionActual = punto.NombrePunto,
+                UbicacionActual = ubicacion,
                 Hito = hito,
                 FechaActual = ahora
             };
@@ -151,8 +195,8 @@ namespace CampesinApp.Services
             await _log.RegistrarAsync(NivelesLog.Info, "CU-021 Reporte ubicación", $"Reporte '{hito}' en '{reporte.UbicacionActual}' del pedido {codigo}.", usuario.Id);
 
             var vista = ConvertirReporte(reporte, codigo, false);
-            vista.Latitud = (double)punto.Latitud;
-            vista.Longitud = (double)punto.Longitud;
+            vista.Latitud = latitud;
+            vista.Longitud = longitud;
             return ResultadoOperacion<ReporteVistaDto>.Ok(vista);
         }
 
@@ -192,21 +236,36 @@ namespace CampesinApp.Services
                 .GroupBy(p => p.NombrePunto, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-            dto.Recorrido = reportes
-                .Where(r => puntos.ContainsKey(r.UbicacionActual))
-                .Select(r => new PuntoMapaDto
+            bool TryCoordenadas(string ubicacion, out double lat, out double lng)
+            {
+                if (puntos.TryGetValue(ubicacion, out var punto))
                 {
-                    Lat = (double)puntos[r.UbicacionActual].Latitud,
-                    Lng = (double)puntos[r.UbicacionActual].Longitud,
+                    lat = (double)punto.Latitud;
+                    lng = (double)punto.Longitud;
+                    return true;
+                }
+                return Carretera.TryLeer(ubicacion, out lat, out lng);
+            }
+
+            dto.Recorrido = reportes
+                .Where(r => TryCoordenadas(r.UbicacionActual, out _, out _))
+                .Select(r =>
+                {
+                    TryCoordenadas(r.UbicacionActual, out var lat, out var lng);
+                    return new PuntoMapaDto
+                    {
+                    Lat = lat,
+                    Lng = lng,
                     Titulo = r.UbicacionActual,
                     Hito = r.Hito ?? string.Empty,
                     Fecha = Formato.FechaHora(r.FechaActual)
+                    };
                 }).ToList();
 
-            if (puntos.TryGetValue(reporte.UbicacionActual, out var actual))
+            if (TryCoordenadas(reporte.UbicacionActual, out var latActual, out var lngActual))
             {
-                dto.Latitud = (double)actual.Latitud;
-                dto.Longitud = (double)actual.Longitud;
+                dto.Latitud = latActual;
+                dto.Longitud = lngActual;
             }
 
             // Punto de acopio de entrega del pedido (destino), si lo tiene.
@@ -325,6 +384,31 @@ namespace CampesinApp.Services
                 Lat = (double)p.Latitud,
                 Lng = (double)p.Longitud
             }).ToList();
+        }
+
+        /// <summary>Municipios registrados con su región natural; las coordenadas salen del promedio de sus puntos de acopio.</summary>
+        public async Task<List<MunicipioOpcionDto>> ObtenerMunicipiosAsync()
+        {
+            var municipios = await _db.Municipios.AsNoTracking()
+                .Select(m => new { m.IdMunicipio, m.Municipio1, Departamento = m.IdDepartamentoNavigation.Departamento1 })
+                .ToListAsync();
+            var coordenadas = (await _db.PuntoAcopios.AsNoTracking()
+                    .Select(p => new { p.IdMunicipio, p.Latitud, p.Longitud })
+                    .ToListAsync())
+                .GroupBy(p => p.IdMunicipio)
+                .ToDictionary(g => g.Key, g => (Lat: (double)g.Average(p => p.Latitud), Lng: (double)g.Average(p => p.Longitud)));
+
+            return municipios
+                .OrderBy(m => m.Municipio1)
+                .Select(m => new MunicipioOpcionDto
+                {
+                    Nombre = m.Municipio1,
+                    Departamento = m.Departamento,
+                    Region = Regiones.DeDepartamento(m.Departamento),
+                    Lat = coordenadas.TryGetValue(m.IdMunicipio, out var c) ? c.Lat : null,
+                    Lng = coordenadas.TryGetValue(m.IdMunicipio, out var c2) ? c2.Lng : null
+                })
+                .ToList();
         }
 
         private async Task<PuntoAcopio?> BuscarPuntoPorNombreAsync(string? nombre)

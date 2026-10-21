@@ -18,6 +18,14 @@ namespace CampesinApp.Services
         public static string PuntosAcopioJson(IEnumerable<CampesinApp.Dtos.PuntoAcopioOpcionDto> puntos) =>
             System.Text.Json.JsonSerializer.Serialize(puntos.Select(p => new { id = p.Id, titulo = p.Nombre, direccion = p.Direccion, lat = p.Lat, lng = p.Lng }), OpcionesJson);
 
+        /// <summary>Viajes como JSON para que el formulario sepa si ya tienen origen y destino.</summary>
+        public static string ViajesJson(IEnumerable<CampesinApp.Dtos.ViajeOpcionDto> viajes) =>
+            System.Text.Json.JsonSerializer.Serialize(viajes.Select(v => new { id = v.IdViaje, origen = v.Origen, destino = v.Destino, tieneReportes = v.TieneReportes }), OpcionesJson);
+
+        /// <summary>Municipios como JSON para el mapa del reporte (se geolocalizan en el navegador si no traen coordenadas).</summary>
+        public static string MunicipiosJson(IEnumerable<CampesinApp.Dtos.MunicipioOpcionDto> municipios) =>
+            System.Text.Json.JsonSerializer.Serialize(municipios.Select(m => new { titulo = m.Nombre, departamento = m.Departamento, region = m.Region, lat = m.Lat, lng = m.Lng }), OpcionesJson);
+
         /// <summary>"4.628000, -74.064000" (punto decimal) o "No registradas" si el reporte no tiene coordenadas.</summary>
         public static string Coordenadas(double? latitud, double? longitud)
         {

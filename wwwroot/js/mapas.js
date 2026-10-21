@@ -23,7 +23,8 @@
     let carga = null;
 
     function cargarApi() {
-        if (window.google && window.google.maps && window.google.maps.Map) return Promise.resolve();
+        const g = window.google && window.google.maps;
+        if (g && g.Map && g.Marker && g.Geocoder) return Promise.resolve();
         if (!clave) return Promise.reject(new Error('Falta la clave de Google Maps'));
         if (!carga) {
             carga = new Promise((resolver, rechazar) => {
@@ -34,6 +35,11 @@
                 script.async = true;
                 script.onerror = () => { carga = null; rechazar(new Error('No se pudo cargar Google Maps')); };
                 document.head.appendChild(script);
+            }).then(() => {
+                // Con loading=async las clases (Map, Marker, Geocoder) solo existen después de importar sus librerías.
+                const gm = window.google.maps;
+                if (typeof gm.importLibrary !== 'function') return null;
+                return Promise.all(['maps', 'marker', 'geocoding'].map((nombre) => gm.importLibrary(nombre)));
             });
         }
         return carga;
@@ -238,6 +244,314 @@
         });
     }
 
+    // ------------------------------------------------------------------------------------------ reporte de ubicación
+
+    /**
+     * Mapa del formulario "Reporte de Ubicación": dibuja los puntos de acopio y, según el usuario va eligiendo, el municipio,
+     * el origen, el destino y el lugar actual. Las coordenadas salen de punto_Acopio (y del municipio, si algún punto
+     * de acopio está en él; si no, Google lo geolocaliza por su nombre), así que nadie las escribe.
+     */
+    function iniciarReporte(contenedor) {
+        const formulario = contenedor.closest('form') || document;
+        const campo = (selector) => (selector ? formulario.querySelector(selector) : null);
+        const listas = {
+            municipio: campo(contenedor.dataset.municipio),
+            origen: campo(contenedor.dataset.origen),
+            destino: campo(contenedor.dataset.destino),
+            lugar: campo(contenedor.dataset.select)
+        };
+        const estado = formulario.querySelector('[data-mapa-estado]');
+        const textoInicial = estado ? estado.textContent : '';
+        const puntos = leerPuntos(contenedor);
+        let municipios = [];
+        try { municipios = JSON.parse(contenedor.dataset.municipios || '[]'); } catch (e) { municipios = []; }
+
+        const mapa = new google.maps.Map(contenedor, { center: CENTRO_COLOMBIA, zoom: 6, streetViewControl: false, mapTypeControl: false });
+        const geocodificador = new google.maps.Geocoder();
+        const cacheMunicipios = new Map();
+        const ventana = new google.maps.InfoWindow();
+        const porNombre = new Map(puntos.map((p) => [p.titulo, p]));
+
+        // Marcadores de fondo: todos los puntos de acopio registrados.
+        puntos.forEach((p) => {
+            const marcador = new google.maps.Marker({ map: mapa, position: { lat: p.lat, lng: p.lng }, title: p.titulo, icon: icono('#9e9e9e', 6), zIndex: 1 });
+            marcador.addListener('click', () => {
+                if (listas.lugar) {
+                    listas.lugar.value = p.titulo;
+                    listas.lugar.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+
+        const etiquetas = {
+            municipio: { texto: 'M', color: '#ef6c00', nombre: 'Municipio' },
+            origen: { texto: 'O', color: '#2e7d32', nombre: 'Origen' },
+            destino: { texto: 'D', color: '#1565c0', nombre: 'Destino' },
+            lugar: { texto: 'A', color: '#c62828', nombre: 'Ubicación actual' }
+        };
+        const claves = ['municipio', 'origen', 'destino', 'lugar'];
+        const marcadores = {};
+        let linea = null;
+
+        function posicionMunicipio(nombre) {
+            const m = municipios.find((x) => x.titulo === nombre);
+            if (!m) return Promise.resolve(null);
+            if (Number.isFinite(m.lat) && Number.isFinite(m.lng)) return Promise.resolve({ lat: m.lat, lng: m.lng });
+            if (cacheMunicipios.has(nombre)) return Promise.resolve(cacheMunicipios.get(nombre));
+            return new Promise((resolver) => {
+                geocodificador.geocode({ address: m.titulo + ', ' + m.departamento + ', Colombia' }, (resultados, estadoGeo) => {
+                    const ok = estadoGeo === 'OK' && resultados && resultados[0];
+                    const pos = ok ? { lat: resultados[0].geometry.location.lat(), lng: resultados[0].geometry.location.lng() } : null;
+                    cacheMunicipios.set(nombre, pos);
+                    resolver(pos);
+                });
+            });
+        }
+
+        async function posicion(clave) {
+            const valor = listas[clave]?.value;
+            if (!valor) return null;
+            if (clave === 'municipio') return posicionMunicipio(valor);
+            if (clave === 'lugar' && valor === 'En carretera') {
+                const lat = parseFloat(formulario.querySelector('#Latitud')?.value);
+                const lng = parseFloat(formulario.querySelector('#Longitud')?.value);
+                return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+            }
+            const p = porNombre.get(valor);
+            return p ? { lat: p.lat, lng: p.lng } : null;
+        }
+
+        async function actualizar(centrar) {
+            const posiciones = await Promise.all(claves.map(posicion));
+            const limites = new google.maps.LatLngBounds();
+            const lineas = [];
+            let hayPuntos = false;
+
+            claves.forEach((clave, i) => {
+                const pos = posiciones[i];
+                const info = etiquetas[clave];
+                marcadores[clave]?.setMap(null);
+                marcadores[clave] = null;
+                if (!listas[clave] || !listas[clave].value) return;
+                if (!pos) {
+                    lineas.push(info.nombre + ': ' + listas[clave].value + ' (coordenadas no disponibles)');
+                    return;
+                }
+                const marcador = new google.maps.Marker({
+                    map: mapa,
+                    position: pos,
+                    title: info.nombre + ': ' + listas[clave].value,
+                    label: { text: info.texto, color: '#ffffff', fontWeight: '700' },
+                    icon: icono(info.color, 14),
+                    zIndex: 100
+                });
+                marcador.addListener('click', () => {
+                    const html = document.createElement('div');
+                    const negrita = document.createElement('strong');
+                    negrita.textContent = info.nombre + ': ' + listas[clave].value;
+                    const coords = document.createElement('div');
+                    coords.textContent = pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6);
+                    html.append(negrita, coords);
+                    ventana.setContent(html);
+                    ventana.open(mapa, marcador);
+                });
+                marcadores[clave] = marcador;
+                limites.extend(pos);
+                hayPuntos = true;
+                lineas.push(info.nombre + ': ' + listas[clave].value + ' (' + pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6) + ')');
+            });
+
+            // Ruta prevista: origen → ubicación actual → destino.
+            const ruta = ['origen', 'lugar', 'destino'].map((c) => posiciones[claves.indexOf(c)]).filter(Boolean);
+            linea?.setMap(null);
+            linea = ruta.length > 1
+                ? new google.maps.Polyline({ map: mapa, path: ruta, strokeColor: '#2e7d32', strokeOpacity: 0.8, strokeWeight: 4 })
+                : null;
+
+            if (estado) {
+                estado.replaceChildren();
+                if (lineas.length === 0) {
+                    estado.textContent = textoInicial;
+                } else {
+                    lineas.forEach((texto) => { const d = document.createElement('div'); d.textContent = texto; estado.appendChild(d); });
+                }
+            }
+
+            if (centrar && hayPuntos) {
+                if (limites.getNorthEast().equals(limites.getSouthWest())) {
+                    mapa.setCenter(limites.getCenter());
+                    mapa.setZoom(13);
+                } else {
+                    mapa.fitBounds(limites, 50);
+                }
+            }
+        }
+
+        Object.values(listas).forEach((lista) => lista?.addEventListener('change', () => actualizar(true)));
+
+        cuandoVisible(contenedor, () => {
+            google.maps.event.trigger(mapa, 'resize');
+            if (Object.values(listas).some((l) => l && l.value)) {
+                actualizar(true);
+            } else if (puntos.length) {
+                const limites = new google.maps.LatLngBounds();
+                puntos.forEach((p) => limites.extend({ lat: p.lat, lng: p.lng }));
+                mapa.fitBounds(limites, 40);
+            }
+        });
+    }
+
+    // La región filtra los municipios del desplegable de municipio (cada <option> trae su región en data-region).
+    function filtrarMunicipios(filtro) {
+        const lista = (filtro.closest('form') || document).querySelector(filtro.dataset.filtroMunicipios);
+        if (!lista) return;
+        Array.from(lista.options).forEach((opcion) => {
+            if (!opcion.value) return;
+            const visible = !filtro.value || opcion.dataset.region === filtro.value;
+            opcion.hidden = !visible;
+            opcion.disabled = !visible;
+        });
+        if (lista.value && lista.selectedOptions[0]?.disabled) {
+            lista.value = '';
+            lista.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    document.addEventListener('change', (evento) => {
+        if (evento.target.matches?.('[data-filtro-municipios]')) filtrarMunicipios(evento.target);
+    });
+
+    // ------------------------------------------------------------------------------------------ formulario del reporte
+
+    /**
+     * Reglas del formulario "Reporte de Ubicación" que no dependen de Google Maps:
+     *  - origen y destino se piden solo en el primer reporte del viaje; después se cargan solos y quedan bloqueados;
+     *  - el primer reporte es siempre la salida;
+     *  - "En carretera" solo existe en el reporte de avance cada 2 horas y toma las coordenadas del navegador.
+     */
+    function configurarFormularioReporte(formulario) {
+        if (formulario.dataset.reporteListo) return;
+        formulario.dataset.reporteListo = '1';
+
+        const campo = (id) => formulario.querySelector('#' + id);
+        const viaje = campo('IdViaje');
+        const origen = campo('PuntoOrigen');
+        const destino = campo('PuntoDestino');
+        const lugar = campo('Lugar');
+        const tipo = campo('Hito');
+        const latitud = campo('Latitud');
+        const longitud = campo('Longitud');
+        const aviso = formulario.querySelector('[data-aviso-carretera]');
+        const textoAviso = aviso ? aviso.textContent : '';
+        const CARRETERA = 'En carretera';
+        const SALIDA = 'Salida';
+        const AVANCE = 'Avance 2 horas';
+
+        let viajes = [];
+        try { viajes = JSON.parse(viaje?.dataset.viajes || '[]'); } catch (e) { viajes = []; }
+
+        function bloquear(lista, valor) {
+            if (!lista) return;
+            let espejo = lista.parentElement.querySelector('input[data-espejo="' + lista.id + '"]');
+            if (valor == null) {
+                lista.disabled = false;
+                espejo?.remove();
+                return;
+            }
+            lista.value = valor;
+            lista.disabled = true;
+            if (!espejo) {
+                espejo = document.createElement('input');
+                espejo.type = 'hidden';
+                espejo.name = lista.name;
+                espejo.dataset.espejo = lista.id;
+                lista.parentElement.appendChild(espejo);
+            }
+            espejo.value = lista.value;
+        }
+
+        function avisar(texto) { if (aviso) aviso.textContent = texto || textoAviso; }
+
+        function cambiar(lista) { lista?.dispatchEvent(new Event('change', { bubbles: true })); }
+
+        function aplicarViaje() {
+            const actual = viajes.find((v) => String(v.id) === viaje?.value);
+            const tiene = !!(actual && actual.tieneReportes);
+            if (tiene && actual.origen && actual.destino) {
+                bloquear(origen, actual.origen);
+                bloquear(destino, actual.destino);
+            } else {
+                bloquear(origen, null);
+                bloquear(destino, null);
+            }
+            if (tipo) {
+                Array.from(tipo.options).forEach((o) => {
+                    if (!o.value) return;
+                    // Primer reporte: solo la salida. Después: ya no hay otra salida.
+                    o.disabled = !!actual && (tiene ? o.value === SALIDA : o.value !== SALIDA);
+                });
+                if (actual && !tiene) tipo.value = SALIDA;
+                else if (tipo.selectedOptions[0]?.disabled) tipo.value = '';
+            }
+            aplicarTipo();
+            cambiar(origen);
+        }
+
+        function aplicarTipo() {
+            const opcion = lugar ? Array.from(lugar.options).find((o) => o.value === CARRETERA) : null;
+            if (!opcion) return;
+            const permitido = tipo?.value === AVANCE;
+            opcion.disabled = !permitido;
+            if (!permitido && lugar.value === CARRETERA) {
+                lugar.value = '';
+                latitud.value = '';
+                longitud.value = '';
+                cambiar(lugar);
+            }
+        }
+
+        function ubicar() {
+            if (!navigator.geolocation) {
+                avisar('Su navegador no permite obtener la ubicación actual.');
+                lugar.value = '';
+                cambiar(lugar);
+                return;
+            }
+            avisar('Obteniendo su ubicación actual…');
+            navigator.geolocation.getCurrentPosition(
+                (posicion) => {
+                    latitud.value = posicion.coords.latitude.toFixed(6);
+                    longitud.value = posicion.coords.longitude.toFixed(6);
+                    avisar('Ubicación en carretera: ' + latitud.value + ', ' + longitud.value);
+                    cambiar(lugar);
+                },
+                () => {
+                    avisar('No se pudo obtener su ubicación. Permita el acceso a la ubicación en el navegador o elija un punto de acopio.');
+                    lugar.value = '';
+                    latitud.value = '';
+                    longitud.value = '';
+                    cambiar(lugar);
+                },
+                { enableHighAccuracy: true, timeout: 15000 });
+        }
+
+        viaje?.addEventListener('change', aplicarViaje);
+        tipo?.addEventListener('change', aplicarTipo);
+        lugar?.addEventListener('change', () => {
+            if (lugar.value === CARRETERA) {
+                if (!latitud.value) ubicar();
+            } else {
+                latitud.value = '';
+                longitud.value = '';
+                avisar('');
+            }
+        });
+
+        const filtro = formulario.querySelector('[data-filtro-municipios]');
+        if (filtro) filtrarMunicipios(filtro);
+        if (viaje?.value) aplicarViaje(); else aplicarTipo();
+    }
+
     // ------------------------------------------------------------------------------------------ activación
 
     function activar(contenedor) {
@@ -245,13 +559,18 @@
         contenedor.dataset.mapaListo = '1';
         cargarApi()
             .then(() => {
-                if (contenedor.dataset.mapa === 'puntos') iniciarPuntos(contenedor);
+                if (contenedor.dataset.mapa === 'reporte') iniciarReporte(contenedor);
+                else if (contenedor.dataset.mapa === 'puntos') iniciarPuntos(contenedor);
                 else iniciarVista(contenedor);
             })
-            .catch(() => avisarError(contenedor, 'No se pudo cargar el mapa. Las coordenadas se muestran como texto.'));
+            .catch((error) => {
+                console.error('Mapa:', error);
+                avisarError(contenedor, 'No se pudo cargar el mapa. Las coordenadas se muestran como texto.');
+            });
     }
 
     function buscarMapas() {
+        document.querySelectorAll('form[data-reporte-form]:not([data-reporte-listo])').forEach(configurarFormularioReporte);
         document.querySelectorAll('[data-mapa]:not([data-mapa-listo])').forEach(activar);
     }
 

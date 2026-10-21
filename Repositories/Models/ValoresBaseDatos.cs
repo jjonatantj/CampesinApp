@@ -34,9 +34,65 @@ namespace CampesinApp.Repositories.Models
         public static readonly string[] Todos = { Salida, Avance, PuntoAcopio, DestinoFinal };
     }
 
+    /// <summary>
+    /// Lugar "En carretera" del reporte: no es un punto de acopio, así que las coordenadas que toma el navegador se guardan
+    /// en el mismo texto de ubicacion_Actual: "En carretera (4.628000, -74.064000)".
+    /// </summary>
+    public static class Carretera
+    {
+        public const string Nombre = "En carretera";
+
+        private static readonly System.Text.RegularExpressions.Regex Patron =
+            new(@"^En carretera \((-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\)$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        public static string Formatear(double lat, double lng)
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            return $"{Nombre} ({lat.ToString("0.000000", c)}, {lng.ToString("0.000000", c)})";
+        }
+
+        public static bool TryLeer(string? ubicacion, out double lat, out double lng)
+        {
+            lat = lng = 0;
+            var m = Patron.Match(ubicacion ?? string.Empty);
+            if (!m.Success) return false;
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            return double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, c, out lat)
+                && double.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float, c, out lng);
+        }
+    }
+
     public static class Regiones
     {
         public static readonly string[] Todas = { "Andina", "Caribe", "Pacífica", "Orinoquía", "Amazonía", "Insular" };
+
+        private static readonly Dictionary<string, string[]> DepartamentosPorRegion = new()
+        {
+            ["Andina"] = new[] { "antioquia", "boyaca", "caldas", "cundinamarca", "bogota", "huila", "norte de santander", "quindio", "risaralda", "santander", "tolima" },
+            ["Caribe"] = new[] { "atlantico", "bolivar", "cesar", "cordoba", "la guajira", "magdalena", "sucre" },
+            ["Pacífica"] = new[] { "cauca", "choco", "narino", "valle del cauca" },
+            ["Orinoquía"] = new[] { "arauca", "casanare", "meta", "vichada" },
+            ["Amazonía"] = new[] { "amazonas", "caqueta", "guainia", "guaviare", "putumayo", "vaupes" },
+            ["Insular"] = new[] { "san andres" }
+        };
+
+        /// <summary>Región natural a la que pertenece un departamento (vacío si no se reconoce).</summary>
+        public static string DeDepartamento(string? departamento)
+        {
+            var buscado = Normalizar(departamento);
+            if (buscado.Length == 0) return string.Empty;
+            foreach (var par in DepartamentosPorRegion)
+            {
+                if (par.Value.Any(d => buscado.StartsWith(d, StringComparison.Ordinal))) return par.Key;
+            }
+            return string.Empty;
+        }
+
+        private static string Normalizar(string? texto)
+        {
+            var descompuesto = (texto ?? string.Empty).Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+            return new string(descompuesto.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+        }
     }
 
     public static class TiposNotificacion
