@@ -1,8 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CampesinApp.Repositories.Models;
 
+/// <summary>
+/// Notificación dirigida a un usuario (nueva ubicación, llegada del pedido, entrega completada, novedades).
+/// </summary>
 public partial class Notificacion
 {
     public int IdNotificacion { get; set; }
@@ -22,10 +25,6 @@ public partial class Notificacion
     public bool PopupMostrado { get; set; }
 
     public DateTime Fecha { get; set; }
-
-    public virtual Demandum? IdDemandaNavigation { get; set; }
-
-    public virtual ReporteTransportador? IdReporteNavigation { get; set; }
 
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 }
