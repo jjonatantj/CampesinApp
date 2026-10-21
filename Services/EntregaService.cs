@@ -7,10 +7,13 @@ namespace CampesinApp.Services
     /// <summary>
     /// Validación de entrega y recibido (CU-025) y "Entrega realizada" del transportador (CU-024, RN-03).
     /// El pedido solo queda "Entregado y Recibido Correctamente" cuando transportador y comprador confirman sin novedad.
+    /// Las confirmaciones se guardan en la tabla observacion (ver <see cref="MarcasObservacion"/>); el estado del envío se
+    /// calcula a partir de ellas y de los reportes de ubicación.
     /// </summary>
     public class EntregaService
     {
         private const long TamanoMaximoEvidencia = 5 * 1024 * 1024;
+        private const int LargoMaximoNovedad = 200;
 
         private static readonly Dictionary<string, string[]> ExtensionesPermitidas = new()
         {
@@ -58,7 +61,7 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ValidacionEntregaDto>.Falla(TipoError.NoAutorizado, "Solo el comprador del pedido puede validar la entrega.");
             }
 
-            var viaje = await _db.Viajes.AsNoTracking().FirstOrDefaultAsync(v => v.IdDemanda == idDemanda);
+            var viaje = await _db.Viajes().AsNoTracking().FirstOrDefaultAsync(v => v.IdDemanda == idDemanda);
             if (viaje == null)
             {
                 return ResultadoOperacion<ValidacionEntregaDto>.Falla(TipoError.Conflicto, "Este pedido no tiene un servicio de transporte asignado.");
@@ -95,14 +98,20 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ResultadoEntregaDto>.Falla(TipoError.Conflicto, "Ya registró la recepción de este pedido.");
             }
 
+            var conNovedad = dto.Respuesta != RespuestaRecepcion.SinObservaciones;
             var observacion = dto.Observacion?.Trim();
             if (dto.Respuesta == RespuestaRecepcion.ConObservaciones && string.IsNullOrWhiteSpace(observacion))
             {
                 return ResultadoOperacion<ResultadoEntregaDto>.Falla(TipoError.Validacion, "Describa la novedad: productos dañados o faltantes.");
             }
 
+            if (observacion is { Length: > LargoMaximoNovedad })
+            {
+                return ResultadoOperacion<ResultadoEntregaDto>.Falla(TipoError.Validacion, $"La descripción de la novedad no puede superar los {LargoMaximoNovedad} caracteres.");
+            }
+
             string? nombreEvidencia = null;
-            if (dto.Respuesta != RespuestaRecepcion.SinObservaciones && dto.Evidencia is { Length: > 0 })
+            if (conNovedad && dto.Evidencia is { Length: > 0 })
             {
                 var guardada = await GuardarEvidenciaAsync(dto.Evidencia);
                 if (!guardada.Exitoso)
@@ -112,30 +121,34 @@ namespace CampesinApp.Services
                 nombreEvidencia = guardada.Datos;
             }
 
-            var viaje = await _db.Viajes.FirstAsync(v => v.IdDemanda == dto.IdDemanda);
-            viaje.CompradorConfirma = true;
-            viaje.CompradorConObservaciones = dto.Respuesta != RespuestaRecepcion.SinObservaciones;
-            if (viaje.CompradorConObservaciones)
+            var obs = await ObservacionDelPedidoAsync(dto.IdDemanda);
+            obs.HoraObser = DateTime.Now;
+            if (conNovedad)
             {
-                viaje.ObservacionComprador = string.IsNullOrWhiteSpace(observacion)
-                    ? "El comprador rechazó la recepción de la entrega."
-                    : observacion;
-                viaje.ImagenEvidencia = nombreEvidencia;
+                var detalle = string.IsNullOrWhiteSpace(observacion) ? "El comprador rechazó la recepción de la entrega." : observacion;
+                obs.ObserComprador = $"{MarcasObservacion.CompradorConNovedad} {detalle}";
+                obs.ImagenComprador = nombreEvidencia;
+            }
+            else
+            {
+                obs.ObserComprador = MarcasObservacion.CompradorSinNovedad;
             }
 
-            var resultado = await EvaluarYGuardarAsync(viaje);
+            await _db.SaveChangesAsync();
+
+            var resultado = await EvaluarAsync(dto.IdDemanda, conNovedad ? obs.ObserComprador : null);
             await _log.RegistrarAsync(
-                viaje.CompradorConObservaciones ? NivelesLog.Advertencia : NivelesLog.Info,
+                conNovedad ? NivelesLog.Advertencia : NivelesLog.Info,
                 "CU-025 Recepción",
-                $"Comprador registró recepción '{dto.Respuesta}' del pedido {CodigoPedido.Formatear(viaje.IdDemanda)}. Estado: {resultado.EstadoEnvio}.",
+                $"Comprador registró recepción '{dto.Respuesta}' del pedido {CodigoPedido.Formatear(dto.IdDemanda)}. Estado: {resultado.EstadoEnvio}.",
                 comprador.Id);
             return ResultadoOperacion<ResultadoEntregaDto>.Ok(resultado);
         }
 
-        /// <summary>"Entrega Realizada" del transportador (CU-024 paso 7 / CU-025 paso 5).</summary>
+        /// <summary>"Entrega Realizada" del transportador (CU-024 paso 7 / CU-025 paso 5). El idViaje es el id del pedido.</summary>
         public async Task<ResultadoOperacion<ResultadoEntregaDto>> RegistrarEntregaTransportadorAsync(UsuarioActual transportador, int idViaje)
         {
-            var viaje = await _db.Viajes.FirstOrDefaultAsync(v => v.IdViaje == idViaje && v.IdUsuarioTransportador == transportador.Id);
+            var viaje = await _db.Viajes().AsNoTracking().FirstOrDefaultAsync(v => v.IdViaje == idViaje && v.IdUsuarioTransportador == transportador.Id);
             if (viaje == null || transportador.Rol != RolUsuario.Transportador)
             {
                 return ResultadoOperacion<ResultadoEntregaDto>.Falla(TipoError.NoAutorizado, "No tiene asignado este viaje.");
@@ -153,47 +166,59 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ResultadoEntregaDto>.Falla(TipoError.Conflicto, "La entrega de este viaje ya fue registrada.");
             }
 
-            viaje.TransportadorConfirma = true;
-            viaje.FechaEntrega = DateTime.Now;
-            viaje.VisibleTransportador = false; // RN-03-CU024: el viaje sale de su lista y queda solo para el administrador
+            var obs = await ObservacionDelPedidoAsync(viaje.IdDemanda);
+            obs.ObserTransportador = MarcasObservacion.EntregaRealizada;
+            obs.HoraObser = DateTime.Now;
+            await _db.SaveChangesAsync();
 
-            var resultado = await EvaluarYGuardarAsync(viaje);
+            var resultado = await EvaluarAsync(viaje.IdDemanda, null);
             await _log.RegistrarAsync(NivelesLog.Info, "CU-024 Entrega realizada",
                 $"Transportador marcó la entrega del pedido {CodigoPedido.Formatear(viaje.IdDemanda)}. Estado: {resultado.EstadoEnvio}.", transportador.Id);
             return ResultadoOperacion<ResultadoEntregaDto>.Ok(resultado);
         }
 
-        /// <summary>
-        /// Cruza las confirmaciones del transportador y del comprador (RN-01-CU025, RN-02-CU025), actualiza el estado
-        /// del envío y genera las notificaciones. El llamador ya modificó el viaje; aquí se guarda todo.
-        /// </summary>
-        private async Task<ResultadoEntregaDto> EvaluarYGuardarAsync(Viaje viaje)
+        /// <summary>Fila de observacion del pedido (una por pedido): la existente o una nueva, ya rastreada por el contexto.</summary>
+        private async Task<Observacion> ObservacionDelPedidoAsync(int idDemanda)
         {
-            var codigo = CodigoPedido.Formatear(viaje.IdDemanda);
-            var resultado = new ResultadoEntregaDto { IdDemanda = viaje.IdDemanda };
+            var obs = await _db.Observacions.Where(o => o.IdDemanda == idDemanda).OrderByDescending(o => o.IdObservacion).FirstOrDefaultAsync();
+            if (obs == null)
+            {
+                obs = new Observacion { IdDemanda = idDemanda, CalificacionEstre = 0, HoraObser = DateTime.Now };
+                _db.Observacions.Add(obs);
+            }
+
+            return obs;
+        }
+
+        /// <summary>
+        /// Cruza las confirmaciones del transportador y del comprador (RN-01-CU025, RN-02-CU025) a partir de lo ya guardado
+        /// y genera las notificaciones. El estado del envío se calcula en la consulta de viajes.
+        /// </summary>
+        private async Task<ResultadoEntregaDto> EvaluarAsync(int idDemanda, string? observacionNovedad)
+        {
+            var codigo = CodigoPedido.Formatear(idDemanda);
+            var viaje = await _db.Viajes().AsNoTracking().FirstAsync(v => v.IdDemanda == idDemanda);
+            var resultado = new ResultadoEntregaDto { IdDemanda = idDemanda, EstadoEnvio = viaje.EstadoEnvio };
 
             if (viaje.CompradorConfirma && viaje.CompradorConObservaciones)
             {
-                viaje.EstadoEnvio = EstadosEnvio.EntregadoConObservaciones;
                 resultado.ConNovedad = true;
-                var admins = await _notificaciones.ObtenerIdsAdministradoresAsync();
-                _notificaciones.Agregar(admins, TiposNotificacion.Novedad,
-                    $"Novedad en la entrega del pedido {codigo}: {viaje.ObservacionComprador}", viaje.IdDemanda);
+                // Solo se avisa al administrador cuando el comprador acaba de registrar la novedad.
+                if (observacionNovedad != null)
+                {
+                    var admins = await _notificaciones.ObtenerIdsAdministradoresAsync();
+                    _notificaciones.Agregar(admins, TiposNotificacion.Novedad,
+                        $"Novedad en la entrega del pedido {codigo}: {CalificacionService.ParsearComprador(observacionNovedad).Novedad}", idDemanda);
+                }
             }
             else if (viaje.CompradorConfirma && viaje.TransportadorConfirma)
             {
-                viaje.EstadoEnvio = EstadosEnvio.EntregadoRecibido;
                 resultado.EntregaCompletada = true;
-                var comprador = await _db.Demanda.Where(d => d.IdDemanda == viaje.IdDemanda).Select(d => d.IdUsuario).FirstAsync();
+                var comprador = await _db.Demanda.Where(d => d.IdDemanda == idDemanda).Select(d => d.IdUsuario).FirstAsync();
                 _notificaciones.Agregar(new[] { comprador, viaje.IdUsuarioTransportador }, TiposNotificacion.EntregaCompletada,
-                    "¡Entrega completada con éxito y sin novedades!", viaje.IdDemanda);
-            }
-            else if (viaje.TransportadorConfirma)
-            {
-                viaje.EstadoEnvio = EstadosEnvio.Entregado;
+                    "¡Entrega completada con éxito y sin novedades!", idDemanda);
             }
 
-            resultado.EstadoEnvio = viaje.EstadoEnvio;
             await _db.SaveChangesAsync();
             return resultado;
         }
@@ -215,7 +240,7 @@ namespace CampesinApp.Services
             var carpeta = Path.Combine(_entorno.WebRootPath, "uploads", "evidencias");
             Directory.CreateDirectory(carpeta);
 
-            // El nombre lo genera el servidor: nunca se usa el nombre que envía el usuario.
+            // El nombre lo genera el servidor: nunca se usa el nombre que envía el usuario (32 caracteres + extensión, cabe en imagen_Comprador).
             var nombre = $"{Guid.NewGuid():N}{extension}";
             await using var destino = File.Create(Path.Combine(carpeta, nombre));
             await archivo.CopyToAsync(destino);

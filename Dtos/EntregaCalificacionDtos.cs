@@ -57,20 +57,40 @@ namespace CampesinApp.Dtos
 
         public string CodigoPedido { get; set; } = string.Empty;
 
-        [Required]
-        public int? IdUsuarioEvaluado { get; set; }
+        /// <summary>true para el comprador (estrellas y comentario obligatorios); el transportador solo escribe su comentario.</summary>
+        public bool EsComprador { get; set; }
 
         [Range(1, 5)]
         public int Estrellas { get; set; }
 
-        [Required, StringLength(500)]
+        [Required, StringLength(255)]
         public string? Comentario { get; set; }
-
-        public List<ParticipantePedido> Pendientes { get; set; } = new();
 
         public string[] TelefonosSoporte { get; set; } = Array.Empty<string>();
 
         /// <summary>Se activa cuando se llega desde un desacuerdo de entrega (FE-01-CU025).</summary>
         public bool PorDesacuerdo { get; set; }
+    }
+
+    /// <summary>"Ver Observaciones" de un pedido finalizado (CU-026): calificación y comentarios guardados en observacion.</summary>
+    public class ObservacionesPedidoDto
+    {
+        public int IdDemanda { get; set; }
+
+        public string CodigoPedido { get; set; } = string.Empty;
+
+        public int Estrellas { get; set; }
+
+        public string? ComentarioComprador { get; set; }
+
+        public bool HayNovedad { get; set; }
+
+        public string? DetalleNovedad { get; set; }
+
+        public string? ComentarioTransportador { get; set; }
+
+        public string? Evidencia { get; set; }
+
+        public DateTime Fecha { get; set; }
     }
 }

@@ -12,7 +12,7 @@
     <h6>Datos del Transportador</h6>
     <dl class="row">
         <dt class="col-5">Nombre completo</dt>
-        <dd class="col-7">@Model.NombreTransportador</dd>
+        <dd class="col-7">@Model.NombreTransportador <a class="small ms-1" href="/Perfil/ConsultaPerfilTransportador/@Model.IdTransportador">Ver perfil</a></dd>
         <dt class="col-5">Teléfono de contacto</dt>
         <dd class="col-7">@Model.TelefonoTransportador</dd>
         <dt class="col-5">Calificación</dt>
@@ -36,7 +36,7 @@
         <dt class="col-5">Modelo</dt>
         <dd class="col-7">@Model.Modelo</dd>
         <dt class="col-5">Capacidad de carga</dt>
-        <dd class="col-7">@Formato.Entero(Model.Capacidad) kg</dd>
+        <dd class="col-7">@Formato.Entero(Model.Capacidad) toneladas</dd>
     </dl>
 
     <h6>Estado del Envío</h6>

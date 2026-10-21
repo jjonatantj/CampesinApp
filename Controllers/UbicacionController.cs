@@ -33,7 +33,8 @@ namespace CampesinApp.Controllers
             {
                 IdViaje = idViaje,
                 Viajes = await _ubicacion.ObtenerViajesActivosAsync(usuario),
-                Puntos = await _ubicacion.ObtenerPuntosAcopioAsync()
+                Puntos = await _ubicacion.ObtenerPuntosAcopioAsync(),
+                Municipios = await _ubicacion.ObtenerMunicipiosAsync()
             };
             if (idViaje == null && dto.Viajes.Count == 1)
             {
@@ -55,6 +56,7 @@ namespace CampesinApp.Controllers
             var llegada = accion == "llegada";
             dto.Viajes = await _ubicacion.ObtenerViajesActivosAsync(usuario);
             dto.Puntos = await _ubicacion.ObtenerPuntosAcopioAsync();
+            dto.Municipios = await _ubicacion.ObtenerMunicipiosAsync();
 
             if (!ValidarReporte(dto, llegada))
             {

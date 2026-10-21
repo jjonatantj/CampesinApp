@@ -57,5 +57,26 @@ namespace CampesinApp.Dtos
         public double? PromedioEstrellas { get; set; }
         public int TotalCalificaciones { get; set; }
         public List<string> Comentarios { get; set; } = new();
+
+        // ---- Información adicional del rediseño del perfil público (las clases auxiliares están en PerfilPublicoDtos.cs) ----
+
+        /// <summary>Cantidad de calificaciones por estrella: índice 0 = 1 estrella ... índice 4 = 5 estrellas.</summary>
+        public int[] Distribucion { get; set; } = new int[5];
+
+        public List<DatoPerfilDto> Estadisticas { get; set; } = new();
+
+        public List<OpinionPerfilDto> Opiniones { get; set; } = new();
+
+        public List<ProductoPerfilDto> Productos { get; set; } = new();
+
+        public List<PuntoPerfilDto> Puntos { get; set; } = new();
+
+        public List<VehiculoPerfilDto> Vehiculos { get; set; } = new();
+
+        /// <summary>Productos que el comprador suele pedir (sin repetir).</summary>
+        public List<string> ProductosDeInteres { get; set; } = new();
+
+        public string Iniciales =>
+            string.Concat(NombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
     }
 }

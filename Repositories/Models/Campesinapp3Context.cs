@@ -72,6 +72,8 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
+
         modelBuilder.Entity<AlertaGuardadum>(entity =>
         {
             entity.HasKey(e => e.IdAlertaGuardada);
@@ -754,6 +756,7 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("apellido_com");
             entity.Property(e => e.CedulaUsu).HasColumnName("cedula_Usu");
             entity.Property(e => e.ContrasenaUsu)
+                .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("contrasena_Usu");
             entity.Property(e => e.CorreoUsu)
