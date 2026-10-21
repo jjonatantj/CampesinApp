@@ -15,6 +15,8 @@ public partial class Campesinapp3Context : DbContext
     {
     }
 
+    public virtual DbSet<AlertaGuardadum> AlertaGuardada { get; set; }
+
     public virtual DbSet<AporteCamp> AporteCamps { get; set; }
 
     public virtual DbSet<Camion> Camions { get; set; }
@@ -31,7 +33,11 @@ public partial class Campesinapp3Context : DbContext
 
     public virtual DbSet<EstadoDemandum> EstadoDemanda { get; set; }
 
+    public virtual DbSet<LogSistema> LogSistemas { get; set; }
+
     public virtual DbSet<Municipio> Municipios { get; set; }
+
+    public virtual DbSet<Notificacion> Notificacions { get; set; }
 
     public virtual DbSet<Observacion> Observacions { get; set; }
 
@@ -66,6 +72,34 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
+
+        modelBuilder.Entity<AlertaGuardadum>(entity =>
+        {
+            entity.HasKey(e => e.IdAlertaGuardada);
+
+            entity.ToTable("alerta_Guardada");
+
+            entity.HasIndex(e => new { e.IdReporte, e.IdUsuario }, "UQ_alerta_Guardada").IsUnique();
+
+            entity.Property(e => e.IdAlertaGuardada).HasColumnName("id_Alerta_Guardada");
+            entity.Property(e => e.FechaGuardado)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha_Guardado");
+            entity.Property(e => e.IdReporte).HasColumnName("id_Reporte");
+            entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
+
+            entity.HasOne(d => d.IdReporteNavigation).WithMany(p => p.AlertaGuardada)
+                .HasForeignKey(d => d.IdReporte)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_alerta_Guardada_reporte_Transportador");
+
+            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.AlertaGuardada)
+                .HasForeignKey(d => d.IdUsuario)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_alerta_Guardada_usuario");
+        });
+
         modelBuilder.Entity<AporteCamp>(entity =>
         {
             entity.HasKey(e => e.IdAporte);
@@ -208,6 +242,10 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("lim_Tiem_Deman");
             entity.Property(e => e.PrecioDeman).HasColumnName("precio_Deman");
 
+            entity.HasOne(d => d.IdCamionNavigation).WithMany(p => p.Demanda)
+                .HasForeignKey(d => d.IdCamion)
+                .HasConstraintName("FK_demanda_camion");
+
             entity.HasOne(d => d.IdEstadoDemanNavigation).WithMany(p => p.Demanda)
                 .HasForeignKey(d => d.IdEstadoDeman)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -272,6 +310,34 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("estado");
         });
 
+        modelBuilder.Entity<LogSistema>(entity =>
+        {
+            entity.HasKey(e => e.IdLog);
+
+            entity.ToTable("log_Sistema");
+
+            entity.HasIndex(e => e.Fecha, "IX_log_Sistema_fecha").IsDescending();
+
+            entity.Property(e => e.IdLog).HasColumnName("id_Log");
+            entity.Property(e => e.Fecha)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha");
+            entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
+            entity.Property(e => e.Mensaje)
+                .HasMaxLength(1000)
+                .HasColumnName("mensaje");
+            entity.Property(e => e.Nivel)
+                .HasMaxLength(10)
+                .HasColumnName("nivel");
+            entity.Property(e => e.Origen)
+                .HasMaxLength(60)
+                .HasColumnName("origen");
+
+            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.LogSistemas)
+                .HasForeignKey(d => d.IdUsuario)
+                .HasConstraintName("FK_log_Sistema_usuario");
+        });
+
         modelBuilder.Entity<Municipio>(entity =>
         {
             entity.HasKey(e => e.IdMunicipio);
@@ -289,6 +355,44 @@ public partial class Campesinapp3Context : DbContext
                 .HasForeignKey(d => d.IdDepartamento)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_municipio_departamento");
+        });
+
+        modelBuilder.Entity<Notificacion>(entity =>
+        {
+            entity.HasKey(e => e.IdNotificacion);
+
+            entity.ToTable("notificacion");
+
+            entity.HasIndex(e => new { e.IdUsuario, e.Leida, e.Fecha }, "IX_notificacion_usuario").IsDescending(false, false, true);
+
+            entity.Property(e => e.IdNotificacion).HasColumnName("id_Notificacion");
+            entity.Property(e => e.Fecha)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha");
+            entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
+            entity.Property(e => e.IdReporte).HasColumnName("id_Reporte");
+            entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
+            entity.Property(e => e.Leida).HasColumnName("leida");
+            entity.Property(e => e.Mensaje)
+                .HasMaxLength(300)
+                .HasColumnName("mensaje");
+            entity.Property(e => e.PopupMostrado).HasColumnName("popup_Mostrado");
+            entity.Property(e => e.Tipo)
+                .HasMaxLength(30)
+                .HasColumnName("tipo");
+
+            entity.HasOne(d => d.IdDemandaNavigation).WithMany(p => p.Notificacions)
+                .HasForeignKey(d => d.IdDemanda)
+                .HasConstraintName("FK_notificacion_demanda");
+
+            entity.HasOne(d => d.IdReporteNavigation).WithMany(p => p.Notificacions)
+                .HasForeignKey(d => d.IdReporte)
+                .HasConstraintName("FK_notificacion_reporte_Transportador");
+
+            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.Notificacions)
+                .HasForeignKey(d => d.IdUsuario)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_notificacion_usuario");
         });
 
         modelBuilder.Entity<Observacion>(entity =>
@@ -559,21 +663,21 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Inicio");
             entity.Property(e => e.Hito)
-                .HasMaxLength(60)
+                .HasMaxLength(30)
                 .HasColumnName("hito");
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
             entity.Property(e => e.PuntoDestino)
-                .HasMaxLength(200)
+                .HasMaxLength(100)
                 .HasColumnName("punto_Destino");
             entity.Property(e => e.PuntoOrigen)
-                .HasMaxLength(200)
+                .HasMaxLength(100)
                 .HasColumnName("punto_Origen");
             entity.Property(e => e.Region)
-                .HasMaxLength(80)
+                .HasMaxLength(40)
                 .HasColumnName("region");
             entity.Property(e => e.UbicacionActual)
-                .HasMaxLength(300)
+                .HasMaxLength(150)
                 .HasColumnName("ubicacion_Actual");
 
             entity.HasOne(d => d.IdDemandaNavigation).WithMany(p => p.ReporteTransportadors)
@@ -652,6 +756,7 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("apellido_com");
             entity.Property(e => e.CedulaUsu).HasColumnName("cedula_Usu");
             entity.Property(e => e.ContrasenaUsu)
+                .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("contrasena_Usu");
             entity.Property(e => e.CorreoUsu)
