@@ -1,23 +1,28 @@
 @model CampesinApp.ViewModels.PuntoAcopioViewModel
 
 @{
-    ViewData["Title"] = "Registro de Puntos de Acopio";
+    ViewData["Title"] = "Registrar Punto de Acopio";
     Layout = "_LayoutCasosUso";
 }
 
-<div class="container py-4">
-    <div class="main-container p-4 p-md-5 shadow-sm">
+<!-- Librería de iconos Bootstrap integrada en el proyecto -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<div class="container py-4 my-4">
+    <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
 
         <!-- ============================================================== -->
-        <!-- ENCABEZADO DE LA VISTA                                         -->
+        <!-- ENCABEZADO DE LA VISTA (Limpio, sin 'CU-018:' ni emojis)       -->
         <!-- ============================================================== -->
         <div class="d-flex align-items-center mb-4">
             <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
                 <i class="bi bi-geo-alt-fill fs-3"></i>
             </div>
             <div>
-                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Registro de Puntos de Acopio</h1>
-                <p class="text-muted mb-0 fw-semibold">CU-018: Registra un punto físico de recepción agrícola con georreferenciación en Google Maps.</p>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Registrar Punto de Acopio</h1>
+                <p class="text-muted mb-0 fw-semibold">
+                    Registra un punto físico de recepción agrícola con georreferenciación en Google Maps.
+                </p>
             </div>
         </div>
 
@@ -28,10 +33,10 @@
         <!-- FE-01-CU018: Error de conexión a la BD o Internet (6 segundos) -->
         @if (ViewBag.MensajeErrorConexion != null)
         {
-            <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+            <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
                 <i class="bi bi-wifi-off fs-4 me-3 text-danger"></i>
                 <div class="flex-grow-1">
-                    <strong>⚠️ Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
+                    <strong>Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
@@ -40,10 +45,10 @@
         <!-- FE-02-CU018: Punto de acopio duplicado en misma dirección (6 segundos) -->
         @if (ViewBag.MensajeErrorDuplicado != null)
         {
-            <div id="alertaErrorDuplicado" class="alert alert-warning shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+            <div id="alertaErrorDuplicado" class="alert alert-warning shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
                 <div class="flex-grow-1">
-                    <strong>⚠️ Punto Duplicado:</strong> @ViewBag.MensajeErrorDuplicado
+                    <strong>Punto Duplicado:</strong> @ViewBag.MensajeErrorDuplicado
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
@@ -52,10 +57,10 @@
         <!-- Notificación de Éxito: 3 segundos y redirección a Perfil (CU-031) -->
         @if (ViewBag.RegistroExitoso == true)
         {
-            <div id="alertaExito" class="alert alert-success shadow-sm border-0 d-flex align-items-center mb-4" role="alert">
+            <div id="alertaExito" class="alert alert-success shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
                 <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
                 <div class="flex-grow-1">
-                    <strong>✅ ¡Éxito!</strong> @ViewBag.MensajeExito. Redireccionando a tu perfil...
+                    <strong>¡Registro Exitoso!</strong> @ViewBag.MensajeExito Redireccionando a tu perfil...
                 </div>
             </div>
         }
@@ -63,7 +68,7 @@
         <!-- Resumen de validaciones de C# / ModelState -->
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger shadow-sm mb-4">
+            <div class="alert alert-danger shadow-sm rounded-4 mb-4">
                 <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes campos:</h6>
                 <div asp-validation-summary="All" class="small mb-0"></div>
             </div>
@@ -91,20 +96,20 @@
 
                     <!-- 1. Nombre del Punto -->
                     <div class="mb-3">
-                        <label asp-for="NombrePunto" class="form-label fw-bold small text-muted">Nombre del Punto *</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-success"><i class="bi bi-tag-fill"></i></span>
-                            <input asp-for="NombrePunto" class="form-control" placeholder="Ej: Acopio Central La Sabana" maxlength="100" required />
+                        <label asp-for="NombrePunto" class="form-label fw-bold small text-dark">Nombre del Punto *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-tag-fill"></i></span>
+                            <input asp-for="NombrePunto" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: Acopio Central La Sabana" maxlength="100" required />
                         </div>
-                        <span asp-validation-for="NombrePunto" class="text-danger small"></span>
+                        <span asp-validation-for="NombrePunto" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 2. Departamento (para filtrado y centrado del mapa) -->
                     <div class="mb-3">
-                        <label asp-for="IdDepartamento" class="form-label fw-bold small text-muted">Departamento *</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-success"><i class="bi bi-map"></i></span>
-                            <select asp-for="IdDepartamento" class="form-select" id="selectDepartamento" required>
+                        <label asp-for="IdDepartamento" class="form-label fw-bold small text-dark">Departamento *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-map"></i></span>
+                            <select asp-for="IdDepartamento" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectDepartamento" required>
                                 <option value="">-- Seleccione un departamento --</option>
                                 @foreach (var depto in Model.Departamentos)
                                 {
@@ -112,15 +117,15 @@
                                 }
                             </select>
                         </div>
-                        <span asp-validation-for="IdDepartamento" class="text-danger small"></span>
+                        <span asp-validation-for="IdDepartamento" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 3. Municipio (Al cambiar, centra el mapa automáticamente con Geocoder) -->
                     <div class="mb-3">
-                        <label asp-for="IdMunicipio" class="form-label fw-bold small text-muted">Municipio *</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-success"><i class="bi bi-geo"></i></span>
-                            <select asp-for="IdMunicipio" class="form-select" id="selectMunicipio" required>
+                        <label asp-for="IdMunicipio" class="form-label fw-bold small text-dark">Municipio *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-geo"></i></span>
+                            <select asp-for="IdMunicipio" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMunicipio" required>
                                 <option value="">-- Seleccione primero un departamento --</option>
                                 @foreach (var mun in Model.Municipios)
                                 {
@@ -128,54 +133,53 @@
                                 }
                             </select>
                         </div>
-                        <span asp-validation-for="IdMunicipio" class="text-danger small"></span>
+                        <span asp-validation-for="IdMunicipio" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 4. Dirección Física -->
                     <div class="mb-3">
-                        <label asp-for="Direccion" class="form-label fw-bold small text-muted">Dirección Física *</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-success"><i class="bi bi-signpost-2"></i></span>
-                            <input asp-for="Direccion" class="form-control" id="inputDireccion" placeholder="Ej: Carrera 5 # 12-40 Vereda El Rosal" maxlength="150" required />
+                        <label asp-for="Direccion" class="form-label fw-bold small text-dark">Dirección Física *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-signpost-2"></i></span>
+                            <input asp-for="Direccion" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" id="inputDireccion" placeholder="Ej: Carrera 5 # 12-40 Vereda El Rosal" maxlength="150" required />
                         </div>
-                        <span asp-validation-for="Direccion" class="text-danger small"></span>
+                        <span asp-validation-for="Direccion" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 5. Teléfono de Contacto -->
+                    <!-- 5. Teléfono y 6. Horario -->
                     <div class="row g-2 mb-3">
                         <div class="col-sm-6">
-                            <label asp-for="Telefono" class="form-label fw-bold small text-muted">Teléfono de Contacto *</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white text-success"><i class="bi bi-telephone"></i></span>
-                                <input asp-for="Telefono" class="form-control" placeholder="Ej: 3101234567" maxlength="15" required />
+                            <label asp-for="Telefono" class="form-label fw-bold small text-dark">Teléfono de Contacto *</label>
+                            <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                                <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567" maxlength="15" required />
                             </div>
-                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                            <span asp-validation-for="Telefono" class="text-danger small ms-2"></span>
                         </div>
 
-                        <!-- 6. Horario de Atención -->
                         <div class="col-sm-6">
-                            <label asp-for="HorarioAtencion" class="form-label fw-bold small text-muted">Horario de Atención *</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white text-success"><i class="bi bi-clock"></i></span>
-                                <input asp-for="HorarioAtencion" class="form-control" placeholder="Ej: 6:00 AM - 5:00 PM" maxlength="80" required />
+                            <label asp-for="HorarioAtencion" class="form-label fw-bold small text-dark">Horario de Atención *</label>
+                            <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                                <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-clock"></i></span>
+                                <input asp-for="HorarioAtencion" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 6:00 AM - 5:00 PM" maxlength="80" required />
                             </div>
-                            <span asp-validation-for="HorarioAtencion" class="text-danger small"></span>
+                            <span asp-validation-for="HorarioAtencion" class="text-danger small ms-2"></span>
                         </div>
                     </div>
 
                     <!-- 7. Capacidad de Almacenamiento -->
                     <div class="mb-3">
-                        <label asp-for="Capacidad" class="form-label fw-bold small text-muted">Capacidad de Almacenamiento (Kg o Toneladas) *</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-success"><i class="bi bi-box-seam"></i></span>
-                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control" placeholder="Ej: 20000" required />
-                            <span class="input-group-text bg-light text-muted">Kg</span>
+                        <label asp-for="Capacidad" class="form-label fw-bold small text-dark">Capacidad de Almacenamiento (Kg) *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-box-seam"></i></span>
+                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 20000" required />
+                            <span class="input-group-text bg-light border-0 text-muted pe-3 fw-bold">Kg</span>
                         </div>
-                        <span asp-validation-for="Capacidad" class="text-danger small"></span>
+                        <span asp-validation-for="Capacidad" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 8. Acceso Vehicular (RN-02-CU018) -->
-                    <div class="card p-3 border-success-subtle bg-light mb-3">
+                    <!-- 8. Acceso Vehicular (RN-02-CU018) con bordes redondeados -->
+                    <div class="card p-3 border-success-subtle bg-light rounded-4 mb-3 shadow-sm">
                         <div class="form-check form-switch mb-0">
                             <input asp-for="AccesoVehicular" class="form-check-input" type="checkbox" id="checkAccesoVehicular" role="switch" checked>
                             <label class="form-check-label fw-bold text-dark ms-2" for="checkAccesoVehicular">
@@ -183,7 +187,7 @@
                             </label>
                         </div>
                         <small class="text-muted ms-4 mt-1 d-block">
-                            <strong>RN-02-CU018:</strong> Obligatorio para maniobras de cargue y descargue de cosecha.
+                            Requisito logístico obligatorio para maniobras de cargue y descargue de cosecha.
                         </small>
                         <span asp-validation-for="AccesoVehicular" class="text-danger small ms-4"></span>
                     </div>
@@ -202,17 +206,17 @@
                         <strong>Instrucciones:</strong> Al seleccionar Departamento y Municipio, el mapa se centrará automáticamente en esa ciudad. Haz <strong>clic en el mapa</strong> para colocar el marcador exacto de tu punto de acopio.
                     </p>
 
-                    <!-- Contenedor del Mapa de Google Maps -->
-                    <div id="map" style="width: 100%; height: 420px; border-radius: 12px; background-color: #f1f3f5;" class="border shadow-sm mb-2 position-relative">
+                    <!-- Contenedor del Mapa de Google Maps redondeado -->
+                    <div id="map" style="width: 100%; height: 420px; background-color: #f1f3f5;" class="border shadow-sm mb-3 position-relative rounded-4 overflow-hidden">
                         <div id="mapLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
                             <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
                             <div>Cargando Google Maps...</div>
                         </div>
                     </div>
 
-                    <!-- Indicador visual amigable del punto marcado -->
-                    <div id="indicadorUbicacion" class="alert alert-light border d-flex align-items-center py-2 px-3 mb-2">
-                        <span class="fs-4 me-2">📍</span>
+                    <!-- Indicador visual amigable del punto marcado (Sin emojis) -->
+                    <div id="indicadorUbicacion" class="alert alert-light border rounded-pill d-flex align-items-center py-2 px-3 mb-2 shadow-sm">
+                        <i class="bi bi-geo-alt-fill fs-4 me-2 text-success"></i>
                         <div class="small">
                             <span id="textoCoordenadas" class="fw-semibold text-secondary">
                                 Ningún punto marcado aún. Haz clic sobre el mapa para fijar la ubicación.
@@ -220,23 +224,23 @@
                         </div>
                     </div>
 
-                    <span asp-validation-for="Latitud" class="text-danger small d-block"></span>
-                    <span asp-validation-for="Longitud" class="text-danger small d-block"></span>
+                    <span asp-validation-for="Latitud" class="text-danger small d-block ms-2"></span>
+                    <span asp-validation-for="Longitud" class="text-danger small d-block ms-2"></span>
                 </div>
 
             </div>
 
             <!-- ============================================================== -->
-            <!-- BOTONES DE ACCIÓN: Cancelar (Gris) y Guardar (Verde)          -->
+            <!-- BOTONES DE ACCIÓN: Cancelar y Guardar con estilo rounded-pill  -->
             <!-- ============================================================== -->
-            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
                 <!-- Botón Cancelar -->
                 <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
                     <i class="bi bi-arrow-left me-1"></i> Cancelar
                 </a>
 
-                <!-- Botón Guardar -->
-                <button type="submit" class="btn btn-success px-5 py-2 fw-bold rounded-pill shadow-sm" id="btnGuardar">
+                <!-- Botón Guardar Punto de Acopio -->
+                <button type="submit" class="btn btn-success px-5 py-2 fw-bold rounded-pill text-white shadow-sm" id="btnGuardar" style="background-color: #2e7d32; border-color: #2e7d32;">
                     <i class="bi bi-check-circle me-1"></i> Guardar Punto de Acopio
                 </button>
             </div>
@@ -353,14 +357,13 @@
             // Actualización del texto visual informativo para el usuario
             const texto = document.getElementById('textoCoordenadas');
             if (texto) {
-                texto.innerHTML = `<span class="text-success fw-bold">✓ Coordenadas capturadas:</span> Lat: <code>${latFormatted}</code>, Lng: <code>${lngFormatted}</code>`;
+                texto.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Coordenadas capturadas:</span> Lat: <code>${latFormatted}</code>, Lng: <code>${lngFormatted}</code>`;
             }
         }
 
         // =========================================================================
         // 4. COORDENADAS INSTANTÁNEAS Y GEOCODER PARA CENTRADO DEL MAPA
         // =========================================================================
-        // Diccionario de departamentos para respuesta inmediata (0ms sin esperas de red)
         const coordenadasDepartamentos = {
             "cundinamarca": { lat: 4.86, lng: -74.05, zoom: 9 },
             "antioquia": { lat: 6.95, lng: -75.40, zoom: 8 },
@@ -444,7 +447,6 @@
                             map.setCenter(results[0].geometry.location);
                             map.setZoom(14); // Zoom cercano para el municipio
                         } else {
-                            // Si Google Geocoder falla o su API no está activada en la consola, usamos el fallback
                             geocodificarMunicipioFallback(consulta);
                         }
                     });
@@ -465,7 +467,7 @@
                         const lat = parseFloat(data[0].lat);
                         const lng = parseFloat(data[0].lon);
                         map.setCenter({ lat: lat, lng: lng });
-                        map.setZoom(14); // Zoom 14 para ver calles y veredas del municipio
+                        map.setZoom(14);
                     }
                 })
                 .catch(err => {
@@ -481,7 +483,6 @@
             const selectMun = document.getElementById('selectMunicipio');
             selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
 
-            // Centramos el mapa inmediatamente en el departamento seleccionado (ej: Cundinamarca)
             centrarMapa('departamento');
 
             if (!deptoId) {
@@ -489,7 +490,6 @@
                 return;
             }
 
-            // Consulta AJAX al controlador para obtener los municipios del departamento
             fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=' + deptoId)
                 .then(response => response.json())
                 .then(data => {
@@ -506,7 +506,6 @@
                 });
         });
 
-        // Evento al seleccionar Municipio: centrar y ampliar inmediatamente sobre el municipio (ej: Chaguaní)
         document.getElementById('selectMunicipio').addEventListener('change', function () {
             centrarMapa('municipio');
         });
@@ -515,7 +514,6 @@
         // 6. CONTROL DE TIEMPO DE ALERTAS FLOTANTES (FE-01, FE-02 Y ÉXITO)
         // =========================================================================
         document.addEventListener('DOMContentLoaded', function () {
-            // FE-01-CU018: Mensaje de error de conexión dura 6 segundos
             const alertaConexion = document.getElementById('alertaErrorConexion');
             if (alertaConexion) {
                 setTimeout(() => {
@@ -525,7 +523,6 @@
                 }, 6000);
             }
 
-            // FE-02-CU018: Mensaje de punto duplicado dura 6 segundos
             const alertaDuplicado = document.getElementById('alertaErrorDuplicado');
             if (alertaDuplicado) {
                 setTimeout(() => {
@@ -535,7 +532,6 @@
                 }, 6000);
             }
 
-            // Mensaje de éxito dura 3 segundos y redirige al perfil
             const alertaExito = document.getElementById('alertaExito');
             if (alertaExito) {
                 setTimeout(() => {
