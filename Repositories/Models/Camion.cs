@@ -21,5 +21,7 @@ public partial class Camion
 
     public bool EstadoTecno { get; set; }
 
+    public virtual ICollection<Demandum> Demanda { get; set; } = new List<Demandum>();
+
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 }

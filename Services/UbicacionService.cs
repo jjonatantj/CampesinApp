@@ -220,7 +220,7 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteVistaDto>.Falla(TipoError.NoEncontrado, "La ubicación no se encuentra disponible momentáneamente");
             }
 
-            var guardado = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporte == reporte.IdReporte && a.IdUsuario == usuario.Id);
+            var guardado = await _db.AlertaGuardada.AnyAsync(a => a.IdReporte == reporte.IdReporte && a.IdUsuario == usuario.Id);
             var dto = ConvertirReporte(reporte, CodigoPedido.Formatear(idDemanda), guardado);
 
             // Recorrido del pedido para dibujarlo en el mapa de "Seguimiento de Pedido": cada reporte se ubica con las
@@ -303,10 +303,10 @@ namespace CampesinApp.Services
                 return ResultadoOperacion.Falla(TipoError.NoAutorizado, "No tiene permisos para guardar reportes de este pedido.");
             }
 
-            var existe = await _db.AlertaGuardadas.AnyAsync(a => a.IdReporte == idReporte && a.IdUsuario == usuario.Id);
+            var existe = await _db.AlertaGuardada.AnyAsync(a => a.IdReporte == idReporte && a.IdUsuario == usuario.Id);
             if (!existe)
             {
-                _db.AlertaGuardadas.Add(new AlertaGuardada
+                _db.AlertaGuardada.Add(new AlertaGuardadum
                 {
                     IdReporte = idReporte,
                     IdUsuario = usuario.Id,
@@ -326,7 +326,7 @@ namespace CampesinApp.Services
                 return ResultadoOperacion<ReporteGuardadoVistaDto>.Falla(TipoError.NoAutorizado, "No tiene permisos para consultar los reportes de este pedido.");
             }
 
-            var reportes = await _db.AlertaGuardadas
+            var reportes = await _db.AlertaGuardada
                 .AsNoTracking()
                 .Where(a => a.IdUsuario == usuario.Id && a.IdReporteNavigation.IdDemanda == idDemanda)
                 .OrderByDescending(a => a.IdReporteNavigation.FechaActual)
