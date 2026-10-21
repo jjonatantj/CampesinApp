@@ -316,7 +316,7 @@ namespace CampesinApp.Services
             {
                 new() { Texto = "Actualizar perfil", Icono = "bi-pencil-square" },
                 new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro", UrlPagina = "/EliminarUsuario" },
-                new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt", UrlPagina = "/PuntoAcopio/Registrar"  }
+                new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt" }
             };
 
             // CU-027: el transportador no consulta el historial de ventas.

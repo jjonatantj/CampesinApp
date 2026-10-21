@@ -4,34 +4,43 @@
     ViewData["Title"] = "Catálogo de Demanda";
     // Seleccionar el Layout según si el usuario está autenticado o es invitado
     Layout = Model.EsUsuarioAutenticado ? "_LayoutCasosUso" : "_Layout";
+
+    // Lectura del rol desde la sesión HTTP y el ViewModel
+    string? rolUsuario = Context.Session.GetString("RolUsuario") ?? Model.RolUsuario;
+    bool esComprador = string.Equals(rolUsuario, "Comprador", StringComparison.OrdinalIgnoreCase);
+    // Validación lógica: si el rol es diferente a Comprador (ej. Invitado o Campesino), mostrar exclusivamente "Ver detalle"
+    string textoBoton = esComprador ? "Ver Detalle / Responder" : "Ver detalle";
 }
 
-<!-- Contenedor principal integrado con la clase global .main-container de site.css -->
-<div class="container main-container py-4 my-3">
+<!-- Iconos de Bootstrap para la vista -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<!-- Contenedor principal con clase global .main-container de site.css y esquinas redondeadas -->
+<div class="container main-container py-4 my-4 rounded-4">
 
     <!-- ============================================================== -->
     <!-- FLUJO DE EXCEPCIÓN: FE-01-CU011 (Error en Base de Datos)       -->
     <!-- ============================================================== -->
     @if (Model.TieneErrorConexion)
     {
-        <div class="card border-danger shadow-sm my-4 text-center">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0">⚠️ Error de Base de Datos</h5>
+        <div class="card border-danger shadow-sm my-4 text-center rounded-4 overflow-hidden">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="mb-0 fw-bold">⚠️ Error de Base de Datos</h5>
             </div>
-            <div class="card-body py-4">
-                <p class="card-text fs-5 text-secondary">
+            <div class="card-body py-4 px-3">
+                <p class="card-text fs-5 text-secondary mb-4">
                     @(Model.MensajeError ?? "No fue posible cargar el catálogo de demanda. Intente más tarde")
                 </p>
                 <!-- Botón Aceptar: Redirecciona a la pantalla principal o bienvenida según la sesión -->
                 @if (Model.EsUsuarioAutenticado)
                 {
-                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-success px-4">
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
                         Aceptar
                     </a>
                 }
                 else
                 {
-                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-success px-4">
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
                         Aceptar
                     </a>
                 }
@@ -45,7 +54,7 @@
         <!-- ============================================================== -->
         @if (TempData["MensajeError"] != null)
         {
-            <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4 rounded-4" role="alert">
                 <div class="d-flex align-items-center">
                     <span class="fs-4 me-2">⚠️</span>
                     <div>
@@ -59,23 +68,25 @@
         <!-- ============================================================== -->
         <!-- ENCABEZADO Y BOTÓN REGRESAR (Paso 2 del CU-011)                -->
         <!-- ============================================================== -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
             <div>
                 <h1 class="brand-title mb-1">Catálogo de Demanda</h1>
-                <p class="text-muted mb-0">Consulta lo que compradores y mayoristas requieren por camión de carga.</p>
+                <p class="text-muted mb-0" style="font-weight: 500;">
+                    Consulta los productos requeridos por compradores y mayoristas por camión de carga.
+                </p>
             </div>
-            <!-- Botón regresar en la parte superior derecha -->
+            <!-- Botón regresar con estilo redondeado (rounded-pill) en la parte superior derecha -->
             <div>
                 @if (Model.EsUsuarioAutenticado)
                 {
-                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-outline-secondary">
-                        ← Regresar
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
                     </a>
                 }
                 else
                 {
-                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-outline-secondary">
-                        ← Regresar
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
                     </a>
                 }
             </div>
@@ -85,13 +96,15 @@
         <!-- BARRA DE FILTROS: Categoría, Producto, Región y Consultar      -->
         <!-- (Paso 2 y Paso 3 del CU-011)                                   -->
         <!-- ============================================================== -->
-        <div class="card bg-light border-0 shadow-sm p-3 mb-4">
+        <div class="card rounded-4 border-0 shadow-sm p-4 mb-4 bg-white">
             <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end">
                 
                 <!-- 1. Desplegable Categoría -->
                 <div class="col-md-3">
-                    <label for="categoria" class="form-label fw-semibold small text-muted">Categoría</label>
-                    <select id="categoria" name="categoria" class="form-select form-select-sm">
+                    <label for="categoria" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-tags me-1 text-success"></i> Categoría
+                    </label>
+                    <select id="categoria" name="categoria" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
                         <option value="">-- Todas las categorías --</option>
                         @foreach (var cat in Model.CategoriasDisponibles)
                         {
@@ -104,8 +117,10 @@
 
                 <!-- 2. Desplegable Producto -->
                 <div class="col-md-3">
-                    <label for="producto" class="form-label fw-semibold small text-muted">Producto</label>
-                    <select id="producto" name="producto" class="form-select form-select-sm">
+                    <label for="producto" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-basket me-1 text-success"></i> Producto
+                    </label>
+                    <select id="producto" name="producto" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
                         <option value="">-- Todos los productos --</option>
                         @foreach (var prod in Model.ProductosDisponibles)
                         {
@@ -118,8 +133,10 @@
 
                 <!-- 3. Desplegable Región -->
                 <div class="col-md-3">
-                    <label for="region" class="form-label fw-semibold small text-muted">Región</label>
-                    <select id="region" name="region" class="form-select form-select-sm">
+                    <label for="region" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-geo-alt me-1 text-success"></i> Región
+                    </label>
+                    <select id="region" name="region" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
                         <option value="">-- Todas las regiones --</option>
                         @foreach (var reg in Model.RegionesDisponibles)
                         {
@@ -132,15 +149,15 @@
 
                 <!-- 4. Botón verde Consultar (Paso 2) y Limpiar Filtros -->
                 <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
-                        🔍 Consultar
+                    <button type="submit" class="btn btn-success rounded-pill fw-bold text-white px-4 shadow-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        <i class="bi bi-search"></i> Consultar
                     </button>
                     @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) ||
                          !string.IsNullOrEmpty(Model.ProductoSeleccionado) ||
                          !string.IsNullOrEmpty(Model.RegionSeleccionada))
                     {
-                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
-                            Limpiar
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm d-flex align-items-center justify-content-center" title="Limpiar filtros">
+                            <i class="bi bi-x-lg"></i>
                         </a>
                     }
                 </div>
@@ -156,39 +173,70 @@
             {
                 @foreach (var item in Model.Demandas)
                 {
+                    var urlDetalle = Url.Action("Detalle", "catalogo", new { id = item.IdDemanda });
+                    var nombreProducto = item.IdTipoProductoNavigation?.Producto ?? "Producto agrícola";
+
                     <div class="col">
-                        <!-- Tarjeta estándar HTML conectada con CSS global -->
-                        <div class="card h-100 shadow-sm border-0">
+                        <!-- Tarjeta de demanda interactiva con clases globales .product-card de site.css -->
+                        <div class="product-card h-100 shadow-sm border-0 js-card-demanda position-relative" 
+                             data-url="@urlDetalle" 
+                             style="cursor: pointer;" 
+                             role="region" 
+                             aria-label="Demanda de @nombreProducto">
                             
-                            <!-- 1. Imagen del producto (Placeholder por defecto listo para reemplazo) -->
-                            <img src="~/images/logo.jpeg" 
-                                 alt="Imagen de @(item.IdTipoProductoNavigation?.Producto ?? "Producto")" 
-                                 class="card-img card-img-top" 
-                                 style="height: 180px; object-fit: cover;" />
+                            <!-- 1. Imagen del producto interactiva: hacer clic redirige a CU-012 -->
+                            <a href="@urlDetalle" 
+                               class="product-img-box d-block overflow-hidden position-relative text-decoration-none" 
+                               style="height: 180px; padding: 0;"
+                               title="Hacer clic para ver el detalle de @nombreProducto (CU-012)">
+                                <img src="~/images/logo.jpeg" 
+                                     alt="Imagen de @nombreProducto" 
+                                     class="w-100 h-100" 
+                                     style="object-fit: cover;" />
+                                <span class="category-pill position-absolute top-0 end-0 m-2 badge bg-white text-success shadow-sm rounded-pill px-3 py-1 fw-bold" style="border: 1px solid rgba(46, 125, 50, 0.2);">
+                                    <i class="bi bi-eye-fill me-1"></i> Ver detalle
+                                </span>
+                            </a>
 
-                            <div class="card-body d-flex flex-column justify-content-between">
-                                <!-- Nombre del producto -->
-                                <h5 class="card-title text-success fw-bold">
-                                    @(item.IdTipoProductoNavigation?.Producto ?? "Producto sin especificar")
-                                </h5>
+                            <div class="product-body p-3 d-flex flex-column justify-content-between flex-grow-1">
+                                <div>
+                                    <!-- Nombre del producto -->
+                                    <h5 class="product-title text-success fw-bold mb-2">
+                                        @nombreProducto
+                                    </h5>
 
-                                <!-- 2. Cantidad demandada (Kilos) -->
-                                <p class="card-text mb-2">
-                                    <span class="fw-semibold">Cantidad demandada:</span>
-                                    <span>@item.CantidadDeman Kilos</span>
-                                </p>
+                                    <!-- Metadatos de la demanda -->
+                                    <div class="demand-meta small text-muted mb-3">
+                                        <div class="demand-meta-item d-flex justify-content-between align-items-center mb-1">
+                                            <span><i class="bi bi-box-seam me-1 text-success"></i> Demanda:</span>
+                                            <span class="fw-bold text-dark">@item.CantidadDeman Kilos</span>
+                                        </div>
+                                        @if (item.IdPuntoAcopioNavigation?.IdMunicipioNavigation != null)
+                                        {
+                                            <div class="demand-meta-item d-flex justify-content-between align-items-center mb-1">
+                                                <span><i class="bi bi-geo-alt me-1 text-success"></i> Destino:</span>
+                                                <span class="fw-semibold text-secondary">@item.IdPuntoAcopioNavigation.IdMunicipioNavigation.Municipio1</span>
+                                            </div>
+                                        }
+                                    </div>
 
-                                <!-- 3. Valor propuesto / Precio -->
-                                <p class="card-text mb-3">
-                                    <span class="fw-semibold">Valor propuesto:</span>
-                                    <span class="text-success fw-bold fs-5">$@item.PrecioDeman.ToString("N0")</span>
-                                </p>
+                                    <!-- Caja de precio propuesta (.price-box de site.css) -->
+                                    <div class="price-box mb-3">
+                                        <span class="price-label">Valor propuesto</span>
+                                        <p class="price-value">$@item.PrecioDeman.ToString("N0")</p>
+                                    </div>
+                                </div>
 
-                                <!-- 4. Botón Ver Detalle / Responder (CU-012) -->
-                                <a asp-controller="catalogo" asp-action="Detalle" asp-route-id="@item.IdDemanda" 
-                                   class="btn btn-outline-success btn-sm w-100 fw-semibold shadow-sm">
-                                    Ver Detalle / Responder →
-                                </a>
+                                <!-- 2. Botón de acción interactivo (redirige a CU-012). Texto condicional según rol -->
+                                <div class="pt-2">
+                                    <a href="@urlDetalle" 
+                                       class="btn btn-success rounded-pill w-100 fw-bold text-white shadow-sm py-2 d-flex align-items-center justify-content-center gap-2"
+                                       style="background-color: #2e7d32; border-color: #2e7d32;"
+                                       title="@textoBoton">
+                                        <span>@textoBoton</span>
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
                             </div>
 
                         </div>
@@ -201,11 +249,11 @@
                 <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)     -->
                 <!-- ============================================================== -->
                 <div class="col-12 text-center py-5">
-                    <div class="alert alert-warning shadow-sm d-inline-block px-5 py-4">
+                    <div class="alert alert-warning shadow-sm d-inline-block px-5 py-4 rounded-4">
                         <h5 class="fw-bold mb-2">No se encontraron ofertas para los criterios seleccionados</h5>
                         <p class="text-muted mb-3">Intenta consultar con otros filtros o limpiar la búsqueda actual.</p>
-                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-dark btn-sm">
-                            Limpiar filtros
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Limpiar filtros
                         </a>
                     </div>
                 </div>
@@ -214,4 +262,25 @@
     }
 
 </div>
+
+@section Scripts {
+    <script>
+        // Interactividad completa de la tarjeta de demanda (Paso 5 CU-011 y CU-012):
+        // Hacer clic en cualquier parte de la tarjeta redirige a la vista de detalle de la demanda
+        document.addEventListener('DOMContentLoaded', function () {
+            const cards = document.querySelectorAll('.js-card-demanda');
+            cards.forEach(card => {
+                card.addEventListener('click', function (e) {
+                    // Evitar navegación doble si el clic se originó directamente en un enlace o botón
+                    if (!e.target.closest('a, button')) {
+                        const url = this.getAttribute('data-url');
+                        if (url) {
+                            window.location.href = url;
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}
 
