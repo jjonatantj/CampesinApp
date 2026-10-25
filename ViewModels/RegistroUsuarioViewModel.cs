@@ -11,15 +11,17 @@ namespace CampesinApp.ViewModels
         public int Paso { get; set; } = 1;
 
         [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los nombres solo deben contener letras y espacios.")]
         [Display(Name = "Nombres")]
         public string Nombres { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El apellido es obligatorio.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los apellidos solo deben contener letras y espacios.")]
         [Display(Name = "Apellidos")]
         public string Apellidos { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La cédula es obligatoria.")]
-        [RegularExpression(@"^\d{6,10}$", ErrorMessage = "Ingrese un número de cédula válido.")]
+        [RegularExpression(@"^\d{6,10}$", ErrorMessage = "La cédula debe contener solo números (entre 6 y 10 dígitos).")]
         [Display(Name = "Cédula")]
         public string Cedula { get; set; } = string.Empty;
 
@@ -29,7 +31,7 @@ namespace CampesinApp.ViewModels
         public string Correo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El teléfono es obligatorio.")]
-        [RegularExpression(@"^\d{7,10}$", ErrorMessage = "Ingrese un número de teléfono válido.")]
+        [RegularExpression(@"^\d{7,10}$", ErrorMessage = "El teléfono debe contener solo números (entre 7 y 10 dígitos).")]
         [Display(Name = "Teléfono")]
         public string Telefono { get; set; } = string.Empty;
 
@@ -44,10 +46,6 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "El municipio es obligatorio.")]
         [Display(Name = "Municipio")]
         public int IdMunicipio { get; set; }
-
-        [Required(ErrorMessage = "La dirección es obligatoria.")]
-        [Display(Name = "Dirección")]
-        public string Direccion { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [StringLength(15, MinimumLength = 6, ErrorMessage = "Debe tener entre 6 y 15 caracteres.")]

@@ -7,7 +7,7 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5 position-relative">
-            
+
             <!-- LOGO SUPERPUESTO -->
             <div class="text-center" style="position: relative; margin-bottom: -75px; z-index: 10;">
                 <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="150" height="150" class="rounded-circle shadow-lg border border-3 border-success bg-white" style="object-fit: cover;" />
@@ -18,6 +18,20 @@
                     <h2 class="brand-title mb-1">Recuperación</h2>
                     <p class="text-muted small">Restablezca su contraseña de acceso</p>
                 </div>
+
+                @if (TempData["ErrorRecuperacion"] != null)
+                {
+                    <div class="alert alert-danger rounded-pill text-center py-2 mb-3 small fw-semibold">
+                        @TempData["ErrorRecuperacion"]
+                    </div>
+                }
+
+                @if (TempData["MensajeReenvio"] != null)
+                {
+                    <div class="alert alert-success rounded-pill text-center py-2 mb-3 small fw-semibold">
+                        @TempData["MensajeReenvio"]
+                    </div>
+                }
 
                 <form asp-action="RecuperarPassword" method="post" id="formRecuperacion">
                     <input type="hidden" asp-for="Paso" />
@@ -44,39 +58,50 @@
                     {
                         <input type="hidden" asp-for="Cedula" />
                         <p class="text-muted small mb-3">Seleccione el método para recibir el código de verificación:</p>
-                        
+
                         <div class="mb-3 text-start">
                             <div class="form-check p-3 border rounded-pill mb-2 bg-white">
-                                <input class="form-check-input ms-1" type="radio" name="MetodoSeleccionado" id="metodoCorreo" value="correo" checked />
+                                <input class="form-check-input ms-1" type="radio" asp-for="MetodoSeleccionado" id="metodoCorreo" value="correo" checked />
                                 <label class="form-check-label fw-bold text-dark ms-2" for="metodoCorreo">
-                                    Correo: <span class="text-muted fw-normal">@Model.CorreoEnmascarado</span>
+                                    <i class="bi bi-envelope-fill text-success me-1"></i> Correo: <span class="text-muted fw-normal">@Model.CorreoEnmascarado</span>
                                 </label>
                             </div>
                             <div class="form-check p-3 border rounded-pill bg-white">
-                                <input class="form-check-input ms-1" type="radio" name="MetodoSeleccionado" id="metodoTelefono" value="telefono" />
+                                <input class="form-check-input ms-1" type="radio" asp-for="MetodoSeleccionado" id="metodoTelefono" value="telefono" />
                                 <label class="form-check-label fw-bold text-dark ms-2" for="metodoTelefono">
-                                    Teléfono: <span class="text-muted fw-normal">@Model.TelefonoEnmascarado</span>
+                                    <i class="bi bi-whatsapp text-success me-1"></i> WhatsApp (Simulado): <span class="text-muted fw-normal">@Model.TelefonoEnmascarado</span>
                                 </label>
                             </div>
+                            <span asp-validation-for="MetodoSeleccionado" class="text-danger small d-block text-center mt-2"></span>
                         </div>
 
                         <div class="d-grid gap-2 mb-3">
-                            <button type="submit" class="btn btn-nav-register py-2 d-flex justify-content-center align-items-center w-100" style="font-size: 1rem;">Continuar</button>
+                            <button type="submit" class="btn btn-nav-register py-2 d-flex justify-content-center align-items-center w-100" style="font-size: 1rem;">Enviar Código</button>
                         </div>
                     }
 
-                    <!-- PASO 3: Ingresar Código de 6 Dígitos con Temporizador -->
+                    <!-- PASO 3: Ingresar Código de 6 Dígitos con Temporizador y Reenvío -->
                     @if (Model.Paso == 3)
                     {
                         <input type="hidden" asp-for="Cedula" />
                         <input type="hidden" asp-for="MetodoSeleccionado" />
-                        
-                        <p class="text-muted small mb-1">Hemos enviado un código de 6 dígitos a su medio seleccionado.</p>
 
-                        <!-- TEMPORIZADOR REGRESIVO -->
+                        @if (Model.MetodoSeleccionado == "telefono")
+                        {
+                            <div class="alert alert-success border-2 rounded-3 p-3 my-3 shadow-sm text-center" style="background-color: #f0fdf4;">
+                                <span class="d-block small text-success fw-bold mb-1"><i class="bi bi-whatsapp"></i> CÓDIGO WHATSAPP SIMULADO:</span>
+                                <span class="fs-3 fw-bold text-dark tracking-widest">@ViewBag.CodigoWhatsappSimulado</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted small mb-1">Hemos enviado un código de 6 dígitos a su correo electrónico.</p>
+                        }
+
+                        <!-- TEMPORIZADOR REGRESIVO (5 MINUTOS) -->
                         <div id="temporizadorContainer" class="mt-2 mb-3">
                             <span class="fw-bold" style="color: #1d4ed8; font-size: 0.90rem;">
-                                El código expira en <span id="tiempoRestante">04:59</span>
+                                El código expira en <span id="tiempoRestante">05:00</span>
                             </span>
                         </div>
 
@@ -90,8 +115,20 @@
                             <button type="submit" id="btnVerificar" class="btn btn-nav-register py-2 d-flex justify-content-center align-items-center w-100" style="font-size: 1rem;">Verificar Código</button>
                         </div>
 
-                        <div class="d-flex justify-content-between small mt-2">
-                            <a href="#" class="text-muted text-decoration-none">Reenviar código</a>
+                        <!-- REENVÍO CON LÍMITE DE 3 VECES Y COOLDOWN -->
+                        <!-- REENVÍO CON LÍMITE DE 3 VECES Y COOLDOWN -->
+                        <div class="text-center mt-3 small">
+                            <span class="text-muted">¿No recibiste el código?</span>
+                            <a href="@Url.Action("ReenviarCodigoRecuperacion")" id="btnReenviar" class="text-success fw-bold text-decoration-none ms-1">
+                                Reenviar código (<span id="contadorReenvios">@(ViewBag.ReenviosRestantes ?? 3)</span> restantes)
+                            </a>
+                        </div>
+                        <div id="cooldownText" class="text-center text-muted small mt-1" style="display: none;">
+                            Podrá volver a solicitar el código en <span id="tiempoCooldown">60</span>s
+                        </div>
+
+                        <div class="d-flex justify-content-between small mt-3 pt-2 border-top">
+                            <a asp-action="RecuperarPassword" class="text-muted text-decoration-none">Iniciar de nuevo</a>
                             <a asp-action="RecuperarPassword" class="text-success text-decoration-none fw-bold">Cambiar método</a>
                         </div>
                     }
@@ -100,15 +137,15 @@
                     @if (Model.Paso == 4)
                     {
                         <input type="hidden" asp-for="Cedula" />
-                        
+
                         <div class="mb-3 text-start">
                             <label asp-for="NuevaContrasena" class="form-label fw-bold text-dark small"></label>
                             <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
                                 <input asp-for="NuevaContrasena" type="password" id="txtNewPass" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" style="appearance: none; -webkit-appearance: none;" placeholder="Ingrese contraseña" />
                                 <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtNewPass', 'iconNew')">
                                     <svg id="iconNew" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#212529" viewBox="0 0 16 16">
-                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                                     </svg>
                                 </button>
                             </div>
@@ -121,8 +158,8 @@
                                 <input asp-for="ConfirmarContrasena" type="password" id="txtConfirmPass" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" style="appearance: none; -webkit-appearance: none;" placeholder="Confirmar contraseña" />
                                 <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtConfirmPass', 'iconConfirm')">
                                     <svg id="iconConfirm" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#212529" viewBox="0 0 16 16">
-                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                                     </svg>
                                 </button>
                             </div>
@@ -145,5 +182,58 @@
 
 @section Scripts {
     <script src="~/js/MostrarContraseña.js" asp-append-version="true"></script>
-    <script src="~/js/VerificacionRecuperacionContraseña.js" asp-append-version="true"></script>
+    <script>
+        const pasoActual = @Model.Paso;
+
+        if (pasoActual === 3) {
+            // Temporizador de expiración de 5 minutos (300 segundos)
+            let tiempoRestanteSegundos = 300;
+            const elementoReloj = document.getElementById('tiempoRestante');
+
+            const cuentaRegresiva = setInterval(() => {
+                let minutos = Math.floor(tiempoRestanteSegundos / 60);
+                let segundos = tiempoRestanteSegundos % 60;
+
+                minutos = minutos < 10 ? '0' + minutos : minutos;
+                segundos = segundos < 10 ? '0' + segundos : segundos;
+
+                if (elementoReloj) {
+                    elementoReloj.textContent = minutos + ':' + segundos;
+                }
+
+                if (tiempoRestanteSegundos <= 0) {
+                    clearInterval(cuentaRegresiva);
+                    if (elementoReloj) {
+                        elementoReloj.textContent = "00:00 (Caducado)";
+                        elementoReloj.classList.add("text-danger");
+                    }
+                } else {
+                    tiempoRestanteSegundos--;
+                }
+            }, 1000);
+
+            // Cooldown de reenvío (60 segundos)
+            const btnReenviar = document.getElementById('btnReenviar');
+            const cooldownText = document.getElementById('cooldownText');
+            const tiempoCooldownSpan = document.getElementById('tiempoCooldown');
+
+            let cooldownSegundos = 60;
+            if (btnReenviar) {
+                btnReenviar.style.pointerEvents = "none";
+                btnReenviar.classList.add("text-muted");
+                cooldownText.style.display = "block";
+
+                const timerCooldown = setInterval(() => {
+                    cooldownSegundos--;
+                    tiempoCooldownSpan.textContent = cooldownSegundos;
+                    if (cooldownSegundos <= 0) {
+                        clearInterval(timerCooldown);
+                        btnReenviar.style.pointerEvents = "auto";
+                        btnReenviar.classList.remove("text-muted");
+                        cooldownText.style.display = "none";
+                    }
+                }, 1000);
+            }
+        }
+    </script>
 }

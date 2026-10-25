@@ -1,0 +1,313 @@
+﻿@model CampesinApp.ViewModels.ImportarDatosViewModel
+
+@{
+    ViewData["Title"] = "Importación de Datos Estadísticos - CampesinApp";
+    Layout = "_LayoutCasosUso";
+
+    var daneValidos = (int)(Model.TotalFilasDane * 0.9);
+    var daneDescartados = Model.TotalFilasDane - daneValidos;
+    var coraValidos = (int)(Model.TotalFilasCorabastos * 0.95);
+    var coraDescartados = Model.TotalFilasCorabastos - coraValidos;
+}
+
+<div class="cp-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-11 col-lg-10">
+
+                <!-- LOGO FLOTANTE -->
+                <div class="text-center cp-logo">
+                    <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" class="rounded-circle" />
+                </div>
+
+                <div class="cp-card p-4 p-md-5" style="padding-top: 5rem !important;">
+
+                    <!-- ENCABEZADO -->
+                    <div class="text-center">
+                        <span class="badge cp-chip px-3 py-2 rounded-pill mb-3">
+                            <i class="bi bi-shield-lock-fill me-1"></i> Panel de Administración del Modelo
+                        </span>
+                        <h2 class="cp-title mb-2">Importación de Datos Estadísticos</h2>
+                        <p class="text-muted mx-auto mb-0" style="max-width: 620px;">
+                            Cargue los reportes oficiales del <b>DANE (SIPSA)</b> y de <b>Corabastos</b>
+                            para procesar y unificar los precios en la plataforma.
+                        </p>
+                    </div>
+
+                    <!-- STEPPER -->
+                    <div class="cp-stepper">
+                        <div class="cp-step @(Model.EsVistaPrevia ? "done" : "active")">
+                            <span class="dot">@if (Model.EsVistaPrevia){
+                                <i class="bi bi-check-lg"></i>
+                            }else
+                            {
+
+                                <text>1</text>
+                            }
+                        </span> Cargar archivos
+                    </div>
+                    <div class="cp-step-line @(Model.EsVistaPrevia ? "done" : "")"></div>
+                    <div class="cp-step @(Model.EsVistaPrevia ? "active" : "")">
+                        <span class="dot">2</span> Revisar vista previa
+                    </div>
+                    <div class="cp-step-line"></div>
+                    <div class="cp-step">
+                        <span class="dot">3</span> Guardar en BD
+                    </div>
+                </div>
+
+                @if (TempData["ErrorImportacion"] != null)
+                {
+                    <div class="alert alert-danger border-0 rounded-4 shadow-sm d-flex align-items-center p-3 mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                        <div class="fw-semibold">@TempData["ErrorImportacion"]</div>
+                    </div>
+                }
+
+                @if (!Model.EsVistaPrevia)
+                {
+                    <!-- ================= FORMULARIO DE CARGA ================= -->
+                    <form asp-action="ProcesarArchivos" method="post" enctype="multipart/form-data" id="formCarga">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-4">
+                            <!-- DANE -->
+                            <div class="col-md-6">
+                                <div class="cp-source p-4 h-100 d-flex flex-column">
+                                    <span class="cp-tag">NACIONAL · SIPSA</span>
+
+                                    <div class="mb-3 mt-2">
+                                        <h5 class="fw-bold mb-0">Reporte DANE</h5>
+                                        <small class="text-muted">Excel (.xlsx) o CSV</small>
+                                    </div>
+
+                                    <p class="text-secondary small mb-4">
+                                        Consolidado oficial de cotizaciones mayoristas nacionales.
+                                    </p>
+
+                                    <div class="mt-auto">
+                                        <label class="form-label fw-bold small mb-2">Adjuntar archivo DANE</label>
+                                        <div class="cp-dropzone">
+                                            <i class="bi bi-cloud-arrow-up"></i>
+                                            <span class="d-block small fw-bold text-success">Haga clic o arrastre el archivo aquí</span>
+                                            <small class="text-muted">.xlsx · .xls · .csv</small>
+                                            <input asp-for="ArchivoDane" type="file" accept=".csv, .xlsx, .xls" data-target="fileDane" />
+                                        </div>
+                                        <div class="text-center">
+                                            <div id="fileDane" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>
+                                        </div>
+                                        <span asp-validation-for="ArchivoDane" class="text-danger small mt-1 d-block"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CORABASTOS -->
+                            <div class="col-md-6">
+                                <div class="cp-source regional p-4 h-100 d-flex flex-column">
+                                    <span class="cp-tag">REGIONAL · BOGOTÁ</span>
+
+                                    <div class="mb-3 mt-2">
+                                        <h5 class="fw-bold mb-0">Reporte Corabastos</h5>
+                                        <small class="text-muted">PDF o Excel (.xlsx)</small>
+                                    </div>
+
+                                    <p class="text-secondary small mb-4">
+                                        Boletín oficial de la principal central mayorista.
+                                    </p>
+
+                                    <div class="mt-auto">
+                                        <label class="form-label fw-bold small mb-2">Adjuntar archivo Corabastos</label>
+                                        <div class="cp-dropzone">
+                                            <i class="bi bi-cloud-arrow-up"></i>
+                                            <span class="d-block small fw-bold" style="color:#b36b00;">Haga clic o arrastre el archivo aquí</span>
+                                            <small class="text-muted">.pdf · .xlsx · .xls · .csv</small>
+                                            <input asp-for="ArchivoCorabastos" type="file" accept=".csv, .xlsx, .xls, .pdf" data-target="fileCora" />
+                                        </div>
+                                        <div class="text-center">
+                                            <div id="fileCora" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>
+                                        </div>
+                                        <span asp-validation-for="ArchivoCorabastos" class="text-danger small mt-1 d-block"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES -->
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-5 pt-4 border-top">
+                            <a href="@Url.Action("Index", "Perfil")" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+                                <i class="bi bi-arrow-left me-2"></i>Regresar
+                            </a>
+                            <button type="submit" id="btnProcesar" class="btn btn-cp rounded-pill px-5 py-2">
+                                <i class="bi bi-cpu-fill me-2"></i>Cargar y Procesar Archivos
+                            </button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <!-- ================= VISTA PREVIA ================= -->
+                    <div class="text-center mb-4">
+                        <span class="badge bg-success px-3 py-2 rounded-pill mb-2">
+                            <i class="bi bi-check-circle-fill me-1"></i> Archivos validados correctamente
+                        </span>
+                        <h4 class="fw-bold">Vista Previa del Análisis Cruzado</h4>
+                        <p class="text-muted small mb-0">Resumen de los registros leídos y descartados, y detalle de precios separados.</p>
+                    </div>
+
+                    <!-- CONTADORES -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="cp-stat">
+                                <h5 class="fw-bold mb-3 text-dark">Fuente DANE (SIPSA)</h5>
+                                <div class="d-flex align-items-end justify-content-between mb-2">
+                                    <div>
+                                        <div class="big">@Model.TotalFilasDane.ToString("N0")</div>
+                                        <small class="text-muted fw-semibold">registros leídos</small>
+                                    </div>
+                                </div>
+                                <div class="cp-progress my-3">
+                                    <div class="ok" style="width:90%"></div>
+                                    <div class="bad" style="width:10%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between small fw-semibold">
+                                    <span class="text-success"><span class="cp-dot" style="background:#43a047"></span>Válidos: @daneValidos.ToString("N0")</span>
+                                    <span class="text-danger"><span class="cp-dot" style="background:#e57373"></span>Descartados: @daneDescartados.ToString("N0")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="cp-stat regional">
+                                <h5 class="fw-bold mb-3 text-dark">Fuente Corabastos</h5>
+                                <div class="d-flex align-items-end justify-content-between mb-2">
+                                    <div>
+                                        <div class="big">@Model.TotalFilasCorabastos.ToString("N0")</div>
+                                        <small class="text-muted fw-semibold">registros leídos</small>
+                                    </div>
+                                </div>
+                                <div class="cp-progress my-3">
+                                    <div class="ok" style="width:95%"></div>
+                                    <div class="bad" style="width:5%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between small fw-semibold">
+                                    <span class="text-success"><span class="cp-dot" style="background:#43a047"></span>Válidos: @coraValidos.ToString("N0")</span>
+                                    <span class="text-danger"><span class="cp-dot" style="background:#e57373"></span>Descartados: @coraDescartados.ToString("N0")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABLA -->
+                    <div class="cp-table-wrap mb-4">
+                        <div class="cp-table-head">
+                            <span><i class="bi bi-table me-2"></i>Precios registrados por fuente oficial</span>
+                            <span class="badge bg-white text-success rounded-pill">@Model.ResultadosCruce.Count() productos</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table cp-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4">Categoría</th>
+                                        <th>Variedad</th>
+                                        <th class="text-end">Precio DANE</th>
+                                        <th class="text-end">Precio Corabastos</th>
+                                        <th class="text-center">Diferencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.ResultadosCruce)
+                                    {
+                                        var diff = item.PrecioCorabastos - item.PrecioDane;
+                                        var pct = item.PrecioDane != 0 ? (double)diff / (double)item.PrecioDane * 100 : 0;
+                                        var clase = diff > 0 ? "up" : (diff < 0 ? "down" : "eq");
+                                        var icono = diff > 0 ? "bi-arrow-up-short" : (diff < 0 ? "bi-arrow-down-short" : "bi-dash");
+
+                                        <tr>
+                                            <td class="px-4">
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success fw-bold px-3 py-2">@item.Producto</span>
+                                            </td>
+                                            <td class="fw-bold">@item.Variedad</td>
+                                            <td class="text-end"><span class="cp-price dane">$@item.PrecioDane.ToString("N0")</span> <small class="text-muted">COP</small></td>
+                                            <td class="text-end"><span class="cp-price cora">$@item.PrecioCorabastos.ToString("N0")</span> <small class="text-muted">COP</small></td>
+                                            <td class="text-center">
+                                                <span class="cp-diff @clase"><i class="bi @icono"></i>@pct.ToString("0.0")%</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- CONFIRMAR -->
+                    <form asp-action="ConfirmarCarga" method="post" id="formConfirmar">
+                        @Html.AntiForgeryToken()
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-5 pt-4 border-top">
+                            <a href="@Url.Action("Index", "ImportarDatos")" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-semibold">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar carga
+                            </a>
+                            <button type="submit" id="btnGuardar" class="btn btn-outline-success rounded-pill px-5 py-2 fw-bold shadow-sm">
+                                <i class="bi bi-database-check me-2"></i>Guardar
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.querySelectorAll('.cp-dropzone input[type=file]').forEach(function (input) {
+            var zone = input.closest('.cp-dropzone');
+            var chip = document.getElementById(input.dataset.target);
+
+            ['dragenter', 'dragover'].forEach(function (ev) {
+                input.addEventListener(ev, function () { zone.classList.add('dragover'); });
+            });
+            ['dragleave', 'drop'].forEach(function (ev) {
+                input.addEventListener(ev, function () { zone.classList.remove('dragover'); });
+            });
+
+            input.addEventListener('change', function () {
+                if (input.files && input.files[0]) {
+                    chip.querySelector('span').innerText = input.files[0].name;
+                    chip.classList.add('show');
+                } else {
+                    chip.classList.remove('show');
+                }
+            });
+        });
+
+        function bloquearBoton(formId, btnId, texto) {
+            var form = document.getElementById(formId);
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                var btn = document.getElementById(btnId);
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + texto;
+            });
+        }
+        bloquearBoton('formCarga', 'btnProcesar', 'Procesando archivos...');
+        bloquearBoton('formConfirmar', 'btnGuardar', 'Guardando...');
+
+        @if (TempData["MensajeExitoFinal"] != null)
+            {
+                <text>
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Operación exitosa!',
+                        text: @Json.Serialize(TempData["MensajeExitoFinal"]),
+                        confirmButtonColor: '#2e7d32',
+                        background: '#f8f9fa',
+                        customClass: { popup: 'rounded-4 shadow-lg' }
+                    }).then(() => {
+                        window.location.href = '@Url.Action("Index", "ImportarDatos")';
+                    });
+            </text>
+        }
+    </script>
+}

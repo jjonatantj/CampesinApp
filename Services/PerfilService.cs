@@ -314,7 +314,7 @@ namespace CampesinApp.Services
         {
             var opciones = new List<OpcionPerfilDto>
             {
-                new() { Texto = "Actualizar perfil", Icono = "bi-pencil-square" },
+                new() { Texto = "Actualizar perfil", Icono = "bi-pencil-square", UrlPagina = "/ActualizarPerfil" },
                 new() { Texto = "Eliminar cuenta", Icono = "bi-person-x", Estilo = "peligro", UrlPagina = "/EliminarUsuario" },
                 new() { Texto = "Puntos de acopio", Icono = "bi-geo-alt" }
             };
@@ -341,7 +341,7 @@ namespace CampesinApp.Services
             },
             RolUsuario.Comprador => new List<OpcionPerfilDto>
             {
-                new() { Texto = "Publicar demanda", Icono = "bi-megaphone" },
+                new() { Texto = "Publicar demanda", Icono = "bi-megaphone", UrlPagina = "/PublicarDemanda" },
                 new() { Texto = "Perfil de pago", Icono = "bi-wallet2" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
                 new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/catalogo/Index" },
@@ -357,7 +357,7 @@ namespace CampesinApp.Services
             RolUsuario.Administrador => new List<OpcionPerfilDto>
             {
                 new() { Texto = "Registro Administrador", Icono = "bi-person-plus", UrlPagina = "/RegistroAdmin" },
-                new() { Texto = "Cargar Datos DANE", Icono = "bi-cloud-upload" },
+                new() { Texto = "Cargar Datos DANE", Icono = "bi-cloud-upload", UrlPagina = "/ImportarDatos" },
                 new() { Texto = "Asignar Camión", Icono = "bi-truck-front", UrlPagina = "/AsignacionVehiculo/Index" },
                 new() { Texto = "Gestión de Envíos", Icono = "bi-signpost-split", UrlModal = "/Transporte/Asignar", Estilo = "principal" },
                 new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar" },

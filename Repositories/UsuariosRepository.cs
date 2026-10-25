@@ -2,8 +2,6 @@ using CampesinApp.Repositories.Models;
 using CampesinApp.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace CampesinApp.Repositories
 {
@@ -29,20 +27,15 @@ namespace CampesinApp.Repositories
 
             if (usuario == null) return null;
 
-            // Validación por hash, sin desencriptar nunca lo guardado en la BD: la contraseña ingresada se cifra con el
-            // mismo método del registro (EncriptacionService.Encriptar, determinístico) y se compara el resultado con el
-            // valor almacenado. La comparación es de tiempo constante para no filtrar información por el tiempo de respuesta.
             if (string.IsNullOrEmpty(contrasenaIngresada) || string.IsNullOrEmpty(usuario.ContrasenaUsu))
             {
                 return null;
             }
 
-            string hashIngresado = EncriptacionService.Encriptar(contrasenaIngresada);
-            bool coincide = CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(hashIngresado),
-                Encoding.UTF8.GetBytes(usuario.ContrasenaUsu));
+            // Verificación segura con PBKDF2 (PasswordHasher)
+            bool coincide = EncriptacionService.Verificar(usuario.ContrasenaUsu, contrasenaIngresada);
 
-            return coincide ? usuario : null; // null = credenciales inválidas
+            return coincide ? usuario : null;
         }
 
         public Usuario? BuscarPorCedula(string cedula)
@@ -65,7 +58,7 @@ namespace CampesinApp.Repositories
 
             if (usuario == null) return false;
 
-            // ENCRIPTACIÓN DE LA NUEVA CONTRASEÑA ANTES DE GUARDAR
+            // ENCRIPTACIÓN SEGURA DE LA NUEVA CONTRASEÑA ANTES DE GUARDAR
             usuario.ContrasenaUsu = EncriptacionService.Encriptar(nuevaContrasena);
             _context.SaveChanges();
             return true;

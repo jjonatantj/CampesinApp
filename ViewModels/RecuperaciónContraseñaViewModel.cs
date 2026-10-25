@@ -8,29 +8,29 @@ namespace CampesinApp.ViewModels
         public int Paso { get; set; } = 1; // 1: Cédula, 2: Método, 3: Código, 4: Nueva Contraseña
 
         [Required(ErrorMessage = "La cédula es obligatoria.")]
+        [RegularExpression(@"^\d{6,10}$", ErrorMessage = "La cédula debe contener solo números (entre 6 y 10 dígitos).")]
         [Display(Name = "Número de Cédula")]
-        public string Cedula { get; set; }
+        public string Cedula { get; set; } = string.Empty;
 
-        public string MetodoSeleccionado { get; set; } // "correo" o "telefono"
-        public string CorreoEnmascarado { get; set; }
-        public string TelefonoEnmascarado { get; set; }
+        public string? MetodoSeleccionado { get; set; } // "correo" o "telefono"
+        public string? CorreoEnmascarado { get; set; }
+        public string? TelefonoEnmascarado { get; set; }
 
         [StringLength(6, MinimumLength = 6, ErrorMessage = "El código debe tener exactamente 6 dígitos.")]
         [Display(Name = "Código de Verificación")]
-        public string CodigoVerificacion { get; set; }
+        public string? CodigoVerificacion { get; set; }
 
         [Required(ErrorMessage = "El campo Nueva Contraseña es obligatorio.")]
         [StringLength(15, MinimumLength = 6, ErrorMessage = "Debe tener entre 6 y 15 caracteres.")]
         [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,15}$", ErrorMessage = "Debe incluir al menos una letra, un número y un carácter especial.")]
         [DataType(DataType.Password)]
         [Display(Name = "Nueva Contraseña")]
-        public string NuevaContrasena { get; set; }
+        public string NuevaContrasena { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El campo Confirmar Nueva Contraseña es obligatorio.")]
         [DataType(DataType.Password)]
         [Compare("NuevaContrasena", ErrorMessage = "Las contraseñas no coinciden.")]
         [Display(Name = "Confirmar Nueva Contraseña")]
-        public string ConfirmarContrasena { get; set; }
+        public string ConfirmarContrasena { get; set; } = string.Empty;
     }
 }
-

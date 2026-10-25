@@ -1,8 +1,5 @@
 using CampesinApp.Repositories.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace CampesinApp.Repositories
 {
