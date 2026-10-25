@@ -179,7 +179,7 @@
                         }
                         else
                         {
-                            <a href="@Url.Action("Registrar", "Oferta", new { idDemanda = Model.IdDemanda })" 
+                            <a asp-controller="Oferta" asp-action="Registrar" asp-route-idDemanda="@Model.IdDemanda" 
                                class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
                                style="background-color: #2e7d32; border-color: #2e7d32;">
                                 Ofertar

@@ -12,11 +12,14 @@ using CampesinApp.Dtos;
 namespace CampesinApp.Controllers
 {
     /// <summary>
-    /// Controlador para el Caso de Uso CU-018: Registro de Puntos de Acopio.
+    /// Controlador para la gestión de Puntos de Acopio:
+    /// - CU-018: Registro de Puntos de Acopio (Formulario y Georreferenciación).
+    /// - CU-019: Revisar Puntos de Acopio (Mapas interactivos y filtros de demandas/municipios).
     /// 
     /// REGLAS ARQUITECTÓNICAS:
     /// 1. NO accede directamente al DbContext. Utiliza exclusivamente IPuntoAcopioRepository.
-    /// 2. Aplica las reglas de negocio (RN-01 y RN-02) y flujos de excepción (FE-01 y FE-02).
+    /// 2. Aplica las reglas de negocio (RN-01 y RN-02) y flujos de excepción.
+    /// 3. Aplica la seguridad de sesión en todos los métodos protegidos.
     /// </summary>
     public class PuntoAcopioController : Controller
     {
@@ -27,6 +30,78 @@ namespace CampesinApp.Controllers
         {
             _puntoAcopioRepo = puntoAcopioRepo;
             _configuration = configuration;
+        }
+
+        // =========================================================================
+        // CASO DE USO CU-019: REVISAR PUNTOS DE ACOPIO (MAPAS)
+        // Acción principal: Carga la vista del mapa con los filtros disponibles
+        // =========================================================================
+        [HttpGet]
+        public async Task<IActionResult> Index(int? idDemanda, int? idMunicipio)
+        {
+            // Verificación de Precondición: Usuario con sesión activa
+            if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
+            {
+                return RedirectToAction("Login", "InicioSesion");
+            }
+
+            var model = new RevisarPuntosAcopioViewModel
+            {
+                GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty,
+                IdDemandaSeleccionada = idDemanda,
+                IdMunicipioSeleccionado = idMunicipio
+            };
+
+            try
+            {
+                await CargarFiltrosMapaAsync(model);
+            }
+            catch (Exception)
+            {
+                // FE03-CU019: Error al consultar datos para filtros
+                model.MensajeError = "Error al obtener la información actualizada de los puntos de acopio. Intente nuevamente.";
+            }
+
+            return View(model);
+        }
+
+        // =========================================================================
+        // ENDPOINT AJAX CU-019: Devolver puntos de acopio filtrados en formato JSON
+        // =========================================================================
+        [HttpGet]
+        public async Task<IActionResult> ObtenerPuntosMapaJson(int? idDemanda, int? idMunicipio)
+        {
+            if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
+            {
+                return Unauthorized(new { mensaje = "Sesión no válida o expirada." });
+            }
+
+            try
+            {
+                var puntos = await _puntoAcopioRepo.ObtenerPuntosAcopioFiltradosAsync(idDemanda, idMunicipio);
+
+                var resultado = puntos.Select(p => new
+                {
+                    id = p.IdPuntoAcopio,
+                    nombrePunto = p.NombrePunto,
+                    direccion = p.Direccion,
+                    horarioAtencion = p.HorarioAtencion,
+                    capacidad = p.Capacidad,
+                    telefono = p.Telefono,
+                    latitud = p.Latitud,
+                    longitud = p.Longitud,
+                    accesoVehicular = p.AccesoVehicular,
+                    municipio = p.IdMunicipioNavigation?.Municipio1 ?? "Municipio",
+                    departamento = p.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia"
+                });
+
+                return Json(resultado);
+            }
+            catch (Exception)
+            {
+                // FE03-CU019: Error de conexión o base de datos
+                return StatusCode(500, new { mensaje = "Error al obtener la información actualizada de los puntos de acopio. Intente nuevamente." });
+            }
         }
 
         // =========================================================================
@@ -53,7 +128,7 @@ namespace CampesinApp.Controllers
         }
 
         // =========================================================================
-        // ACCIÓN POST: Procesar el registro del punto de acopio (Pasos 3 y 4)
+        // ACCIÓN POST: Procesar el registro del punto de acopio (Pasos 3 y 4 de CU-018)
         // =========================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -67,15 +142,13 @@ namespace CampesinApp.Controllers
 
             model.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
-            // 2. REGLA DE NEGOCIO RN-01-CU018:
-            // El registro exige capturar la ubicación geográfica obligatoria mediante el mapa.
+            // 2. REGLA DE NEGOCIO RN-01-CU018: Ubicación geográfica obligatoria
             if (!model.Latitud.HasValue || !model.Longitud.HasValue || model.Latitud == 0 || model.Longitud == 0)
             {
-                ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo para fijar las coordenadas geográficas (Latitud y Longitud).");
+                ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo o usar 'Mi Ubicación Actual' para fijar las coordenadas geográficas.");
             }
 
-            // 3. REGLA DE NEGOCIO RN-02-CU018:
-            // El punto de acopio debe contar con acceso vehicular accesible para el camión.
+            // 3. REGLA DE NEGOCIO RN-02-CU018: Acceso vehicular accesible para camión
             if (!model.AccesoVehicular)
             {
                 ModelState.AddModelError("AccesoVehicular", "El punto de acopio debe contar obligatoriamente con acceso vehicular accesible para camiones.");
@@ -88,8 +161,7 @@ namespace CampesinApp.Controllers
                 return View(model);
             }
 
-            // 5. FLUJO DE EXCEPCIÓN FE-02-CU018:
-            // Validar punto de acopio duplicado en la misma dirección o coordenadas.
+            // 5. FLUJO DE EXCEPCIÓN FE-02-CU018: Validar duplicado
             try
             {
                 bool esDuplicado = await _puntoAcopioRepo.ExistePuntoDuplicadoAsync(
@@ -106,14 +178,12 @@ namespace CampesinApp.Controllers
             }
             catch (Exception)
             {
-                // Fallo de conexión o tiempo de espera con la BD
                 ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
 
             // 6. FLUJO PRINCIPAL DE GUARDADO (Paso 4):
-            // Persistir en 'punto_Acopio' y vincular en 'usuario_Punto_Acopio'
             try
             {
                 var nuevoPuntoDto = new PuntoAcopioRegistroDto
@@ -131,10 +201,8 @@ namespace CampesinApp.Controllers
                     AccesoVehicular = model.AccesoVehicular
                 };
 
-                // El repositorio inserta en 'punto_Acopio', obtiene el ID generado y lo relaciona en 'usuario_Punto_Acopio'
                 int idPuntoGenerado = await _puntoAcopioRepo.GuardarPuntoAcopioAsync(nuevoPuntoDto);
 
-                // Mensaje de éxito temporal de 3 segundos antes de redireccionar al perfil
                 ViewBag.RegistroExitoso = true;
                 ViewBag.MensajeExito = $"Punto de acopio '{model.NombrePunto}' registrado satisfactoriamente (ID #{idPuntoGenerado}).";
                 TempData["MensajeExito"] = "Punto de acopio registrado satisfactoriamente.";
@@ -144,7 +212,6 @@ namespace CampesinApp.Controllers
             }
             catch (Exception)
             {
-                // FE-01-CU018: Error al guardar en base de datos
                 ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
@@ -152,7 +219,7 @@ namespace CampesinApp.Controllers
         }
 
         // =========================================================================
-        // ENDPOINT AJAX: Obtener municipios dinámicos por departamento
+        // ENDPOINT AJAX: Obtener municipios dinámicos por departamento (CU-018)
         // =========================================================================
         [HttpGet]
         public async Task<IActionResult> ObtenerMunicipios(int idDepartamento)
@@ -177,6 +244,27 @@ namespace CampesinApp.Controllers
 
             // Precondición: El usuario debe tener sesión activa
             return idUsuario > 0;
+        }
+
+        private async Task CargarFiltrosMapaAsync(RevisarPuntosAcopioViewModel model)
+        {
+            // Cargar Demandas
+            var demandas = await _puntoAcopioRepo.ObtenerDemandasParaFiltroAsync();
+            model.DemandasDisponibles = demandas.Select(d => new SelectListItem
+            {
+                Value = d.IdDemanda.ToString(),
+                Text = $"Demanda #{d.IdDemanda} - {d.IdTipoProductoNavigation?.Producto ?? "Producto"} ({d.CantidadDeman:N0} Kg)",
+                Selected = model.IdDemandaSeleccionada.HasValue && model.IdDemandaSeleccionada.Value == d.IdDemanda
+            }).ToList();
+
+            // Cargar Municipios
+            var municipios = await _puntoAcopioRepo.ObtenerTodosMunicipiosAsync();
+            model.MunicipiosDisponibles = municipios.Select(m => new SelectListItem
+            {
+                Value = m.IdMunicipio.ToString(),
+                Text = $"{m.Municipio1} ({m.IdDepartamentoNavigation?.Departamento1 ?? "CO"})",
+                Selected = model.IdMunicipioSeleccionado.HasValue && model.IdMunicipioSeleccionado.Value == m.IdMunicipio
+            }).ToList();
         }
 
         private async Task CargarListasDesplegablesAsync(PuntoAcopioViewModel model)

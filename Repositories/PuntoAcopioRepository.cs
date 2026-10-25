@@ -9,9 +9,9 @@ using CampesinApp.Dtos;
 namespace CampesinApp.Repositories
 {
     /// <summary>
-    /// Implementación del Repositorio de Puntos de Acopio (CU-018).
+    /// Implementación del Repositorio de Puntos de Acopio (CU-018 y CU-019).
     /// REGLAS ARQUITECTÓNICAS:
-    /// - Opera exclusivamente con EF Core y LINQ sobre las tablas 'punto_Acopio', 'usuario_Punto_Acopio', 'municipio' y 'departamento'.
+    /// - Opera exclusivamente con EF Core y LINQ sobre las tablas 'punto_Acopio', 'usuario_Punto_Acopio', 'municipio', 'departamento' y 'demanda'.
     /// - No contiene reglas de presentación ni lógica de controladores.
     /// </summary>
     public class PuntoAcopioRepository : IPuntoAcopioRepository
@@ -116,8 +116,56 @@ namespace CampesinApp.Repositories
         public async Task<List<Municipio>> ObtenerTodosMunicipiosAsync()
         {
             return await _context.Municipios
+                .Include(m => m.IdDepartamentoNavigation)
                 .AsNoTracking()
                 .OrderBy(m => m.Municipio1)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// CU-019: Consulta los puntos de acopio activos aplicando filtros opcionales de Demanda y Municipio.
+        /// </summary>
+        public async Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(int? idDemanda, int? idMunicipio)
+        {
+            var query = _context.PuntoAcopios
+                .Include(p => p.IdMunicipioNavigation)
+                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(p => p.Demanda)
+                .AsNoTracking()
+                .AsQueryable();
+
+            // 1. Filtro por Municipio
+            if (idMunicipio.HasValue && idMunicipio.Value > 0)
+            {
+                query = query.Where(p => p.IdMunicipio == idMunicipio.Value);
+            }
+
+            // 2. Filtro por Demanda (si se especificó una demanda particular)
+            if (idDemanda.HasValue && idDemanda.Value > 0)
+            {
+                query = query.Where(p => p.Demanda.Any(d => d.IdDemanda == idDemanda.Value)
+                                      || _context.Demanda.Any(d => d.IdDemanda == idDemanda.Value && d.IdPuntoAcopio == p.IdPuntoAcopio));
+            }
+
+            // Regla de Negocio RN-01-CU019: Puntos con coordenadas válidas para renderizar en el mapa
+            query = query.Where(p => p.Latitud != 0 && p.Longitud != 0);
+
+            return await query
+                .OrderBy(p => p.NombrePunto)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// CU-019: Consulta las demandas para alimentar la lista desplegable de filtros.
+        /// </summary>
+        public async Task<List<Demandum>> ObtenerDemandasParaFiltroAsync()
+        {
+            return await _context.Demanda
+                .Include(d => d.IdTipoProductoNavigation)
+                .Include(d => d.IdVariedadNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                .AsNoTracking()
+                .OrderByDescending(d => d.IdDemanda)
                 .ToListAsync();
         }
     }

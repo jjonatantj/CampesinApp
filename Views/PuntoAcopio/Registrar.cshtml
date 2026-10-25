@@ -12,7 +12,7 @@
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
 
         <!-- ============================================================== -->
-        <!-- ENCABEZADO DE LA VISTA (Limpio, sin 'CU-018:' ni emojis)       -->
+        <!-- ENCABEZADO DE LA VISTA (Estandarizado, sin emojis)             -->
         <!-- ============================================================== -->
         <div class="d-flex align-items-center mb-4">
             <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
@@ -60,7 +60,7 @@
             <div id="alertaExito" class="alert alert-success shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
                 <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
                 <div class="flex-grow-1">
-                    <strong>¡Registro Exitoso!</strong> @ViewBag.MensajeExito Redireccionando a tu perfil...
+                    <strong>Registro Exitoso:</strong> @ViewBag.MensajeExito Redireccionando a tu perfil...
                 </div>
             </div>
         }
@@ -80,7 +80,7 @@
         <form asp-controller="PuntoAcopio" asp-action="Registrar" method="post" id="formPuntoAcopio" novalidate>
             @Html.AntiForgeryToken()
 
-            <!-- CAMPOS OCULTOS DE COORDENADAS (Se llenan solos al hacer clic en el mapa) -->
+            <!-- CAMPOS OCULTOS DE COORDENADAS (Se llenan al hacer clic en el mapa, GPS o arrastrar pin) -->
             <input type="hidden" asp-for="Latitud" id="latitudHidden" />
             <input type="hidden" asp-for="Longitud" id="longitudHidden" />
 
@@ -120,7 +120,7 @@
                         <span asp-validation-for="IdDepartamento" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 3. Municipio (Al cambiar, centra el mapa automáticamente con Geocoder) -->
+                    <!-- 3. Municipio (Al cambiar, centra el mapa automáticamente) -->
                     <div class="mb-3">
                         <label asp-for="IdMunicipio" class="form-label fw-bold small text-dark">Municipio *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
@@ -136,34 +136,247 @@
                         <span asp-validation-for="IdMunicipio" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 4. Dirección Física -->
+                    <!-- ============================================================== -->
+                    <!-- 4. LÓGICA DINÁMICA DE DIRECCIÓN: SELECTOR DE ZONA (URBANO/RURAL) -->
+                    <!-- ============================================================== -->
                     <div class="mb-3">
-                        <label asp-for="Direccion" class="form-label fw-bold small text-dark">Dirección Física *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
-                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-signpost-2"></i></span>
-                            <input asp-for="Direccion" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" id="inputDireccion" placeholder="Ej: Carrera 5 # 12-40 Vereda El Rosal" maxlength="150" required />
+                        <label class="form-label fw-bold small text-dark d-block">
+                            <i class="bi bi-compass text-success me-1"></i> Zona de Ubicación *
+                        </label>
+                        <div class="d-flex gap-2">
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" name="radioZona" id="radioZonaUrbano" value="Urbano" checked autocomplete="off">
+                                <label class="btn btn-outline-success w-100 py-2 rounded-pill fw-semibold text-center shadow-none" for="radioZonaUrbano">
+                                    <i class="bi bi-buildings me-1"></i> Urbano
+                                </label>
+                            </div>
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" name="radioZona" id="radioZonaRural" value="Rural" autocomplete="off">
+                                <label class="btn btn-outline-success w-100 py-2 rounded-pill fw-semibold text-center shadow-none" for="radioZonaRural">
+                                    <i class="bi bi-tree me-1"></i> Rural
+                                </label>
+                            </div>
                         </div>
-                        <span asp-validation-for="Direccion" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 5. Teléfono y 6. Horario -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-sm-6">
-                            <label asp-for="Telefono" class="form-label fw-bold small text-dark">Teléfono de Contacto *</label>
-                            <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
-                                <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-telephone"></i></span>
-                                <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567" maxlength="15" required />
+                    <!-- ───────────────────────────────────────────────────────────── -->
+                    <!-- CONSTRUCTOR DE DIRECCIÓN URBANA POR BLOQUES                   -->
+                    <!-- ───────────────────────────────────────────────────────────── -->
+                    <div id="bloqueDireccionUrbana" class="card border rounded-4 p-3 bg-white shadow-sm mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-signpost-2-fill text-success me-2"></i>
+                            <span class="fw-bold small text-dark">Constructor de Dirección Urbana</span>
+                        </div>
+                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
+                            Estructure la dirección estándar colombiana (Tipo de vía, número, cruce y placa):
+                        </p>
+
+                        <!-- Fila 1: Tipo de vía y Número Principal -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-sm-6">
+                                <label class="form-label small text-muted mb-1">Tipo de Vía *</label>
+                                <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                    <select id="urbanoTipoVia" class="form-select border-0 bg-transparent shadow-none px-3 py-1 small">
+                                        <option value="Calle">Calle</option>
+                                        <option value="Carrera">Carrera</option>
+                                        <option value="Diagonal">Diagonal</option>
+                                        <option value="Transversal">Transversal</option>
+                                        <option value="Avenida">Avenida</option>
+                                        <option value="Autopista">Autopista</option>
+                                        <option value="Circular">Circular</option>
+                                    </select>
+                                </div>
                             </div>
-                            <span asp-validation-for="Telefono" class="text-danger small ms-2"></span>
+                            <div class="col-sm-6">
+                                <label class="form-label small text-muted mb-1">Número de Vía *</label>
+                                <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                    <input type="text" id="urbanoNumeroVia" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: 45" maxlength="15" />
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-sm-6">
-                            <label asp-for="HorarioAtencion" class="form-label fw-bold small text-dark">Horario de Atención *</label>
-                            <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
-                                <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-clock"></i></span>
-                                <input asp-for="HorarioAtencion" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 6:00 AM - 5:00 PM" maxlength="80" required />
+                        <!-- Fila 2: Letra/Sufijo, Cruce (#) y Placa (-) -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label small text-muted mb-1">Letra / Bis</label>
+                                <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                    <input type="text" id="urbanoLetraVia" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small text-center" placeholder="Ej: A, Sur" maxlength="15" />
+                                </div>
                             </div>
-                            <span asp-validation-for="HorarioAtencion" class="text-danger small ms-2"></span>
+                            <div class="col-4">
+                                <label class="form-label small text-muted mb-1">Cruce (#) *</label>
+                                <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                    <span class="input-group-text bg-transparent border-0 text-muted ps-2 pe-1 small">#</span>
+                                    <input type="text" id="urbanoNumeroGenerador" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 12" maxlength="15" />
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small text-muted mb-1">Placa (-) *</label>
+                                <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                    <span class="input-group-text bg-transparent border-0 text-muted ps-2 pe-1 small">-</span>
+                                    <input type="text" id="urbanoPlaca" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 34" maxlength="15" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fila 3: Indicación Extra (Urbana) -->
+                        <div class="mt-2">
+                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional - solo referencia visual)</label>
+                            <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
+                                <input type="text" id="urbanoIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Casa verde de dos pisos, frente al parque" maxlength="120" />
+                            </div>
+                            <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
+                                <i class="bi bi-eye text-secondary me-1"></i> Nota: Este campo es una ayuda visual temporal en la interfaz y no se almacena en la base de datos.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- ───────────────────────────────────────────────────────────── -->
+                    <!-- CONSTRUCTOR DE DIRECCIÓN RURAL POR BLOQUES                    -->
+                    <!-- ───────────────────────────────────────────────────────────── -->
+                    <div id="bloqueDireccionRural" class="card border rounded-4 p-3 bg-white shadow-sm mb-3" style="display: none;">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-tree-fill text-success me-2"></i>
+                            <span class="fw-bold small text-dark">Ubicación en Zona Rural</span>
+                        </div>
+                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
+                            Indique el nombre de la vereda o sector rural donde opera el punto de acopio:
+                        </p>
+
+                        <!-- Fila 1: Nombre de Vereda -->
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">Nombre de Vereda *</label>
+                            <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-geo-alt"></i></span>
+                                <input type="text" id="ruralNombreVereda" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: El Rosal, La Esperanza, San Isidro" maxlength="100" />
+                            </div>
+                        </div>
+
+                        <!-- Fila 2: Indicación Extra (Rural) -->
+                        <div class="mt-2">
+                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional - solo referencia visual)</label>
+                            <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
+                                <input type="text" id="ruralIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Finca El Paraíso, a 300m de la escuela rural" maxlength="120" />
+                            </div>
+                            <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
+                                <i class="bi bi-eye text-secondary me-1"></i> Nota: Este campo es una ayuda visual temporal en la interfaz y no se almacena en la base de datos.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- CAMPO OCULTO QUE CONCATENA LA DIRECCIÓN PRINCIPAL PARA LA BASE DE DATOS (varchar 150) -->
+                    <input type="hidden" asp-for="Direccion" id="inputDireccion" />
+
+                    <!-- RECUADRO DE VISTA PREVIA Y ACCIONES DE UBICACIÓN -->
+                    <div class="card p-3 border-success-subtle bg-light rounded-4 mb-3 shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center text-success mb-1">
+                                    <i class="bi bi-signpost-split-fill me-2 fs-5"></i>
+                                    <span class="fw-bold small">Dirección estructurada para el sistema:</span>
+                                </div>
+                                <div id="textoDireccionGenerada" class="fw-bold text-dark ps-4 small font-monospace">
+                                    (Diligencie los campos anteriores para armar la dirección)
+                                </div>
+                            </div>
+
+                            <!-- Botón para Zona Urbana: Geocodifica la dirección con Google Geocoder -->
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm text-white" id="btnGeocodificarDireccion" style="background-color: #2e7d32; border-color: #2e7d32;">
+                                <i class="bi bi-geo-alt-fill me-1"></i> Ubicar en Mapa
+                            </button>
+
+                            <!-- Botón para Zona Rural: Obtiene el GPS del dispositivo sin alterar la vereda escrita -->
+                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm fw-semibold" id="btnUbicacionActualRural" style="display: none;">
+                                <i class="bi bi-crosshair me-1"></i> Usar mi Ubicación Actual
+                            </button>
+                        </div>
+                        <span asp-validation-for="Direccion" class="text-danger small mt-1 ps-4 d-block"></span>
+                    </div>
+
+                    <!-- 5. Teléfono de Contacto -->
+                    <div class="mb-3">
+                        <label asp-for="Telefono" class="form-label fw-bold small text-dark">Teléfono de Contacto *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-telephone"></i></span>
+                            <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567" maxlength="15" required />
+                        </div>
+                        <span asp-validation-for="Telefono" class="text-danger small ms-2"></span>
+                    </div>
+
+                    <!-- ============================================================== -->
+                    <!-- 6. HORARIO DE ATENCIÓN ESTRUCTURADO (DÍAS + HORAS INICIO/FIN)  -->
+                    <!-- ============================================================== -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark mb-1 d-block">
+                            <i class="bi bi-clock-fill text-success me-1"></i> Horario de Atención *
+                        </label>
+
+                        <div class="card border rounded-4 p-3 bg-white shadow-sm">
+                            <small class="text-muted fw-semibold mb-2 d-block">
+                                Seleccione los días hábiles de atención:
+                            </small>
+
+                            <!-- Días Hábiles (Lunes a Domingo) tipo toggle buttons -->
+                            <div class="d-flex flex-wrap gap-1 mb-3" id="grupoDiasSemana">
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaLun" value="Lun" data-index="0" checked autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaLun">Lun</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaMar" value="Mar" data-index="1" checked autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaMar">Mar</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaMie" value="Mié" data-index="2" checked autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaMie">Mié</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaJue" value="Jue" data-index="3" checked autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaJue">Jue</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaVie" value="Vie" data-index="4" checked autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaVie">Vie</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaSab" value="Sáb" data-index="5" autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaSab">Sáb</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaDom" value="Dom" data-index="6" autocomplete="off">
+                                    <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaDom">Dom</label>
+                                </div>
+                            </div>
+
+                            <!-- Inputs nativos de reloj para Hora de Inicio y Hora de Cierre -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">Hora de inicio *</label>
+                                    <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                        <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-sunrise"></i></span>
+                                        <input type="time" id="inputHoraInicio" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="08:00" required />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">Hora de cierre *</label>
+                                    <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                                        <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-sunset"></i></span>
+                                        <input type="time" id="inputHoraCierre" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="17:00" required />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO OCULTO QUE CONCATENA EL HORARIO PARA LA BASE DE DATOS (varchar 80) -->
+                            <input type="hidden" asp-for="HorarioAtencion" id="inputHorarioAtencion" />
+
+                            <!-- Vista previa del Horario generado -->
+                            <div class="bg-light p-2 rounded-3 border mt-2">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Horario estructurado para la base de datos:</small>
+                                <strong id="textoHorarioGenerado" class="text-success small font-monospace">Lun-Vie: 08:00 - 17:00</strong>
+                            </div>
+                            <span asp-validation-for="HorarioAtencion" class="text-danger small mt-1 d-block"></span>
                         </div>
                     </div>
 
@@ -198,34 +411,40 @@
                 <!-- COLUMNA DERECHA: MAPA INTERACTIVO GOOGLE MAPS            -->
                 <!-- ───────────────────────────────────────────────────────── -->
                 <div class="col-lg-6">
-                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
-                        <i class="bi bi-map-fill me-1"></i> Ubicación Geográfica en el Mapa
-                    </h5>
+                    <div class="sticky-top" style="top: 1.5rem; z-index: 10;">
+                        <h5 class="fw-bold text-success mb-3 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <span><i class="bi bi-map-fill me-1"></i> Ubicación Geográfica en el Mapa</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold shadow-sm" id="btnUbicacionActualMapa" title="Centrar mapa en la posición GPS de tu teléfono o computador">
+                                    <i class="bi bi-crosshair me-1"></i> Mi Ubicación Actual
+                                </button>
+                                <span class="badge bg-success text-dark small fw-normal py-1 px-2 rounded-pill">
+                                    <i class="bi bi-globe-americas me-1"></i> Vista Satelital
+                                </span>
+                            </div>
+                        </h5>
 
-                    <p class="small text-muted mb-2">
-                        <strong>Instrucciones:</strong> Al seleccionar Departamento y Municipio, el mapa se centrará automáticamente en esa ciudad. Haz <strong>clic en el mapa</strong> para colocar el marcador exacto de tu punto de acopio.
-                    </p>
-
-                    <!-- Contenedor del Mapa de Google Maps redondeado -->
-                    <div id="map" style="width: 100%; height: 420px; background-color: #f1f3f5;" class="border shadow-sm mb-3 position-relative rounded-4 overflow-hidden">
-                        <div id="mapLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
-                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
-                            <div>Cargando Google Maps...</div>
+                        <!-- Contenedor del Mapa de Google Maps redondeado en Vista Satelital -->
+                        <div id="map" style="width: 100%; height: 480px; background-color: #f1f3f5;" class="border shadow-sm mb-3 position-relative rounded-4 overflow-hidden">
+                            <div id="mapLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
+                                <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                                <div>Cargando Google Maps...</div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Indicador visual amigable del punto marcado (Sin emojis) -->
-                    <div id="indicadorUbicacion" class="alert alert-light border rounded-pill d-flex align-items-center py-2 px-3 mb-2 shadow-sm">
-                        <i class="bi bi-geo-alt-fill fs-4 me-2 text-success"></i>
-                        <div class="small">
-                            <span id="textoCoordenadas" class="fw-semibold text-secondary">
-                                Ningún punto marcado aún. Haz clic sobre el mapa para fijar la ubicación.
-                            </span>
+                        <!-- Indicador visual amigable del punto marcado (Sin emojis) -->
+                        <div id="indicadorUbicacion" class="alert alert-light border rounded-pill d-flex align-items-center py-2 px-3 mb-2 shadow-sm">
+                            <i class="bi bi-geo-alt-fill fs-4 me-2 text-success"></i>
+                            <div class="small">
+                                <span id="textoCoordenadas" class="fw-semibold text-secondary">
+                                    Ningún punto marcado aún. Digite la dirección, use "Mi Ubicación Actual" o haga clic en el mapa.
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <span asp-validation-for="Latitud" class="text-danger small d-block ms-2"></span>
-                    <span asp-validation-for="Longitud" class="text-danger small d-block ms-2"></span>
+                        <span asp-validation-for="Latitud" class="text-danger small d-block ms-2"></span>
+                        <span asp-validation-for="Longitud" class="text-danger small d-block ms-2"></span>
+                    </div>
                 </div>
 
             </div>
@@ -265,15 +484,15 @@
         // VARIABLES GLOBALES DE GOOGLE MAPS
         // =========================================================================
         let map;        // Instancia del mapa interactivo
-        let marker;     // Marcador rojo (Pin)
-        let geocoder;   // Servicio Geocoder para transformar nombres de ciudades en coordenadas
+        let marker;     // Marcador (Pin arrastrable)
+        let geocoder;   // Servicio Geocoder de Google Maps para convertir direcciones urbanas en coordenadas
 
         // Coordenadas iniciales por defecto (Centro geográfico de Colombia)
         const latDefault = 4.570868;
         const lngDefault = -74.297333;
 
         // =========================================================================
-        // 1. FUNCIÓN PRINCIPAL DE INICIALIZACIÓN (Llamada al cargar la API)
+        // 1. INICIALIZACIÓN DEL MAPA EN VISTA SATELITAL (Requerimiento 2)
         // =========================================================================
         function initMap() {
             const mapContainer = document.getElementById('map');
@@ -283,18 +502,19 @@
             // Instanciamos el Geocoder de Google Maps
             geocoder = new google.maps.Geocoder();
 
-            // Verificamos si los campos ocultos ya tenían coordenadas (por ejemplo tras recargar por validación)
+            // Verificamos si los campos ocultos ya tenían coordenadas (por ejemplo al recargar por validación)
             const latPrevia = parseFloat(document.getElementById('latitudHidden').value);
             const lngPrevia = parseFloat(document.getElementById('longitudHidden').value);
             const tieneCoordenadas = !isNaN(latPrevia) && !isNaN(lngPrevia) && latPrevia !== 0;
 
             const puntoInicial = tieneCoordenadas ? { lat: latPrevia, lng: lngPrevia } : { lat: latDefault, lng: lngDefault };
 
-            // Creamos el mapa centrado en Colombia o en el punto previo
+            // REQUERIMIENTO: Cargar por defecto en vista satelital con etiquetas (mapTypeId: 'hybrid')
             map = new google.maps.Map(mapContainer, {
                 center: puntoInicial,
-                zoom: tieneCoordenadas ? 14 : 6,
-                mapTypeControl: false,
+                zoom: tieneCoordenadas ? 16 : 6,
+                mapTypeId: 'hybrid',     // Vista satelital con etiquetas de vías y lugares por defecto
+                mapTypeControl: true,    // Permite al usuario alternar entre satélite y mapa regular
                 streetViewControl: false,
                 zoomControl: true
             });
@@ -305,9 +525,9 @@
             }
 
             // =====================================================================
-            // 2. EVENTO DE CLIC EN EL MAPA:
-            // Al hacer clic en cualquier parte del mapa, colocamos el marcador
-            // y guardamos las coordenadas en los campos ocultos de latitud y longitud.
+            // EVENTO DE CLIC EN EL MAPA:
+            // Coloca el marcador en el punto seleccionado y actualiza las coordenadas
+            // sin alterar ni sobrescribir los textos de dirección ingresados.
             // =====================================================================
             map.addListener('click', function (event) {
                 fijarMarcador(event.latLng);
@@ -315,46 +535,43 @@
         }
 
         // =========================================================================
-        // 3. FUNCIÓN PARA FIJAR/MOVER EL MARCADOR Y GUARDAR EN LOS CAMPOS OCULTOS
+        // 2. FUNCIÓN PARA FIJAR/MOVER EL MARCADOR (draggable: true)
+        // INDEPENDENCIA DEL MARCADOR: NO altera los campos de texto de la dirección.
         // =========================================================================
         function fijarMarcador(latLng) {
-            // Obtenemos latitud y longitud numéricas
             const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
             const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
 
-            // Si el marcador no ha sido creado, lo instanciamos con animación DROP
             if (!marker) {
+                // Instanciamos el marcador como ARRASTRABLE (draggable: true)
                 marker = new google.maps.Marker({
                     position: { lat: lat, lng: lng },
                     map: map,
-                    draggable: true, // Permitimos que el usuario también pueda arrastrarlo
+                    draggable: true, // Requerimiento: Arrastrable para corrección manual
                     animation: google.maps.Animation.DROP,
                     title: "Ubicación del Punto de Acopio"
                 });
 
-                // Si el usuario decide arrastrar el pin, actualizamos las coordenadas al soltarlo
+                // Al arrastrar y soltar el marcador:
+                // Solo actualiza latitud y longitud; NO modifica los campos de texto de dirección.
                 marker.addListener('dragend', function (event) {
                     actualizarCamposOcultos(event.latLng.lat(), event.latLng.lng());
                 });
             } else {
-                // Si el marcador ya existía, simplemente actualizamos su posición en el mapa
                 marker.setPosition({ lat: lat, lng: lng });
             }
 
-            // Guardamos los valores en los campos ocultos del formulario
             actualizarCamposOcultos(lat, lng);
         }
 
-        // Asigna los valores a los inputs ocultos <input type="hidden"> y actualiza el texto visual
+        // Asigna los valores a los inputs ocultos de latitud y longitud y actualiza el indicador visual
         function actualizarCamposOcultos(lat, lng) {
             const latFormatted = lat.toFixed(7);
             const lngFormatted = lng.toFixed(7);
 
-            // Campos ocultos que se enviarán al controlador en el POST
             document.getElementById('latitudHidden').value = latFormatted;
             document.getElementById('longitudHidden').value = lngFormatted;
 
-            // Actualización del texto visual informativo para el usuario
             const texto = document.getElementById('textoCoordenadas');
             if (texto) {
                 texto.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Coordenadas capturadas:</span> Lat: <code>${latFormatted}</code>, Lng: <code>${lngFormatted}</code>`;
@@ -362,7 +579,246 @@
         }
 
         // =========================================================================
-        // 4. COORDENADAS INSTANTÁNEAS Y GEOCODER PARA CENTRADO DEL MAPA
+        // 3. GEOCODIFICACIÓN DE DIRECCIÓN URBANA EN GOOGLE MAPS
+        // En zona rural NO se ejecuta porque las veredas no existen en Google Maps.
+        // =========================================================================
+        function geocodificarDireccionActual(mostrarAlertaSiVacio = false) {
+            const zona = obtenerZonaSeleccionada();
+
+            // En zona rural no se geocodifica la vereda en Google Maps para evitar errores
+            if (zona === 'Rural') {
+                return;
+            }
+
+            const direccion = document.getElementById('inputDireccion').value.trim();
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+
+            const deptoTexto = selectDepto.options[selectDepto.selectedIndex]?.text.trim() || '';
+            const munTexto = selectMun.options[selectMun.selectedIndex]?.text.trim() || '';
+
+            if (!direccion) {
+                if (mostrarAlertaSiVacio) {
+                    alert('Por favor complete los campos de la dirección urbana antes de ubicar en el mapa.');
+                }
+                return;
+            }
+
+            const municipioValido = munTexto && !munTexto.includes('--');
+            const deptoValido = deptoTexto && !deptoTexto.includes('--');
+
+            // Construcción de la consulta urbana para Google Geocoder
+            let consulta = direccion;
+            if (municipioValido) consulta += `, ${munTexto}`;
+            if (deptoValido) consulta += `, ${deptoTexto}`;
+            consulta += ', Colombia';
+
+            if (geocoder && map) {
+                geocoder.geocode({ address: consulta, componentRestrictions: { country: 'CO' } }, function (results, status) {
+                    if (status === 'OK' && results && results[0]) {
+                        const ubicacion = results[0].geometry.location;
+                        map.setCenter(ubicacion);
+                        map.setZoom(16);
+                        fijarMarcador(ubicacion);
+                    } else {
+                        // FALLBACK: Si no reconoce la dirección exacta, centrar en el Municipio seleccionado
+                        centrarMapa('municipio');
+                    }
+                });
+            } else {
+                centrarMapa('municipio');
+            }
+        }
+
+        // =========================================================================
+        // 4. UBICACIÓN ACTUAL POR GPS DEL NAVEGADOR (HTML5 Geolocation API)
+        // Solución nativa y gratuita: NO requiere APIs adicionales de Google Cloud.
+        // Ubica al campesino en su punto GPS exacto sin tocar la vereda escrita.
+        // =========================================================================
+        function obtenerUbicacionActualGPS() {
+            if (!navigator.geolocation) {
+                alert('Su dispositivo o navegador no soporta geolocalización por GPS.');
+                return;
+            }
+
+            const textoCoords = document.getElementById('textoCoordenadas');
+            if (textoCoords) {
+                textoCoords.innerHTML = `<span class="text-primary fw-semibold"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Obteniendo ubicación GPS del dispositivo...</span>`;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function (posicion) {
+                    const lat = posicion.coords.latitude;
+                    const lng = posicion.coords.longitude;
+                    const punto = { lat: lat, lng: lng };
+
+                    if (map) {
+                        map.setCenter(punto);
+                        map.setZoom(17); // Vista satelital cercana para que el campesino distinga su finca o galpón
+                    }
+
+                    // Coloca el marcador arrastrable en las coordenadas GPS
+                    fijarMarcador(punto);
+
+                    // IMPORTANTE: NO altera ni sobrescribe el nombre de vereda o indicación digitada
+                },
+                function (error) {
+                    let mensajeError = 'No fue posible obtener su ubicación actual.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            mensajeError = 'Permiso de ubicación denegado. Active el GPS o conceda permisos de ubicación en su navegador, o haga clic directamente sobre el mapa.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            mensajeError = 'La señal GPS no está disponible en este momento. Puede hacer clic sobre el mapa para ubicar el punto.';
+                            break;
+                        case error.TIMEOUT:
+                            mensajeError = 'Se agotó el tiempo esperando la señal GPS. Intente nuevamente o haga clic sobre el mapa.';
+                            break;
+                    }
+                    alert(mensajeError);
+
+                    // Si no había coordenadas previas, restaurar mensaje de ayuda
+                    const latPrev = parseFloat(document.getElementById('latitudHidden').value);
+                    if (isNaN(latPrev) || latPrev === 0) {
+                        if (textoCoords) {
+                            textoCoords.innerHTML = `<span class="text-secondary">Ningún punto marcado aún. Digite la dirección o haga clic en el mapa.</span>`;
+                        }
+                    }
+                },
+                {
+                    enableHighAccuracy: true, // Máxima precisión con antena GPS del teléfono
+                    timeout: 12000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // =========================================================================
+        // 5. LÓGICA DINÁMICA DE LA DIRECCIÓN (URBANO VS RURAL) (Requerimiento 1)
+        // =========================================================================
+        function obtenerZonaSeleccionada() {
+            const radioRural = document.getElementById('radioZonaRural');
+            return (radioRural && radioRural.checked) ? 'Rural' : 'Urbano';
+        }
+
+        function alternarZonaDireccion() {
+            const zona = obtenerZonaSeleccionada();
+            const bloqueUrbano = document.getElementById('bloqueDireccionUrbana');
+            const bloqueRural = document.getElementById('bloqueDireccionRural');
+            const btnGeocodificar = document.getElementById('btnGeocodificarDireccion');
+            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
+
+            if (zona === 'Rural') {
+                bloqueUrbano.style.display = 'none';
+                bloqueRural.style.display = 'block';
+
+                // En zona rural se oculta el botón de geocodificar de maps y se activa "Usar mi Ubicación Actual"
+                if (btnGeocodificar) btnGeocodificar.style.display = 'none';
+                if (btnUbicacionRural) btnUbicacionRural.style.display = 'inline-block';
+            } else {
+                bloqueUrbano.style.display = 'block';
+                bloqueRural.style.display = 'none';
+
+                // En zona urbana se reactiva el botón "Ubicar en Mapa"
+                if (btnGeocodificar) btnGeocodificar.style.display = 'inline-block';
+                if (btnUbicacionRural) btnUbicacionRural.style.display = 'none';
+            }
+
+            construirDireccion();
+        }
+
+        // Concatena los campos de la dirección en una sola cadena limpia para varchar(150)
+        // IMPORTANTE: Se ignora la "Indicación extra" para la base de datos y mapa por restricción arquitectónica
+        function construirDireccion() {
+            const zona = obtenerZonaSeleccionada();
+            let direccionFinal = '';
+
+            if (zona === 'Urbano') {
+                const tipoVia = document.getElementById('urbanoTipoVia')?.value.trim() || 'Calle';
+                const numeroVia = document.getElementById('urbanoNumeroVia')?.value.trim() || '';
+                const letraVia = document.getElementById('urbanoLetraVia')?.value.trim() || '';
+                const numeroGen = document.getElementById('urbanoNumeroGenerador')?.value.trim() || '';
+                const placa = document.getElementById('urbanoPlaca')?.value.trim() || '';
+
+                if (numeroVia) {
+                    direccionFinal = tipoVia + ' ' + numeroVia;
+                    if (letraVia) direccionFinal += ' ' + letraVia;
+                    if (numeroGen) direccionFinal += ' # ' + numeroGen;
+                    if (placa) direccionFinal += '-' + placa;
+                }
+            } else {
+                const vereda = document.getElementById('ruralNombreVereda')?.value.trim() || '';
+                if (vereda) {
+                    direccionFinal = vereda.toLowerCase().startsWith('vereda') ? vereda : ('Vereda ' + vereda);
+                }
+            }
+
+            // Asignación al campo oculto del modelo (para enviar en el POST a la BD)
+            document.getElementById('inputDireccion').value = direccionFinal;
+
+            // Actualización de la vista previa en pantalla
+            const vistaPrevia = document.getElementById('textoDireccionGenerada');
+            if (vistaPrevia) {
+                if (direccionFinal) {
+                    vistaPrevia.textContent = direccionFinal;
+                    vistaPrevia.classList.remove('text-dark');
+                    vistaPrevia.classList.add('text-success');
+                } else {
+                    vistaPrevia.textContent = '(Diligencie los campos anteriores para armar la dirección)';
+                    vistaPrevia.classList.remove('text-success');
+                    vistaPrevia.classList.add('text-dark');
+                }
+            }
+
+            return direccionFinal;
+        }
+
+        // =========================================================================
+        // 6. LÓGICA ESTRUCTURADA DEL HORARIO DE ATENCIÓN (Requerimiento 3)
+        // Concatena días hábiles y horas inicio/cierre en una cadena legible para varchar(80)
+        // Ej: "Lun-Vie: 08:00 - 17:00" o "Lun, Mié, Vie: 08:00 - 16:00"
+        // =========================================================================
+        function construirHorario() {
+            const checkboxes = Array.from(document.querySelectorAll('.dia-horario-check'));
+            const seleccionados = checkboxes.filter(cb => cb.checked);
+
+            if (seleccionados.length === 0) {
+                document.getElementById('inputHorarioAtencion').value = '';
+                const textoVisual = document.getElementById('textoHorarioGenerado');
+                if (textoVisual) textoVisual.textContent = 'Ningún día seleccionado';
+                return '';
+            }
+
+            const horaIni = document.getElementById('inputHoraInicio')?.value || '08:00';
+            const horaFin = document.getElementById('inputHoraCierre')?.value || '17:00';
+
+            // Verificamos si los días seleccionados son un bloque continuo (ej: Lun a Vie, Lun a Sáb)
+            let diasTexto = '';
+            const indices = seleccionados.map(cb => parseInt(cb.getAttribute('data-index'), 10));
+            const esConsecutivo = indices.every((val, i, arr) => i === 0 || val === arr[i - 1] + 1);
+
+            if (esConsecutivo && seleccionados.length >= 3) {
+                diasTexto = `${seleccionados[0].value}-${seleccionados[seleccionados.length - 1].value}`;
+            } else {
+                diasTexto = seleccionados.map(cb => cb.value).join(', ');
+            }
+
+            const horarioFormateado = `${diasTexto}: ${horaIni} - ${horaFin}`;
+
+            // Asignación al campo oculto para la BD (varchar 80)
+            document.getElementById('inputHorarioAtencion').value = horarioFormateado;
+
+            // Actualización visual en la UI
+            const textoVisual = document.getElementById('textoHorarioGenerado');
+            if (textoVisual) {
+                textoVisual.textContent = horarioFormateado;
+            }
+
+            return horarioFormateado;
+        }
+
+        // =========================================================================
+        // 7. COORDENADAS POR DEFECTO DE DEPARTAMENTOS Y CENTRADO DE MAPA (FALLBACK)
         // =========================================================================
         const coordenadasDepartamentos = {
             "cundinamarca": { lat: 4.86, lng: -74.05, zoom: 9 },
@@ -436,16 +892,15 @@
                 }
             }
 
-            // 2. Si se seleccionó un Municipio específico (ej: Chaguaní): ampliar la vista a ese municipio
+            // 2. Si se seleccionó un Municipio: centrar vista en ese municipio
             if (munTexto && !munTexto.includes('--')) {
                 const consulta = `${munTexto}, ${deptoTexto}, Colombia`;
 
-                // Intentamos primero con Google Geocoder
                 if (geocoder) {
                     geocoder.geocode({ address: consulta, componentRestrictions: { country: 'CO' } }, function (results, status) {
                         if (status === 'OK' && results && results[0]) {
                             map.setCenter(results[0].geometry.location);
-                            map.setZoom(14); // Zoom cercano para el municipio
+                            map.setZoom(14);
                         } else {
                             geocodificarMunicipioFallback(consulta);
                         }
@@ -456,7 +911,7 @@
             }
         }
 
-        // Fallback garantizado: obtiene las coordenadas exactas del municipio y centra el mapa con zoom 14
+        // Fallback garantizado: obtiene las coordenadas del municipio por Nominatim si falla Google Geocoder
         function geocodificarMunicipioFallback(consulta) {
             const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=co&q=${encodeURIComponent(consulta)}`;
 
@@ -471,49 +926,169 @@
                     }
                 })
                 .catch(err => {
-                    console.warn("No fue posible geocodificar el municipio:", err);
+                    console.warn("No fue posible geocodificar el municipio por fallback:", err);
                 });
         }
 
         // =========================================================================
-        // 5. CARGA DINÁMICA DE MUNICIPIOS AL CAMBIAR DEPARTAMENTO
-        // =========================================================================
-        document.getElementById('selectDepartamento').addEventListener('change', function () {
-            const deptoId = this.value;
-            const selectMun = document.getElementById('selectMunicipio');
-            selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
-
-            centrarMapa('departamento');
-
-            if (!deptoId) {
-                selectMun.innerHTML = '<option value="">-- Seleccione primero un departamento --</option>';
-                return;
-            }
-
-            fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=' + deptoId)
-                .then(response => response.json())
-                .then(data => {
-                    selectMun.innerHTML = '<option value="">-- Seleccione un municipio --</option>';
-                    data.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.id;
-                        opt.textContent = m.nombre;
-                        selectMun.appendChild(opt);
-                    });
-                })
-                .catch(() => {
-                    selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
-                });
-        });
-
-        document.getElementById('selectMunicipio').addEventListener('change', function () {
-            centrarMapa('municipio');
-        });
-
-        // =========================================================================
-        // 6. CONTROL DE TIEMPO DE ALERTAS FLOTANTES (FE-01, FE-02 Y ÉXITO)
+        // 8. ASIGNACIÓN DE EVENTOS Y CONTROL DE LA INTERFAZ
         // =========================================================================
         document.addEventListener('DOMContentLoaded', function () {
+
+            // A. Cambio de Zona (Urbano vs Rural)
+            const radioUrbano = document.getElementById('radioZonaUrbano');
+            const radioRural = document.getElementById('radioZonaRural');
+            if (radioUrbano) radioUrbano.addEventListener('change', alternarZonaDireccion);
+            if (radioRural) radioRural.addEventListener('change', alternarZonaDireccion);
+
+            // B. Inputs del constructor Urbano
+            const urbanoInputs = ['urbanoTipoVia', 'urbanoNumeroVia', 'urbanoLetraVia', 'urbanoNumeroGenerador', 'urbanoPlaca'];
+            urbanoInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', construirDireccion);
+                    el.addEventListener('change', construirDireccion);
+                }
+            });
+
+            // C. Inputs del constructor Rural
+            const ruralInput = document.getElementById('ruralNombreVereda');
+            if (ruralInput) {
+                ruralInput.addEventListener('input', construirDireccion);
+                ruralInput.addEventListener('change', construirDireccion);
+            }
+
+            // D. Botón explícito para ubicar la dirección urbana en el mapa
+            const btnGeocodificar = document.getElementById('btnGeocodificarDireccion');
+            if (btnGeocodificar) {
+                btnGeocodificar.addEventListener('click', function () {
+                    construirDireccion();
+                    geocodificarDireccionActual(true);
+                });
+            }
+
+            // Botones de "Mi Ubicación Actual" (GPS) tanto en el mapa como en la zona rural
+            const btnUbicacionMapa = document.getElementById('btnUbicacionActualMapa');
+            if (btnUbicacionMapa) {
+                btnUbicacionMapa.addEventListener('click', obtenerUbicacionActualGPS);
+            }
+
+            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
+            if (btnUbicacionRural) {
+                btnUbicacionRural.addEventListener('click', obtenerUbicacionActualGPS);
+            }
+
+            // E. Inputs del Horario de Atención
+            document.querySelectorAll('.dia-horario-check').forEach(cb => {
+                cb.addEventListener('change', construirHorario);
+            });
+            const inputHoraIni = document.getElementById('inputHoraInicio');
+            const inputHoraFin = document.getElementById('inputHoraCierre');
+            if (inputHoraIni) inputHoraIni.addEventListener('change', construirHorario);
+            if (inputHoraFin) inputHoraFin.addEventListener('change', construirHorario);
+
+            // F. Carga dinámica de Municipios al cambiar Departamento
+            const selectDepto = document.getElementById('selectDepartamento');
+            if (selectDepto) {
+                selectDepto.addEventListener('change', function () {
+                    const deptoId = this.value;
+                    const selectMun = document.getElementById('selectMunicipio');
+                    selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
+
+                    centrarMapa('departamento');
+
+                    if (!deptoId) {
+                        selectMun.innerHTML = '<option value="">-- Seleccione primero un departamento --</option>';
+                        return;
+                    }
+
+                    fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=' + deptoId)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectMun.innerHTML = '<option value="">-- Seleccione un municipio --</option>';
+                            data.forEach(m => {
+                                const opt = document.createElement('option');
+                                opt.value = m.id;
+                                opt.textContent = m.nombre;
+                                selectMun.appendChild(opt);
+                            });
+                        })
+                        .catch(() => {
+                            selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
+                        });
+                });
+            }
+
+            const selectMun = document.getElementById('selectMunicipio');
+            if (selectMun) {
+                selectMun.addEventListener('change', function () {
+                    centrarMapa('municipio');
+                    // Solo si es zona urbana se geocodifica la dirección automáticamente al cambiar municipio
+                    const zona = obtenerZonaSeleccionada();
+                    const direccion = document.getElementById('inputDireccion')?.value;
+                    if (zona === 'Urbano' && direccion) {
+                        geocodificarDireccionActual(false);
+                    }
+                });
+            }
+
+            // G. Validación antes del envío del formulario (submit)
+            const form = document.getElementById('formPuntoAcopio');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    const dir = construirDireccion();
+                    const hor = construirHorario();
+
+                    // Validación de Dirección generada
+                    if (!dir || dir.trim() === '' || dir.trim() === 'Vereda') {
+                        e.preventDefault();
+                        alert('Por favor complete los campos obligatorios para generar la dirección física o vereda del punto de acopio.');
+                        return false;
+                    }
+
+                    // Validación de Horario de atención generado
+                    if (!hor || hor.trim() === '') {
+                        e.preventDefault();
+                        alert('Por favor seleccione al menos un día hábil y las horas de inicio y cierre para el horario de atención.');
+                        return false;
+                    }
+
+                    // Validación de Coordenadas del Mapa (RN-01-CU018)
+                    const lat = parseFloat(document.getElementById('latitudHidden').value);
+                    const lng = parseFloat(document.getElementById('longitudHidden').value);
+                    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+                        e.preventDefault();
+                        alert('Debe fijar las coordenadas en el mapa interactivo (usando "Mi Ubicación Actual", ubicando la dirección o haciendo clic directamente sobre el mapa).');
+                        return false;
+                    }
+                });
+            }
+
+            // H. Inicialización de valores al cargar la vista
+            const dirActual = document.getElementById('inputDireccion')?.value || '';
+            if (dirActual) {
+                if (dirActual.toLowerCase().startsWith('vereda')) {
+                    if (radioRural) {
+                        radioRural.checked = true;
+                        alternarZonaDireccion();
+                    }
+                    const nombreVereda = dirActual.replace(/^Vereda\s*/i, '');
+                    if (ruralInput) ruralInput.value = nombreVereda;
+                } else {
+                    if (radioUrbano) {
+                        radioUrbano.checked = true;
+                        alternarZonaDireccion();
+                    }
+                }
+            } else {
+                alternarZonaDireccion();
+            }
+
+            // Inicializar concatenaciones visuales
+            construirDireccion();
+            construirHorario();
+
+            // I. Control de tiempo de alertas flotantes (FE-01, FE-02 Y ÉXITO)
             const alertaConexion = document.getElementById('alertaErrorConexion');
             if (alertaConexion) {
                 setTimeout(() => {

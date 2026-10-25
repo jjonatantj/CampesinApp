@@ -32,19 +32,19 @@
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Mis Cultivos</a></li>
                     <li class="nav-item"><a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Comprador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Publicar Demanda</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Mis Pedidos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Panel Logístico</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Carga DANE</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
             </ul>
 

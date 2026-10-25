@@ -6,7 +6,7 @@ using CampesinApp.Dtos;
 namespace CampesinApp.Repositories
 {
     /// <summary>
-    /// Interfaz del Repositorio de Puntos de Acopio (CU-018).
+    /// Interfaz del Repositorio de Puntos de Acopio (CU-018 y CU-019).
     /// Regla: Contiene únicamente la definición de operaciones de acceso a datos con LINQ/EF Core.
     /// </summary>
     public interface IPuntoAcopioRepository
@@ -39,6 +39,16 @@ namespace CampesinApp.Repositories
         /// Obtiene todos los municipios de la base de datos.
         /// </summary>
         Task<List<Municipio>> ObtenerTodosMunicipiosAsync();
+
+        /// <summary>
+        /// Consulta los puntos de acopio activos aplicando filtros opcionales de Demanda y Municipio (CU-019).
+        /// </summary>
+        Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(int? idDemanda, int? idMunicipio);
+
+        /// <summary>
+        /// Consulta las demandas activas para alimentar el filtro desplegable de CU-019.
+        /// </summary>
+        Task<List<Demandum>> ObtenerDemandasParaFiltroAsync();
     }
 }
 
