@@ -127,7 +127,7 @@
                         </div>
                     </div>
 
-                    <!-- Datos logísticos del pedido -->
+                    <!-- Datos logísticos del pedido y condición de aporte -->
                     <div class="p-3 bg-white rounded-4 border small">
                         <div class="row g-2">
                             <div class="col-sm-6">
@@ -135,13 +135,35 @@
                                 <span class="fw-semibold text-dark d-block">@Model.MunicipioEntrega, @Model.DepartamentoEntrega</span>
                             </div>
                             <div class="col-sm-6">
-                                <span class="text-muted">Tope mínimo de aporte (10%):</span>
-                                <span class="fw-bold text-success d-block" id="valorMinimoPermitido">
-                                    @Model.MinimoPermitido.ToString("N0") unidades
+                                <span class="text-muted">Tope mínimo general (10%):</span>
+                                <span class="fw-bold text-dark d-block">
+                                    @Model.TopeDiezPorciento.ToString("N0") unidades
                                 </span>
                             </div>
                         </div>
                     </div>
+
+                    @if (Model.YaCumplioMinimoDiez)
+                    {
+                        <!-- Notificación especial: El campesino ya cumplió el 10% y puede registrar ofertas complementarias -->
+                        <div class="alert alert-success border-0 shadow-sm rounded-4 p-3 mt-3 mb-0 d-flex align-items-center">
+                            <i class="bi bi-patch-check-fill text-success fs-3 me-3"></i>
+                            <div class="small">
+                                <strong class="text-success d-block">¡Aporte Complementario Habilitado!</strong>
+                                Ya registraste previamente <strong>@Model.AportePrevioCampesino unidades</strong> en esta demanda (cubriendo el 10% requerido). En esta nueva oferta puedes aportar desde <strong>1 unidad</strong> adicional.
+                            </div>
+                        </div>
+                    }
+                    else if (Model.AportePrevioCampesino > 0)
+                    {
+                        <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mt-3 mb-0 d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill text-primary fs-3 me-3"></i>
+                            <div class="small">
+                                <strong class="text-primary d-block">Aporte Acumulativo</strong>
+                                Registraste previamente <strong>@Model.AportePrevioCampesino unidades</strong>. Para alcanzar el 10% mínimo de la demanda (@Model.TopeDiezPorciento unidades), debes registrar al menos <strong>@Model.MinimoPermitido unidades</strong>.
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -170,7 +192,14 @@
                                required />
                     </div>
                     <div class="form-text text-muted small mt-1">
-                        Debe ser un número entero mayor a cero, mínimo <strong>@Model.MinimoPermitido</strong> y máximo <strong>@Model.CantidadFaltante</strong> unidades.
+                        @if (Model.YaCumplioMinimoDiez)
+                        {
+                            <span>Puedes registrar desde <strong>1 unidad</strong> hasta máximo <strong>@Model.CantidadFaltante</strong> unidades faltantes.</span>
+                        }
+                        else
+                        {
+                            <span>Debe ser un número entero mayor a cero, mínimo <strong>@Model.MinimoPermitido</strong> y máximo <strong>@Model.CantidadFaltante</strong> unidades.</span>
+                        }
                     </div>
                     <div id="errorFrontendCantidad" class="text-danger small fw-semibold mt-1 d-none"></div>
                 </div>
@@ -311,7 +340,10 @@
             // Valores de referencia provenientes del servidor
             const cantidadTotal = @(Model?.CantidadTotal ?? 0);
             const cantidadFaltante = @(Model?.CantidadFaltante ?? 0);
-            const minimoPermitido = @(Model?.MinimoPermitido ?? 0);
+            const minimoPermitido = @(Model?.MinimoPermitido ?? 1);
+            const topeDiezPorciento = @(Model?.TopeDiezPorciento ?? 0);
+            const aportePrevioCampesino = @(Model?.AportePrevioCampesino ?? 0);
+            const yaCumplioMinimo = @(Model?.YaCumplioMinimoDiez == true ? "true" : "false");
 
             // Elementos del DOM
             const formOferta = document.getElementById("formOferta");
@@ -381,10 +413,14 @@
                         esValido = false;
                     } 
                     // ---------------------------------------------------------
-                    // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo 10% del total
+                    // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo permitido (10% acumulativo)
                     // ---------------------------------------------------------
                     else if (cantidadNum < minimoPermitido) {
-                        mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades.");
+                        if (yaCumplioMinimo) {
+                            mostrarErrorCantidad("Debes registrar al menos 1 unidad para tu oferta.");
+                        } else {
+                            mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades para alcanzar el 10% del total demandado.");
+                        }
                         esValido = false;
                     } 
                     // ---------------------------------------------------------

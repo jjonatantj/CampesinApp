@@ -32,16 +32,19 @@ namespace CampesinApp.Controllers
         private readonly Campesinapp3Context _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly NotificacionService _notificacionService;
+        private readonly ILogService _logService;
 
         // Inyección de dependencias por constructor
         public OfertaController(
             Campesinapp3Context context,
             IWebHostEnvironment webHostEnvironment,
-            NotificacionService notificacionService)
+            NotificacionService notificacionService,
+            ILogService logService)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
             _notificacionService = notificacionService;
+            _logService = logService;
         }
 
         // =========================================================================
@@ -96,11 +99,30 @@ namespace CampesinApp.Controllers
                     return RedirectToAction("Index", "catalogo");
                 }
 
+                // Consultar aportes previos que este mismo campesino ya realizó a esta demanda
+                int aportePrevioCampesino = await _context.AporteCamps
+                    .Where(a => a.IdDemanda == idDemanda && a.IdUsuario == idUsuarioCampesino)
+                    .SumAsync(a => a.CantAporte);
+
                 // RN-04-CU013: Cálculo del 10% mínimo permitido del total demandado
-                int minimoPermitido = (int)Math.Ceiling(demanda.CantidadDeman * 0.10);
+                int topeDiezPorciento = (int)Math.Ceiling(demanda.CantidadDeman * 0.10);
+
+                // REGLA FLEXIBLE ACUMULATIVA:
+                // Si el campesino ya aportó previamente el 10% (o más), puede ofertar cualquier cantidad entera desde 1 unidad.
+                // Si aún no alcanza el 10%, debe ofertar al menos lo que falte para que su aporte acumulado alcance el 10%.
+                int minimoPermitido;
+                if (aportePrevioCampesino >= topeDiezPorciento)
+                {
+                    minimoPermitido = 1;
+                }
+                else
+                {
+                    minimoPermitido = Math.Max(1, topeDiezPorciento - aportePrevioCampesino);
+                }
+
+                // Si lo que falta para completar la demanda es menor al mínimo, se permite aportar desde 1 unidad
                 if (minimoPermitido > cantidadFaltante)
                 {
-                    // Si lo que falta es menor al 10%, se permite aportar al menos 1 unidad para completarla
                     minimoPermitido = 1;
                 }
 
@@ -114,6 +136,8 @@ namespace CampesinApp.Controllers
                     CantidadTotal = demanda.CantidadDeman,
                     CantidadAportadaPrevia = totalAportado,
                     CantidadFaltante = cantidadFaltante,
+                    TopeDiezPorciento = topeDiezPorciento,
+                    AportePrevioCampesino = aportePrevioCampesino,
                     MinimoPermitido = minimoPermitido,
                     PrecioPropuesto = demanda.PrecioDeman,
                     MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Punto de acopio",
@@ -168,6 +192,32 @@ namespace CampesinApp.Controllers
 
             int cantidadFaltanteActual = Math.Max(0, demanda.CantidadDeman - totalAportadoActual);
 
+            // Consultar aportes previos que este mismo campesino ya realizó a esta demanda
+            int aportePrevioCampesino = await _context.AporteCamps
+                .Where(a => a.IdDemanda == model.IdDemanda && a.IdUsuario == idUsuarioCampesino)
+                .SumAsync(a => a.CantAporte);
+
+            // RN-04-CU013: Tope general del 10% del total demandado
+            int topeDiezPorciento = (int)Math.Ceiling(demanda.CantidadDeman * 0.10);
+
+            // REGLA FLEXIBLE ACUMULATIVA:
+            // Si el campesino ya aportó previamente el 10% (o más), puede ofertar cualquier cantidad entera desde 1 unidad.
+            // Si aún no alcanza el 10%, debe ofertar al menos lo que falte para que su aporte acumulado alcance el 10%.
+            int minimoPermitido;
+            if (aportePrevioCampesino >= topeDiezPorciento)
+            {
+                minimoPermitido = 1;
+            }
+            else
+            {
+                minimoPermitido = Math.Max(1, topeDiezPorciento - aportePrevioCampesino);
+            }
+
+            if (minimoPermitido > cantidadFaltanteActual)
+            {
+                minimoPermitido = 1;
+            }
+
             // Re-poblar datos informativos del ViewModel en caso de retornar la vista
             model.NombreProducto = demanda.IdTipoProductoNavigation?.Producto ?? "Producto agrícola";
             model.VariedadProducto = demanda.IdVariedadNavigation?.VariedadProd ?? "Estándar";
@@ -180,12 +230,8 @@ namespace CampesinApp.Controllers
             model.DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia";
             model.DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial;
             model.CompradorNombre = $"{demanda.IdUsuarioNavigation?.NombreCom} {demanda.IdUsuarioNavigation?.ApellidoCom}".Trim();
-
-            int minimoPermitido = (int)Math.Ceiling(demanda.CantidadDeman * 0.10);
-            if (minimoPermitido > cantidadFaltanteActual)
-            {
-                minimoPermitido = 1;
-            }
+            model.TopeDiezPorciento = topeDiezPorciento;
+            model.AportePrevioCampesino = aportePrevioCampesino;
             model.MinimoPermitido = minimoPermitido;
 
             // FE02-CU013: Solicitud completada justo antes por otro campesino
@@ -205,10 +251,19 @@ namespace CampesinApp.Controllers
             {
                 int cantidad = model.CantidadAporte.Value;
 
-                // REGLA DE NEGOCIO RN-04-CU013 (y FE03): Debe ser mayor o igual al 10% del total demandado
+                // REGLA DE NEGOCIO RN-04-CU013 (y FE03):
+                // Si el campesino ya aportó previamente >= 10%, puede ofertar desde 1 unidad.
+                // Si es su primer aporte o aún no acumula el 10%, debe aportar al menos el mínimo calculado.
                 if (cantidad < minimoPermitido)
                 {
-                    ModelState.AddModelError("CantidadAporte", $"La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos {minimoPermitido} unidades.");
+                    if (aportePrevioCampesino >= topeDiezPorciento)
+                    {
+                        ModelState.AddModelError("CantidadAporte", "Debe registrar al menos 1 unidad para su aporte.");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("CantidadAporte", $"La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos {minimoPermitido} unidades para alcanzar el 10% del total demandado.");
+                    }
                 }
 
                 // REGLA DE NEGOCIO RN-01-CU013 (y FE01): No puede superar la cantidad faltante
@@ -338,6 +393,36 @@ namespace CampesinApp.Controllers
                 // Guardar los cambios en la base de datos
                 await _context.SaveChangesAsync();
 
+                // AUDITORÍA EN LA TABLA log_Sistema (CU-030 / RNF-01):
+                try
+                {
+                    var usuarioCampesino = await _context.Usuarios.FindAsync(idUsuarioCampesino);
+                    string nombreCampesino = usuarioCampesino != null
+                        ? $"{usuarioCampesino.NombreCom} {usuarioCampesino.ApellidoCom}".Trim()
+                        : $"Campesino ID #{idUsuarioCampesino}";
+
+                    await _logService.RegistrarAsync(
+                        NivelesLog.Info,
+                        "CU-013 Registro de Oferta",
+                        $"El campesino '{nombreCampesino}' (ID #{idUsuarioCampesino}) registró un aporte de {model.CantidadAporte!.Value} unidades a la Demanda #{demanda.IdDemanda} ({demanda.IdTipoProductoNavigation?.Producto}). Aporte total acumulado del campesino en esta demanda: {aportePrevioCampesino + model.CantidadAporte.Value} unidades. Imagen: {rutaConsultaWeb}",
+                        idUsuarioCampesino
+                    );
+
+                    if (pedidoCompleto)
+                    {
+                        await _logService.RegistrarAsync(
+                            NivelesLog.Info,
+                            "CU-013 Demanda Completa",
+                            $"La Demanda #{demanda.IdDemanda} ({demanda.IdTipoProductoNavigation?.Producto}) ha alcanzado el 100% requerido ({demanda.CantidadDeman} unidades) tras el aporte del campesino ID #{idUsuarioCampesino}. Estado actualizado a 'Pedido Completo'.",
+                            idUsuarioCampesino
+                        );
+                    }
+                }
+                catch
+                {
+                    // La auditoría complementaria en logs nunca debe interrumpir el éxito de la transacción
+                }
+
                 // 7. MENSAJE DE ÉXITO Y REDIRECCIÓN (Paso 6 CU-013)
                 // Se muestra el mensaje durante 3 segundos antes de redirigir al catálogo de demanda CU-011
                 ViewBag.RegistroExitoso = true;
@@ -358,8 +443,20 @@ namespace CampesinApp.Controllers
 
                 return View(model);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // AUDITORÍA DE ERROR EN log_Sistema
+                try
+                {
+                    await _logService.RegistrarAsync(
+                        NivelesLog.Error,
+                        "CU-013 Registro de Oferta",
+                        $"Error al registrar oferta del campesino ID #{idUsuarioCampesino} en Demanda #{model.IdDemanda}: {ex.Message}",
+                        idUsuarioCampesino
+                    );
+                }
+                catch { }
+
                 // FE04-CU013: Error al registrar en base de datos
                 ViewBag.MensajeErrorConexion = "No fue posible registrar la oferta en la base de datos. Por favor verifique su conexión e intente nuevamente.";
                 return View(model);

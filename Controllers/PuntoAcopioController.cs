@@ -37,6 +37,8 @@ namespace CampesinApp.Controllers
         // Acción principal: Carga la vista del mapa con los filtros disponibles
         // =========================================================================
         [HttpGet]
+        [Route("PuntoAcopio")]
+        [Route("PuntoAcopio/Index")]
         public async Task<IActionResult> Index(int? idDemanda, int? idMunicipio)
         {
             // Verificación de Precondición: Usuario con sesión activa
@@ -69,6 +71,7 @@ namespace CampesinApp.Controllers
         // ENDPOINT AJAX CU-019: Devolver puntos de acopio filtrados en formato JSON
         // =========================================================================
         [HttpGet]
+        [Route("PuntoAcopio/ObtenerPuntosMapaJson")]
         public async Task<IActionResult> ObtenerPuntosMapaJson(int? idDemanda, int? idMunicipio)
         {
             if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
@@ -108,6 +111,7 @@ namespace CampesinApp.Controllers
         // ACCIÓN GET: Mostrar el formulario de registro (Pasos 1 y 2 de CU-018)
         // =========================================================================
         [HttpGet]
+        [Route("PuntoAcopio/Registrar")]
         public async Task<IActionResult> Registrar()
         {
             // Verificación de Precondición: Usuario autenticado con sesión activa
@@ -131,6 +135,7 @@ namespace CampesinApp.Controllers
         // ACCIÓN POST: Procesar el registro del punto de acopio (Pasos 3 y 4 de CU-018)
         // =========================================================================
         [HttpPost]
+        [Route("PuntoAcopio/Registrar")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Registrar(PuntoAcopioViewModel model)
         {
