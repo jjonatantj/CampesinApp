@@ -21,7 +21,6 @@ namespace CampesinApp.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            // Si viene de un registro exitoso, activamos la bandera para la vista mediante ViewBag
             if (TempData["RegistroExitoso"] != null)
             {
                 ViewBag.RegistroExitoso = true;
@@ -48,13 +47,19 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(RegistroUsuarioViewModel model)
         {
-            // PASO 1: Validación inicial del formulario de registro
             if (model.Paso == 1)
             {
                 ModelState.Remove("MetodoSeleccionado");
                 ModelState.Remove("CodigoVerificacion");
                 ModelState.Remove("CorreoEnmascarado");
                 ModelState.Remove("TelefonoEnmascarado");
+
+                // SEGURIDAD: Impedir registro como Administrador (IdRol 4) por consola
+                var rolSeleccionado = _context.Rols.FirstOrDefault(r => r.IdRol == model.IdRol);
+                if (rolSeleccionado == null || rolSeleccionado.TipoRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || model.IdRol == 4)
+                {
+                    ModelState.AddModelError("IdRol", "No está autorizado para registrarse con este rol.");
+                }
 
                 if (long.TryParse(model.Cedula, out long cedulaLong))
                 {
@@ -81,11 +86,11 @@ namespace CampesinApp.Controllers
                         string filePath = Path.Combine(folder, nombreImagen);
                         using (var stream = new FileStream(filePath, FileMode.Create))
                         {
-                            model.FotoPerfil.CopyTo(stream);
+                            await model.FotoPerfil.CopyToAsync(stream);
                         }
                     }
 
-                    // Guardar datos temporalmente en Session
+                    // Guardar datos temporalmente en Session (sin dirección)
                     HttpContext.Session.SetString("Reg_Nombres", model.Nombres);
                     HttpContext.Session.SetString("Reg_Apellidos", model.Apellidos);
                     HttpContext.Session.SetString("Reg_Cedula", model.Cedula);
@@ -94,10 +99,8 @@ namespace CampesinApp.Controllers
                     HttpContext.Session.SetString("Reg_Contrasena", model.Contrasena);
                     HttpContext.Session.SetInt32("Reg_IdRol", model.IdRol);
                     HttpContext.Session.SetInt32("Reg_IdMunicipio", model.IdMunicipio);
-                    HttpContext.Session.SetString("Reg_Direccion", model.Direccion);
                     HttpContext.Session.SetString("Reg_Imagen", nombreImagen);
 
-                    // Avanzar al Paso 2 (Seleccionar método) y enmascarar datos
                     model.Paso = 2;
                     model.CorreoEnmascarado = EnmascararCorreo(model.Correo);
                     model.TelefonoEnmascarado = EnmascararTelefono(model.Telefono);
@@ -111,7 +114,6 @@ namespace CampesinApp.Controllers
                 return View("RegistroUsuario", model);
             }
 
-            // PASO 2: El usuario seleccionó el método de envío o regresó a él
             if (model.Paso == 2)
             {
                 string? correo = HttpContext.Session.GetString("Reg_Correo");
@@ -135,6 +137,10 @@ namespace CampesinApp.Controllers
                 HttpContext.Session.SetString("Reg_MetodoElegido", model.MetodoSeleccionado);
                 HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
 
+                // Inicializar contadores de seguridad para intentos y reenvíos
+                HttpContext.Session.SetInt32("Reg_IntentosCodigo", 0);
+                HttpContext.Session.SetInt32("Reg_ReenviosCodigo", 0);
+
                 if (model.MetodoSeleccionado == "telefono")
                 {
                     HttpContext.Session.SetString("Reg_CodigoWhatsAppSimulado", codigoGenerado);
@@ -154,7 +160,6 @@ namespace CampesinApp.Controllers
                 return View("RegistroUsuario", model);
             }
 
-            // PASO 3: Validar el código ingresado y guardar en base de datos
             if (model.Paso == 3)
             {
                 string? metodo = HttpContext.Session.GetString("Reg_MetodoElegido");
@@ -181,13 +186,25 @@ namespace CampesinApp.Controllers
 
                 if (model.CodigoVerificacion != codigoReal)
                 {
-                    ModelState.AddModelError("CodigoVerificacion", "El código de verificación ingresado es incorrecto.");
+                    // Límite máximo de 3 intentos fallidos de código
+                    int intentos = HttpContext.Session.GetInt32("Reg_IntentosCodigo") ?? 0;
+                    intentos++;
+                    HttpContext.Session.SetInt32("Reg_IntentosCodigo", intentos);
+
+                    if (intentos >= 3)
+                    {
+                        TempData["ErrorRegistro"] = "Ha superado el límite de 3 intentos incorrectos. Su registro ha sido cancelado por seguridad.";
+                        HttpContext.Session.Clear();
+                        return RedirectToAction("Index");
+                    }
+
+                    int restantes = 3 - intentos;
+                    ModelState.AddModelError("CodigoVerificacion", $"Código incorrecto. Le quedan {restantes} intento(s).");
                     model.Paso = 3;
                     if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
                     return View("RegistroUsuario", model);
                 }
 
-                // CREAR USUARIO EN BASE DE DATOS
                 string nombres = HttpContext.Session.GetString("Reg_Nombres")!;
                 string apellidos = HttpContext.Session.GetString("Reg_Apellidos")!;
                 string correo = HttpContext.Session.GetString("Reg_Correo")!;
@@ -197,7 +214,11 @@ namespace CampesinApp.Controllers
                 int idMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio") ?? 1;
                 string imagen = HttpContext.Session.GetString("Reg_Imagen") ?? "default_user.png";
 
-                if (idRol == 4) idRol = 1;
+                var rolVerificacion = _context.Rols.FirstOrDefault(r => r.IdRol == idRol);
+                if (rolVerificacion == null || rolVerificacion.TipoRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || idRol == 4)
+                {
+                    idRol = 1;
+                }
 
                 long.TryParse(telefonoStr, out long telefonoLong);
                 var nuevoUsuario = new Usuario
@@ -219,10 +240,62 @@ namespace CampesinApp.Controllers
 
                 HttpContext.Session.Clear();
 
-                // Usamos TempData para garantizar que la alerta aparezca tras la redirección
                 TempData["RegistroExitoso"] = true;
                 return RedirectToAction("Index");
             }
+
+            return View("RegistroUsuario", model);
+        }
+
+        [HttpGet]
+        public IActionResult ReenviarCodigoRegistro()
+        {
+            string? correo = HttpContext.Session.GetString("Reg_Correo");
+            string? telefono = HttpContext.Session.GetString("Reg_Telefono");
+            string? metodo = HttpContext.Session.GetString("Reg_MetodoElegido");
+
+            if (string.IsNullOrEmpty(correo) || string.IsNullOrEmpty(metodo))
+                return RedirectToAction("Index");
+
+            // Validar límite máximo de 3 reenvíos
+            int reenvios = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
+            if (reenvios >= 3)
+            {
+                TempData["ErrorRegistro"] = "Ha alcanzado el límite máximo de 3 reenvíos de código. Inicie el registro nuevamente.";
+                HttpContext.Session.Clear();
+                return RedirectToAction("Index");
+            }
+
+            reenvios++;
+            HttpContext.Session.SetInt32("Reg_ReenviosCodigo", reenvios);
+
+            Random rnd = new Random();
+            string codigoGenerado = rnd.Next(100000, 999999).ToString();
+            DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
+            HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
+
+            if (metodo == "telefono")
+            {
+                HttpContext.Session.SetString("Reg_CodigoWhatsAppSimulado", codigoGenerado);
+                TempData["MensajeReenvio"] = "Se ha generado un nuevo código simulado por WhatsApp.";
+            }
+            else
+            {
+                string nombres = HttpContext.Session.GetString("Reg_Nombres") ?? "Usuario";
+                EmailService.EnviarCodigoVerificacion(correo, nombres, codigoGenerado, _environment);
+                HttpContext.Session.SetString("Reg_CodigoCorreo", codigoGenerado);
+                TempData["MensajeReenvio"] = "Se ha reenviado el código a su correo electrónico.";
+            }
+
+            // Forzar retorno al Paso 3 manteniendo el estado
+            var model = new RegistroUsuarioViewModel
+            {
+                Paso = 3,
+                Correo = correo,
+                Telefono = telefono ?? "",
+                MetodoSeleccionado = metodo
+            };
+            if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoGenerado;
 
             return View("RegistroUsuario", model);
         }
@@ -263,7 +336,6 @@ namespace CampesinApp.Controllers
                 Cedula = HttpContext.Session.GetString("Reg_Cedula") ?? "",
                 Correo = HttpContext.Session.GetString("Reg_Correo") ?? "",
                 Telefono = HttpContext.Session.GetString("Reg_Telefono") ?? "",
-                Direccion = HttpContext.Session.GetString("Reg_Direccion") ?? "",
                 IdRol = HttpContext.Session.GetInt32("Reg_IdRol") ?? 0,
                 IdDepartamento = HttpContext.Session.GetInt32("Reg_IdDepartamento") ?? 0,
                 IdMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio") ?? 0
@@ -276,7 +348,7 @@ namespace CampesinApp.Controllers
         private void CargarCombosBD(RegistroUsuarioViewModel model)
         {
             model.ListaRoles = _context.Rols
-                .Where(r => r.TipoRol != "Administrador" && r.TipoRol != "Transportador" && r.IdRol != 4)
+                .Where(r => r.TipoRol != "Administrador" && r.IdRol != 4)
                 .Select(r => new SelectListItem { Value = r.IdRol.ToString(), Text = r.TipoRol })
                 .ToList();
 

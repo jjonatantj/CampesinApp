@@ -134,7 +134,7 @@ namespace CampesinApp.Services
             }
         }
 
-        public static bool EnviarNotificacionAdmin(string correoDestino, string nombreUsuario, IWebHostEnvironment? environment = null)
+        public static bool EnviarNotificacionAdmin(string correoDestino, string nombreUsuario, string cedula, string passwordTemporal, IWebHostEnvironment? environment = null)
         {
             try
             {
@@ -142,13 +142,19 @@ namespace CampesinApp.Services
                     <h2 style='color: #2e7d32; text-align: center; margin-bottom: 20px; margin-top: 0;'>¡Cuenta Administrador Creada!</h2>
                     <p style='font-size: 15px; color: #333;'>Hola <strong>{nombreUsuario}</strong>,</p>
                     <p style='font-size: 14px; color: #555; line-height: 1.5;'>
-                        Se ha creado tu cuenta de <strong>Administrador</strong> en <strong>CampesinApp</strong> con éxito.
+                        Se ha creado tu cuenta de <strong>Administrador</strong> en <strong>CampesinApp</strong> con éxito. A continuación tus credenciales de acceso temporal:
                     </p>
                     <div style='background-color: #e8f5e9; padding: 15px 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32;'>
-                        <p style='margin: 0; font-size: 14px; color: #1b5e20;'>
-                            Puedes ingresar a la plataforma utilizando tu correo electrónico (<strong>{correoDestino}</strong>) y tu número de cédula.
+                        <p style='margin: 0 0 8px 0; font-size: 14px; color: #1b5e20;'>
+                            <strong>Número de Cédula (Usuario):</strong> <span style='font-family: monospace; background: #c8e6c9; padding: 2px 6px; border-radius: 4px;'>{cedula}</span>
                         </p>
-                    </div>";
+                        <p style='margin: 0; font-size: 14px; color: #1b5e20;'>
+                            <strong>Contraseña temporal:</strong> <span style='font-family: monospace; background: #c8e6c9; padding: 2px 6px; border-radius: 4px;'>{passwordTemporal}</span>
+                        </p>
+                    </div>
+                    <p style='font-size: 13px; color: #d32f2f; font-weight: bold;'>
+                        ⚠️ Te recomendamos iniciar sesión con tu cédula y cambiar tu contraseña por seguridad.
+                    </p>";
 
                 var message = ConstruirMensajeConLogoFisico(correoDestino, nombreUsuario, "Confirmación de Cuenta Administrador - CampesinApp", contenidoHtml, "#2e7d32", environment);
 

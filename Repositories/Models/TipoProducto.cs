@@ -9,8 +9,6 @@ public partial class TipoProducto
 
     public string Producto { get; set; } = null!;
 
-    public virtual ICollection<DatoDane> DatoDanes { get; set; } = new List<DatoDane>();
-
     public virtual ICollection<Demandum> Demanda { get; set; } = new List<Demandum>();
 
     public virtual ICollection<PrecioEstimado> PrecioEstimados { get; set; } = new List<PrecioEstimado>();

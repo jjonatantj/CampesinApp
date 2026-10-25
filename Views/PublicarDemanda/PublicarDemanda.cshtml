@@ -1,0 +1,369 @@
+﻿@model CampesinApp.ViewModels.PublicarDemandaViewModel
+
+@{
+    ViewData["Title"] = "Publicar Demanda - CampesinApp";
+    Layout = "_LayoutCasosUso";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8 position-relative">
+
+            <!-- LOGO FLOTANTE OFICIAL -->
+            <div class="text-center" style="position: relative; margin-bottom: -75px; z-index: 10;">
+                <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="150" height="150" class="rounded-circle shadow-lg border border-3 border-success bg-white" style="object-fit: cover;" />
+            </div>
+
+            <div class="card main-container border-0 shadow-lg p-4 p-md-5 pt-5 bg-white rounded-4">
+
+                <div class="text-center mb-4 mt-3">
+                    <h2 class="fw-bold text-dark mb-1">Publicar Nueva Demanda Mayorista</h2>
+                    <p class="text-muted small fw-semibold">Solicite productos agrícolas validando precios oficiales del modelo estadístico.</p>
+                </div>
+
+                <!-- TARJETA INFORMATIVA DEL MODELO ESTADÍSTICO -->
+                <div id="cardPrecioSugerido" class="alert border-0 shadow-sm rounded-4 mb-4 d-none p-4 text-white" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);">
+                    <div>
+                        <h5 class="alert-heading fw-bold mb-1 text-white">Precio Sugerido del Modelo Estadístico</h5>
+                        <p class="mb-1 fs-5 fw-semibold" id="txtPrecioSugerido">Cargando...</p>
+                        <p class="mb-0 small text-light opacity-90" id="txtRangoPermitido">Rango permitido (±10%): -</p>
+                    </div>
+                </div>
+
+                <form id="formPublicarDemanda" onsubmit="enviarDemandaAjax(event)">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- PRODUCTO Y VARIEDAD -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdTipoProducto" class="form-label fw-bold text-dark small">Tipo de Producto</label>
+                            <select id="ddlTipoProducto" asp-for="IdTipoProducto" asp-items="Model.ListaTiposProducto" class="form-select rounded-pill px-3 py-2" onchange="cargarVariedades()">
+                                <option value="">Seleccione tipo de producto...</option>
+                            </select>
+                            <span asp-validation-for="IdTipoProducto" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdVariedad" class="form-label fw-bold text-dark small">Variedad</label>
+                            <select id="ddlVariedad" asp-for="IdVariedad" asp-items="Model.ListaVariedades" class="form-select rounded-pill px-3 py-2" onchange="consultarPrecioModelo()">
+                                <option value="">Seleccione variedad...</option>
+                            </select>
+                            <span asp-validation-for="IdVariedad" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- CANTIDAD Y PRECIO -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Cantidad" class="form-label fw-bold text-dark small">Cantidad Requerida (Kilos)</label>
+                            <input asp-for="Cantidad" id="txtCantidad" type="number" min="20" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 500" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
+                            <small class="text-success fw-bold d-block mt-1 ms-3" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
+                            <span asp-validation-for="Cantidad" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small">Precio Propuesto (COP por Kilo)</label>
+                            <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" min="100" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
+                            <span asp-validation-for="PrecioEstimado" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- CONSTRUCTOR DE DIRECCIÓN URBANA -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small mb-1">Constructor de Dirección Urbana</label>
+                        <p class="text-muted small mb-3">Estructure la dirección estándar colombiana (Tipo de vía, número, cruce y placa):</p>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-3">
+                                <label asp-for="TipoVia" class="form-label small fw-bold text-dark">Tipo de Vía *</label>
+                                <select asp-for="TipoVia" id="txtTipoVia" asp-items="Model.ListaTiposVia" class="form-select rounded-pill px-3 py-2" onchange="actualizarDireccion()"></select>
+                                <span asp-validation-for="TipoVia" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="NumeroVia" class="form-label small fw-bold text-dark">Número de Vía *</label>
+                                <input asp-for="NumeroVia" id="txtNumeroVia" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 45" oninput="actualizarDireccion()" />
+                                <span asp-validation-for="NumeroVia" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label asp-for="LetraBis" class="form-label small fw-bold text-dark">Letra / Bis</label>
+                                <input asp-for="LetraBis" id="txtLetraBis" class="form-control rounded-pill px-3 py-2" placeholder="Ej: A, Sur" oninput="actualizarDireccion()" />
+                            </div>
+                            <div class="col-md-2">
+                                <label asp-for="Cruce" class="form-label small fw-bold text-dark">Cruce (#) *</label>
+                                <input asp-for="Cruce" id="txtCruce" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 12" oninput="actualizarDireccion()" />
+                                <span asp-validation-for="Cruce" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label asp-for="PlacaVia" class="form-label small fw-bold text-dark">Placa (-) *</label>
+                                <input asp-for="PlacaVia" id="txtPlaca" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 34" oninput="actualizarDireccion()" />
+                                <span asp-validation-for="PlacaVia" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IndicacionExtra" class="form-label small fw-bold text-dark">Indicación extra (Opcional - solo referencia visual)</label>
+                            <input asp-for="IndicacionExtra" class="form-control rounded-pill px-3 py-2" placeholder="Ej: Casa verde de dos pisos, frente al parque" />
+                        </div>
+
+                        <!-- Previsualización de dirección estructurada -->
+                        <div class="p-3 border rounded-4 bg-light">
+                            <span class="fw-bold small text-success d-block mb-1">Dirección estructurada para el sistema:</span>
+                            <span id="previewDireccion" class="text-muted fst-italic">Diligencie los campos anteriores para armar la dirección...</span>
+                            <input type="hidden" asp-for="DireccionEstructurada" id="inputDireccionEstructurada" />
+                        </div>
+                    </div>
+
+                    <!-- FECHAS Y HORARIOS -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FechaEntrega" class="form-label fw-bold text-dark small">Fecha de Entrega *</label>
+                            <input asp-for="FechaEntrega" type="date" id="txtFechaEntrega" class="form-control rounded-pill px-3 py-2 mb-2" onchange="validarFechas()" />
+                            <span asp-validation-for="FechaEntrega" class="text-danger small"></span>
+
+                            <label asp-for="HoraEntrega" class="form-label fw-bold text-dark small mt-2">Hora de Entrega *</label>
+                            <input asp-for="HoraEntrega" type="time" class="form-control rounded-pill px-3 py-2" value="08:00" />
+                            <span asp-validation-for="HoraEntrega" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LimTiemDeman" class="form-label fw-bold text-dark small">Fecha Límite *</label>
+                            <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-2" />
+                            <span asp-validation-for="LimTiemDeman" class="text-danger small"></span>
+
+                            <label asp-for="HoraLimite" class="form-label fw-bold text-dark small mt-2">Hora Límite *</label>
+                            <input asp-for="HoraLimite" type="time" class="form-control rounded-pill px-3 py-2" value="17:00" />
+                            <span asp-validation-for="HoraLimite" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- PUNTO DE ACOPIO -->
+                    <div class="mb-3">
+                        <label asp-for="IdPuntoAcopio" class="form-label fw-bold text-dark small">Punto de Acopio Autorizado</label>
+                        <select asp-for="IdPuntoAcopio" asp-items="Model.ListaPuntosAcopio" class="form-select rounded-pill px-3 py-2">
+                            <option value="">Seleccione punto de acopio...</option>
+                        </select>
+                        <span asp-validation-for="IdPuntoAcopio" class="text-danger small"></span>
+                    </div>
+
+                    <!-- DESCRIPCIÓN -->
+                    <div class="mb-4">
+                        <label asp-for="Descripcion" class="form-label fw-bold text-dark small">Descripción y Requerimientos</label>
+                        <textarea asp-for="Descripcion" class="form-control rounded-4 px-3 py-2" rows="3" placeholder="Detalle especificaciones de calidad, empaque, etc..."></textarea>
+                        <span asp-validation-for="Descripcion" class="text-danger small"></span>
+                    </div>
+
+                    <!-- BOTONES DE ACCIÓN -->
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            Publicar Demanda
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let precioMinPermitido = 0;
+        let precioMaxPermitido = 0;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            configurarRestriccionesFechas();
+            actualizarDireccion();
+        });
+
+        function configurarRestriccionesFechas() {
+            const hoy = new Date();
+            const minEntrega = new Date(hoy);
+            minEntrega.setDate(hoy.getDate() + 1);
+            document.getElementById('txtFechaEntrega').min = minEntrega.toISOString().split('T')[0];
+        }
+
+        function validarFechas() {
+            const valEntrega = document.getElementById('txtFechaEntrega').value;
+            const inputLimite = document.getElementById('txtFechaLimite');
+
+            if (valEntrega) {
+                let fechaEnt = new Date(valEntrega);
+                fechaEnt.setDate(fechaEnt.getDate() + 3);
+                const strMinLimite = fechaEnt.toISOString().split('T')[0];
+
+                inputLimite.min = strMinLimite;
+                if (inputLimite.value && inputLimite.value < strMinLimite) {
+                    inputLimite.value = strMinLimite;
+                }
+            }
+        }
+
+        function actualizarDireccion() {
+            const tipo = document.getElementById('txtTipoVia').value;
+            const num = document.getElementById('txtNumeroVia').value.trim();
+            const letra = document.getElementById('txtLetraBis').value.trim();
+            const cruce = document.getElementById('txtCruce').value.trim();
+            const placa = document.getElementById('txtPlaca').value.trim();
+
+            let direccionArmada = "";
+            if (num) {
+                direccionArmada = `${tipo} ${num} ${letra} # ${cruce} - ${placa}`.replace(/\s+/g, ' ').trim();
+                document.getElementById('previewDireccion').textContent = direccionArmada;
+                document.getElementById('previewDireccion').classList.remove('text-muted', 'fst-italic');
+                document.getElementById('previewDireccion').classList.add('fw-bold', 'text-dark');
+                document.getElementById('inputDireccionEstructurada').value = direccionArmada;
+            } else {
+                document.getElementById('previewDireccion').textContent = "Diligencie los campos anteriores para armar la dirección...";
+                document.getElementById('previewDireccion').classList.add('text-muted', 'fst-italic');
+                document.getElementById('previewDireccion').classList.remove('fw-bold', 'text-dark');
+                document.getElementById('inputDireccionEstructurada').value = "";
+            }
+        }
+
+        function soloNumeros(e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+                return false;
+            }
+            return true;
+        }
+
+        function calcularToneladas() {
+            let kilos = parseFloat($("#txtCantidad").val());
+            if (!isNaN(kilos) && kilos > 0) {
+                let toneladas = kilos / 1000;
+                $("#lblConversionTon").text(`Equivalente: ${toneladas.toFixed(3)} Toneladas`);
+            } else {
+                $("#lblConversionTon").text("Equivalente: 0.00 Toneladas");
+            }
+        }
+
+        function cargarVariedades() {
+            var idTipo = $("#ddlTipoProducto").val();
+            var $ddlVariedad = $("#ddlVariedad");
+            $ddlVariedad.empty().append('<option value="">Cargando variedades...</option>');
+            $("#cardPrecioSugerido").addClass("d-none");
+
+            if (idTipo) {
+                $.getJSON('@Url.Action("ObtenerVariedadesPorTipo", "PublicarDemanda")', { idTipoProducto: idTipo }, function (data) {
+                    $ddlVariedad.empty().append('<option value="">Seleccione variedad...</option>');
+                    $.each(data, function (i, item) {
+                        $ddlVariedad.append($('<option>', { value: item.id, text: item.nombre }));
+                    });
+                });
+            } else {
+                $ddlVariedad.empty().append('<option value="">Seleccione variedad...</option>');
+            }
+        }
+
+        function consultarPrecioModelo() {
+            var idTipo = $("#ddlTipoProducto").val();
+            var idVariedad = $("#ddlVariedad").val();
+
+            if (idTipo && idVariedad) {
+                $.getJSON('@Url.Action("ObtenerPrecioEstimado", "PublicarDemanda")', { idTipoProducto: idTipo, idVariedad: idVariedad }, function (data) {
+                    if (data.exito) {
+                        precioMinPermitido = data.min;
+                        precioMaxPermitido = data.max;
+
+                        $("#txtPrecioSugerido").text(`Precio oficial: $${data.precio.toLocaleString()} COP / kg`);
+                        $("#txtRangoPermitido").text(`Rango permitido mayorista (±10%): $${data.min.toLocaleString()} - $${data.max.toLocaleString()} COP`);
+                        $("#cardPrecioSugerido").removeClass("d-none");
+                    } else {
+                        $("#cardPrecioSugerido").addClass("d-none");
+                    }
+                });
+            } else {
+                $("#cardPrecioSugerido").addClass("d-none");
+            }
+        }
+
+        function enviarDemandaAjax(event) {
+            event.preventDefault();
+
+            var precioIngresado = parseFloat($("#txtPrecioEstimado").val());
+            var cantidadIngresada = parseFloat($("#txtCantidad").val());
+
+            if (cantidadIngresada < 20) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cantidad insuficiente',
+                    text: 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.',
+                    confirmButtonColor: '#d33',
+                    background: '#f8f9fa',
+                    customClass: { popup: 'rounded-4 shadow-lg' }
+                });
+                return;
+            }
+
+            if (precioMinPermitido > 0 && precioMaxPermitido > 0) {
+                if (isNaN(precioIngresado) || precioIngresado < precioMinPermitido || precioIngresado > precioMaxPermitido) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Precio fuera de rango estadístico',
+                        text: `El precio ingresado debe estar dentro del margen del 10% permitido ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`,
+                        confirmButtonColor: '#d33',
+                        background: '#f8f9fa',
+                        customClass: { popup: 'rounded-4 shadow-lg' }
+                    });
+                    return;
+                }
+            }
+
+            Swal.fire({
+                title: '¿Está seguro de publicar esta demanda?',
+                text: "La demanda será registrada formalmente en la plataforma.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'SÍ, publicar',
+                cancelButtonText: 'NO',
+                background: '#f8f9fa',
+                customClass: { popup: 'rounded-4 shadow-lg' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var formData = $('#formPublicarDemanda').serialize();
+
+                    $.ajax({
+                        url: '@Url.Action("GuardarAjax", "PublicarDemanda")',
+                        type: 'POST',
+                        data: formData,
+                        success: function (response) {
+                            if (response.exito) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Publicación exitosa!',
+                                    text: response.mensaje,
+                                    confirmButtonColor: '#198754',
+                                    background: '#f8f9fa',
+                                    customClass: { popup: 'rounded-4 shadow-lg' }
+                                }).then(() => {
+                                    window.location.href = response.redirectUrl;
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error de validación',
+                                    text: response.error,
+                                    confirmButtonColor: '#d33',
+                                    background: '#f8f9fa',
+                                    customClass: { popup: 'rounded-4 shadow-lg' }
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error de servidor',
+                                text: 'Ocurrió un error inesperado al procesar la solicitud.',
+                                confirmButtonColor: '#d33',
+                                background: '#f8f9fa',
+                                customClass: { popup: 'rounded-4 shadow-lg' }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}
