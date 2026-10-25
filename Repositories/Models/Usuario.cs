@@ -13,7 +13,7 @@ public partial class Usuario
 
     public string CorreoUsu { get; set; } = null!;
 
-    public string ContrasenaUsu { get; set; } = null!;
+    public string? ContrasenaUsu { get; set; }
 
     public int CedulaUsu { get; set; }
 

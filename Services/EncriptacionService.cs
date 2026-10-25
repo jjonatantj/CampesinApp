@@ -1,75 +1,30 @@
-﻿using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace CampesinApp.Services
 {
     public static class EncriptacionService
     {
-        // Clave de 32 bytes exactos (256 bits) para AES-256
-        private static readonly byte[] KeyBytes = Encoding.UTF8.GetBytes("CampesinAppKey2026SecretSystem!!");
+        private static readonly PasswordHasher<string> _passwordHasher = new PasswordHasher<string>();
 
-        // IV de 16 bytes exactos (128 bits) -> Garantiza que no falle la propiedad aes.IV
-        private static readonly byte[] IvBytes = new byte[16] {
-            0x43, 0x61, 0x6d, 0x70, 0x65, 0x73, 0x69, 0x6e,
-            0x41, 0x70, 0x70, 0x49, 0x56, 0x32, 0x30, 0x32
-        }; // Representa la cadena "CampesinAppIV202" en 16 bytes fijos
-
+        // Genera un hash seguro con sal aleatoria (PBKDF2)
         public static string Encriptar(string textoPlano)
         {
             if (string.IsNullOrEmpty(textoPlano)) return string.Empty;
 
-            using (Aes aes = Aes.Create())
-            {
-                aes.Key = KeyBytes;
-                aes.IV = IvBytes; // Asignación segura de 16 bytes
-
-                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter sw = new StreamWriter(cs))
-                        {
-                            sw.Write(textoPlano);
-                        }
-                    }
-                    return Convert.ToBase64String(ms.ToArray());
-                }
-            }
+            // El primer parámetro es un objeto dummy (string vacío), ya que usamos el hasher solo para texto de contraseña
+            return _passwordHasher.HashPassword(string.Empty, textoPlano);
         }
 
-        public static string Desencriptar(string textoEncriptado)
+        // Comprueba de forma segura si la contraseña ingresada coincide con el hash almacenado
+        public static bool Verificar(string hashedPassword, string providedPassword)
         {
-            if (string.IsNullOrEmpty(textoEncriptado)) return string.Empty;
+            if (string.IsNullOrEmpty(hashedPassword) || string.IsNullOrEmpty(providedPassword))
+                return false;
 
-            try
-            {
-                using (Aes aes = Aes.Create())
-                {
-                    aes.Key = KeyBytes;
-                    aes.IV = IvBytes;
+            var result = _passwordHasher.VerifyHashedPassword(string.Empty, hashedPassword, providedPassword);
 
-                    ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-
-                    using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(textoEncriptado)))
-                    {
-                        using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                        {
-                            using (StreamReader sr = new StreamReader(cs))
-                            {
-                                return sr.ReadToEnd();
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                return string.Empty;
-            }
+            // Retorna true si coincide (puede requerir rehash, pero para efectos prácticos evaluamos Success o SuccessRehashNeeded)
+            return result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded;
         }
     }
 }

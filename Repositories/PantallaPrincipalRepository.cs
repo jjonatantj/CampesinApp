@@ -1,9 +1,6 @@
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace CampesinApp.Repositories
 {
@@ -37,7 +34,7 @@ namespace CampesinApp.Repositories
                 query = query.Where(p => p.IdTipoProductoNavigation.Producto == categoria);
             }
 
-            // Agrupación optimizada a nivel de Servidor SQL
+            // Garantiza que solo se obtenga el precio más reciente de la bitácora (CU-029)
             var ultimosPreciosIds = query
                 .GroupBy(p => new { p.IdTipoProducto, p.IdVariedad })
                 .Select(g => g.Max(p => p.IdPrecioEstimado))

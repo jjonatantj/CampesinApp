@@ -72,8 +72,6 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
-
         modelBuilder.Entity<AlertaGuardadum>(entity =>
         {
             entity.HasKey(e => e.IdAlertaGuardada);
@@ -197,14 +195,11 @@ public partial class Campesinapp3Context : DbContext
 
             entity.Property(e => e.IdDatoDane).HasColumnName("id_Dato_Dane");
             entity.Property(e => e.FechaDato).HasColumnName("fecha_Dato");
-            entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
-            entity.Property(e => e.PrecioDato).HasColumnName("precio_Dato");
-
-            entity.HasOne(d => d.IdTipoProductoNavigation).WithMany(p => p.DatoDanes)
-                .HasForeignKey(d => d.IdTipoProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_dato_Dane_tipo_Producto");
+            entity.Property(e => e.PrecioCorabastos)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("precio_Corabastos");
+            entity.Property(e => e.PrecioDane).HasColumnName("precio_Dane");
 
             entity.HasOne(d => d.IdVariedadNavigation).WithMany(p => p.DatoDanes)
                 .HasForeignKey(d => d.IdVariedad)
@@ -756,7 +751,6 @@ public partial class Campesinapp3Context : DbContext
                 .HasColumnName("apellido_com");
             entity.Property(e => e.CedulaUsu).HasColumnName("cedula_Usu");
             entity.Property(e => e.ContrasenaUsu)
-                .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("contrasena_Usu");
             entity.Property(e => e.CorreoUsu)

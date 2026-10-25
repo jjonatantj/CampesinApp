@@ -4,6 +4,7 @@ using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
 using System.Linq;
+using System;
 
 namespace CampesinApp.Controllers
 {
@@ -11,14 +12,16 @@ namespace CampesinApp.Controllers
     public class RegistroAdminController : Controller
     {
         private readonly Campesinapp3Context _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public RegistroAdminController(Campesinapp3Context context)
+        public RegistroAdminController(Campesinapp3Context context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(bool? exito)
         {
             int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
             if (idUsuario == null)
@@ -32,8 +35,11 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Index", "Perfil");
             }
 
-            // LIMPIAR EXPLICITAMENTE EL TEMPጌDATA PARA QUE EL MODAL NO APAREZCA SOLO AL ENTRAR
-            TempData.Remove("MensajeExito");
+            // El modal solo se activa si la URL trae el parámetro de éxito
+            if (exito == true)
+            {
+                ViewBag.MostrarModalExito = true;
+            }
 
             var model = new RegistroAdminViewModel();
             return View("RegistroAdmin", model);
@@ -55,7 +61,6 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Index", "Perfil");
             }
 
-            // RN-1-CU003: Valida que cédula o correo no existan previamente
             if (long.TryParse(model.Cedula, out long cedulaLong))
             {
                 if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaLong))
@@ -71,10 +76,10 @@ namespace CampesinApp.Controllers
 
             if (ModelState.IsValid)
             {
-                // CORRECCIÓN: Usar long.TryParse para conservar el teléfono completo de 10 dígitos (con el '3' al inicio)
                 long.TryParse(model.Telefono, out long telefonoLong);
-
                 int idMunicipioDefecto = _context.Municipios.Select(m => m.IdMunicipio).FirstOrDefault();
+
+                string passwordTemporal = "Admin" + new Random().Next(1000, 9999);
 
                 var nuevoAdmin = new Usuario
                 {
@@ -82,9 +87,9 @@ namespace CampesinApp.Controllers
                     ApellidoCom = model.Apellidos,
                     CedulaUsu = int.Parse(model.Cedula),
                     CorreoUsu = model.Correo,
-                    TelelfonoUsu = telefonoLong, // Guardado completo para BIGINT
-                    ContrasenaUsu = EncriptacionService.Encriptar(model.Contrasena), // Encriptación de contraseña
-                    IdRol = 4, // Rol Administrador
+                    TelelfonoUsu = telefonoLong,
+                    ContrasenaUsu = EncriptacionService.Encriptar(passwordTemporal),
+                    IdRol = 4,
                     IdMunicipio = idMunicipioDefecto,
                     Estado = true,
                     Imagen = "admin.jpg"
@@ -93,12 +98,21 @@ namespace CampesinApp.Controllers
                 _context.Usuarios.Add(nuevoAdmin);
                 _context.SaveChanges();
 
-                // Notificación por correo institucional en formato HTML limpio
-                EmailService.EnviarNotificacionAdmin(model.Correo, model.Nombres);
+                var logPendiente = new LogSistema
+                {
+                    Fecha = DateTime.Now,
+                    Nivel = "INFO",
+                    IdUsuario = nuevoAdmin.IdUsuario,
+                    Origen = "RegistroAdmin",
+                    Mensaje = "CAMBIO_CONTRASENA_PENDIENTE"
+                };
+                _context.LogSistemas.Add(logPendiente);
+                _context.SaveChanges();
+                // Enviar la notificación por correo con la cédula y la contraseña temporal generada
+                EmailService.EnviarNotificacionAdmin(model.Correo, model.Nombres, model.Cedula, passwordTemporal, _environment);
 
-                // Mensaje flotante según la especificación CU-003
-                TempData["MensajeExito"] = "Usuario administrador creado con éxito";
-                return RedirectToAction("Index", "RegistroAdmin");
+                // Redirigir enviando el indicador de éxito en la URL de forma segura
+                return RedirectToAction("Index", new { exito = true });
             }
 
             return View("RegistroAdmin", model);
