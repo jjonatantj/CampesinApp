@@ -128,6 +128,7 @@ namespace CampesinApp.Repositories
                 .Select(p => new ProductoOfertaItem
                 {
                     Id = p.IdProducto,
+                    IdUsuario = p.IdUsuario,
                     NombreProducto = p.IdTipoProductoNavigation.Producto,
                     UbicacionCultivo = p.UbicacionCultivo,
                     ImagenUrl = string.IsNullOrEmpty(p.ImagenProduc) ? "" : p.ImagenProduc

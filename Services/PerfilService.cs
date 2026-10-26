@@ -334,7 +334,7 @@ namespace CampesinApp.Services
             RolUsuario.Campesino => new List<OpcionPerfilDto>
             {
                 new() { Texto = "Mi perfil", Icono = "bi-person-vcard", UrlPagina = $"/Perfil/ConsultaPerfilCampesino/{idUsuario}" },
-                new() { Texto = "Perfil de pago", Icono = "bi-wallet2" },
+                new() { Texto = "Perfil de pago", Icono = "bi-wallet2", UrlPagina = "/PerfilPago" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
                 new() { Texto = "Historial ventas", Icono = "bi-receipt", UrlPagina = "/Historial/Transacciones" },
                 new() { Texto = "Mis pedidos", Icono = "bi-box-seam", UrlModal = "/Pedidos/Lista", Estilo = "principal" }
@@ -342,9 +342,9 @@ namespace CampesinApp.Services
             RolUsuario.Comprador => new List<OpcionPerfilDto>
             {
                 new() { Texto = "Publicar demanda", Icono = "bi-megaphone", UrlPagina = "/PublicarDemanda" },
-                new() { Texto = "Perfil de pago", Icono = "bi-wallet2" },
+                new() { Texto = "Perfil de pago", Icono = "bi-wallet2", UrlPagina = "/PerfilPago" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
-                new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/catalogo/Index" },
+                new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/ConsultaOfertadores" },
                 new() { Texto = "Historial de ventas", Icono = "bi-receipt", UrlPagina = "/Historial/Transacciones" },
                 new() { Texto = "Mis pedidos", Icono = "bi-box-seam", UrlModal = "/Pedidos/Lista", Estilo = "principal" }
             },
@@ -352,7 +352,7 @@ namespace CampesinApp.Services
             {
                 new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar", Estilo = "principal" },
                 new() { Texto = "Consultar Mis Viajes", Icono = "bi-truck", UrlModal = "/Transporte/MisViajes", Estilo = "principal" },
-                new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/catalogo/Index" }
+                new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/ConsultaOfertadores" }
             },
             RolUsuario.Administrador => new List<OpcionPerfilDto>
             {

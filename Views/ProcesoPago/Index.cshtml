@@ -1,0 +1,200 @@
+@model CampesinApp.ViewModels.ProcesoPagoViewModel
+
+@{
+    ViewData["Title"] = "Proceso de Pagos";
+    Layout = "_LayoutCasosUso";
+}
+
+<!-- Librería de iconos Bootstrap integrada en el proyecto -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<div class="container py-4 my-4">
+    <div class="main-container p-4 p-md-5 rounded-4 shadow-sm bg-white mx-auto" style="max-width: 820px;">
+
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO DE LA VISTA                                         -->
+        <!-- ============================================================== -->
+        <div class="d-flex align-items-center mb-4 pb-2 border-bottom">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-cash-coin fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Proceso de Pagos</h1>
+                <p class="text-muted mb-0 fw-semibold">
+                    Confirmación y custodia segura de fondos para la demanda de productos agrícolas.
+                </p>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- ALERTA INFORMATIVA: PAGO PROTEGIDO                             -->
+        <!-- ============================================================== -->
+        <div class="alert alert-success shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" style="background-color: #f1f8e9; color: #2e7d32;" role="alert">
+            <i class="bi bi-shield-lock-fill fs-3 me-3 text-success"></i>
+            <div class="flex-grow-1 small">
+                <strong>Pago Protegido:</strong> El dinero se debita y permanece custodiado de forma segura en CampesinApp. Ningún desembolso se realiza al campesino ni al transportador hasta que la entrega física de la cosecha sea confirmada y recibida a total conformidad.
+            </div>
+        </div>
+
+        <!-- Resumen de errores si existen -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger shadow-sm rounded-4 mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes detalles:</h6>
+                <div asp-validation-summary="All" class="small mb-0"></div>
+            </div>
+        }
+
+        <!-- ============================================================== -->
+        <!-- TARJETA CON EL RESUMEN DEL PEDIDO A PAGAR                      -->
+        <!-- ============================================================== -->
+        <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                <i class="bi bi-receipt me-1"></i> Resumen de la Orden @(Model.IdDemanda > 0 ? $"(Demanda #{Model.IdDemanda})" : "")
+            </h5>
+
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <span class="text-muted small d-block">Producto y Variedad:</span>
+                    <strong class="text-dark fs-6">@Model.NombreProducto - @Model.NombreVariedad</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small d-block">Punto de Entrega:</span>
+                    <strong class="text-dark fs-6">@Model.DireccionEntrega</strong>
+                </div>
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block">Cantidad Requerida:</span>
+                    <strong class="text-dark fs-6">@Model.CantidadKilos.ToString("N0") Kg</strong>
+                </div>
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block">Precio por Kilo:</span>
+                    <strong class="text-dark fs-6">$@Model.PrecioPorKilo.ToString("N0") COP</strong>
+                </div>
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block">Fecha Estimada de Entrega:</span>
+                    <strong class="text-dark fs-6">@Model.FechaEntrega.ToString("dd/MM/yyyy")</strong>
+                </div>
+            </div>
+
+            <!-- Total a Pagar destacado -->
+            <div class="mt-4 p-3 rounded-4 border d-flex justify-content-between align-items-center" style="background-color: #f9fbf9;">
+                <div>
+                    <span class="fw-bold text-dark d-block">Valor Total a Pagar (100%):</span>
+                    <small class="text-muted">Valor total retenido para aportes campesinos y logística</small>
+                </div>
+                <div class="text-end">
+                    <span class="fs-3 fw-bold text-success" style="color: #1b5e20;">$@Model.ValorTotalPagar.ToString("N0") COP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- FORMULARIO DE CONFIRMACIÓN DE PAGO                             -->
+        <!-- ============================================================== -->
+        <form asp-controller="ProcesoPago" asp-action="ConfirmarPago" method="post" id="formProcesoPago" novalidate autocomplete="off">
+            @Html.AntiForgeryToken()
+
+            <!-- Campos ocultos de la demanda -->
+            <input type="hidden" asp-for="IdDemanda" />
+            <input type="hidden" id="deviceSessionId" name="DeviceSessionId" />
+
+            <div class="mb-4">
+                <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                    <i class="bi bi-credit-card me-1"></i> Selección del Medio de Pago
+                </h5>
+
+                <label asp-for="IdPerfilPagoSeleccionado" class="form-label fw-bold small text-dark">
+                    Método de Pago Registrado *
+                </label>
+                <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-2">
+                    <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-wallet2"></i></span>
+                    <select asp-for="IdPerfilPagoSeleccionado" asp-items="Model.ListaMetodosPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMetodoPago" required>
+                        <option value="">-- Selecciona el medio de pago para la transacción --</option>
+                    </select>
+                </div>
+                <small class="text-muted ms-2">
+                    ¿Deseas usar otra tarjeta o cuenta bancaria? Puedes agregarla en <a asp-controller="PerfilPago" asp-action="Index" class="text-success fw-semibold">Perfil de Pago</a>.
+                </small>
+                <span asp-validation-for="IdPerfilPagoSeleccionado" class="text-danger small ms-2 d-block"></span>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- BOTONES DE ACCIÓN: Cancelar y Confirmar Pago                   -->
+            <!-- ============================================================== -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
+                <a asp-controller="PublicarDemanda" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                </a>
+
+                <button type="button" class="btn btn-success px-5 py-2 fw-bold rounded-pill text-white shadow-sm" id="btnConfirmarPago" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    <i class="bi bi-check-circle me-1"></i> Confirmar Pago
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL DE CONFIRMACIÓN DEL PAGO                                -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalConfirmarPagoModal" tabindex="-1" aria-labelledby="modalConfirmarPagoModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header text-white" style="background-color: #2e7d32;">
+                <h5 class="modal-title fw-bold" id="modalConfirmarPagoModalLabel">
+                    <i class="bi bi-cash-stack me-2"></i>Confirmación de Transacción
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 bg-white">
+                <p class="text-dark mb-3">
+                    ¿Confirmas el débito y retención del 100% del pedido por un valor de:
+                </p>
+                <div class="p-3 bg-light rounded-3 text-center mb-3">
+                    <span class="fs-4 fw-bold text-success">$@Model.ValorTotalPagar.ToString("N0") COP</span>
+                </div>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i> El dinero quedará custodiado por CampesinApp hasta que el pedido sea entregado a conformidad.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btnEjecutarPagoFinal" class="btn btn-success rounded-pill px-4 fw-bold text-white" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    Pagar Ahora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+            const btnConfirmarPago = document.getElementById("btnConfirmarPago");
+            const btnEjecutarPagoFinal = document.getElementById("btnEjecutarPagoFinal");
+            const selectMetodoPago = document.getElementById("selectMetodoPago");
+            const modalElement = new bootstrap.Modal(document.getElementById("modalConfirmarPagoModal"));
+            const form = document.getElementById("formProcesoPago");
+
+            btnConfirmarPago.addEventListener("click", function () {
+                if (!selectMetodoPago.value) {
+                    alert("Por favor selecciona un método de pago registrado para continuar.");
+                    return;
+                }
+                modalElement.show();
+            });
+
+            btnEjecutarPagoFinal.addEventListener("click", function () {
+                btnEjecutarPagoFinal.disabled = true;
+                btnEjecutarPagoFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando pago seguro...';
+                form.submit();
+            });
+        });
+    </script>
+}
+

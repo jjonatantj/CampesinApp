@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CampesinApp.Controllers
 {
@@ -58,10 +59,9 @@ namespace CampesinApp.Controllers
         [HttpGet("ObtenerPrecioEstimado")]
         public async Task<IActionResult> ObtenerPrecioEstimado(int idTipoProducto, int idVariedad)
         {
-            // Buscamos el precio más reciente ordenando por fecha de forma descendente (.FirstOrDefault trae el último insertado)
             var precioEst = await _context.PrecioEstimados
                 .Where(p => p.IdTipoProducto == idTipoProducto && p.IdVariedad == idVariedad)
-                .OrderByDescending(p => p.FechaPreci) // <-- Esto garantiza que traiga siempre el más actual de la bitácora
+                .OrderByDescending(p => p.FechaPreci)
                 .FirstOrDefaultAsync();
 
             if (precioEst == null)
@@ -88,7 +88,6 @@ namespace CampesinApp.Controllers
                 return Json(new { exito = false, error = errorMensaje });
             }
 
-            // Obtener el ID del usuario correctamente desde la sesión (es un entero)
             int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
 
             if (idUsuarioSesion == 0)
@@ -110,25 +109,32 @@ namespace CampesinApp.Controllers
                 fechaHoraLimite = fechaHoraLimite.Add(timeLimite);
             }
 
-            var nuevaDemanda = new Demandum
+            // Guardamos el pedido en memoria de sesión como borrador validado.
+            // NO se inserta en la base de datos hasta que el comprador pague el 100% en ProcesoPago (CU-017).
+            // Esto evita que pedidos no pagados o con pago rechazado queden registrados en el sistema.
+            var borrador = new BorradorDemandaDto
             {
-                IdUsuario = idUsuarioSesion, 
+                IdUsuario = idUsuarioSesion,
                 IdTipoProducto = model.IdTipoProducto,
                 IdVariedad = model.IdVariedad,
-                CantidadDeman = (int)model.Cantidad,
-                PrecioDeman = (double)model.PrecioEstimado,
+                Cantidad = (int)model.Cantidad,
+                PrecioEstimado = (double)model.PrecioEstimado,
                 FechaEntrega = fechaHoraEntrega,
                 LimTiemDeman = fechaHoraLimite,
-                DescripcionDeman = model.Descripcion,
+                Descripcion = model.Descripcion ?? string.Empty,
                 IdPuntoAcopio = model.IdPuntoAcopio,
-                DireccionInicial = model.DireccionEstructurada,
-                IdEstadoDeman = 1 // Estado inicial
+                DireccionInicial = model.DireccionEstructurada ?? string.Empty
             };
 
-            _context.Demanda.Add(nuevaDemanda);
-            _context.SaveChanges();
+            HttpContext.Session.SetString("DemandaBorrador", JsonSerializer.Serialize(borrador));
 
-            return Json(new { exito = true, mensaje = "Demanda publicada con éxito.", redirectUrl = Url.Action("Index", "PantallaPrincipal") });
+            return Json(new
+            {
+                exito = true,
+                mensaje = "Información del pedido validada. Procediendo a la confirmación del pago...",
+                redirectUrl = Url.Action("Index", "ProcesoPago")
+            });
         }
     }
+}
 }

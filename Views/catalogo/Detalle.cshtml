@@ -256,7 +256,7 @@
                 @if (Model.CompradorId > 0)
                 {
                     <div class="text-center mb-1">
-                        <a asp-controller="Perfil" asp-action="Consulta" asp-route-id="@Model.CompradorId" class="small text-decoration-none fw-bold" style="color: var(--pf-a);">
+                        <a asp-controller="ConsultaPerfil" asp-action="Index" asp-route-id="@Model.CompradorId" asp-route-rol="Comprador" class="small text-decoration-none fw-bold" style="color: var(--pf-a);">
                             Ver perfil público completo <i class="bi bi-arrow-right"></i>
                         </a>
                     </div>
