@@ -1,4 +1,4 @@
-﻿@model CampesinApp.ViewModels.PublicarDemandaViewModel
+@model CampesinApp.ViewModels.PublicarDemandaViewModel
 
 @{
     ViewData["Title"] = "Publicar Demanda - CampesinApp";
@@ -164,7 +164,11 @@
 </div>
 
 @section Scripts {
+    <!-- Inclusión garantizada de jQuery y SweetAlert2 -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="https://code.jquery.com/jquery-3.6.4.min.js"><\/script>')</script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         let precioMinPermitido = 0;
         let precioMaxPermitido = 0;
@@ -178,14 +182,17 @@
             const hoy = new Date();
             const minEntrega = new Date(hoy);
             minEntrega.setDate(hoy.getDate() + 1);
-            document.getElementById('txtFechaEntrega').min = minEntrega.toISOString().split('T')[0];
+            const inputFechaEntrega = document.getElementById('txtFechaEntrega');
+            if (inputFechaEntrega) {
+                inputFechaEntrega.min = minEntrega.toISOString().split('T')[0];
+            }
         }
 
         function validarFechas() {
             const valEntrega = document.getElementById('txtFechaEntrega').value;
             const inputLimite = document.getElementById('txtFechaLimite');
 
-            if (valEntrega) {
+            if (valEntrega && inputLimite) {
                 let fechaEnt = new Date(valEntrega);
                 fechaEnt.setDate(fechaEnt.getDate() + 3);
                 const strMinLimite = fechaEnt.toISOString().split('T')[0];
@@ -198,11 +205,19 @@
         }
 
         function actualizarDireccion() {
-            const tipo = document.getElementById('txtTipoVia').value;
-            const num = document.getElementById('txtNumeroVia').value.trim();
-            const letra = document.getElementById('txtLetraBis').value.trim();
-            const cruce = document.getElementById('txtCruce').value.trim();
-            const placa = document.getElementById('txtPlaca').value.trim();
+            const elTipo = document.getElementById('txtTipoVia');
+            const elNum = document.getElementById('txtNumeroVia');
+            const elLetra = document.getElementById('txtLetraBis');
+            const elCruce = document.getElementById('txtCruce');
+            const elPlaca = document.getElementById('txtPlaca');
+
+            if (!elTipo || !elNum || !elLetra || !elCruce || !elPlaca) return;
+
+            const tipo = elTipo.value;
+            const num = elNum.value.trim();
+            const letra = elLetra.value.trim();
+            const cruce = elCruce.value.trim();
+            const placa = elPlaca.value.trim();
 
             let direccionArmada = "";
             if (num) {
@@ -246,9 +261,15 @@
             if (idTipo) {
                 $.getJSON('@Url.Action("ObtenerVariedadesPorTipo", "PublicarDemanda")', { idTipoProducto: idTipo }, function (data) {
                     $ddlVariedad.empty().append('<option value="">Seleccione variedad...</option>');
-                    $.each(data, function (i, item) {
-                        $ddlVariedad.append($('<option>', { value: item.id, text: item.nombre }));
-                    });
+                    if (data && data.length > 0) {
+                        $.each(data, function (i, item) {
+                            $ddlVariedad.append($('<option>', { value: item.id, text: item.nombre }));
+                        });
+                    } else {
+                        $ddlVariedad.append('<option value="" disabled>(No hay variedades registradas para este producto)</option>');
+                    }
+                }).fail(function () {
+                    $ddlVariedad.empty().append('<option value="">Error al cargar variedades</option>');
                 });
             } else {
                 $ddlVariedad.empty().append('<option value="">Seleccione variedad...</option>');
@@ -261,7 +282,7 @@
 
             if (idTipo && idVariedad) {
                 $.getJSON('@Url.Action("ObtenerPrecioEstimado", "PublicarDemanda")', { idTipoProducto: idTipo, idVariedad: idVariedad }, function (data) {
-                    if (data.exito) {
+                    if (data && data.exito) {
                         precioMinPermitido = data.min;
                         precioMaxPermitido = data.max;
 
@@ -271,9 +292,29 @@
                     } else {
                         $("#cardPrecioSugerido").addClass("d-none");
                     }
+                }).fail(function () {
+                    $("#cardPrecioSugerido").addClass("d-none");
                 });
             } else {
                 $("#cardPrecioSugerido").addClass("d-none");
+            }
+        }
+
+        function mostrarAlerta(tipo, titulo, texto, callback) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: tipo,
+                    title: titulo,
+                    text: texto,
+                    confirmButtonColor: (tipo === 'success' ? '#198754' : '#d33'),
+                    background: '#f8f9fa',
+                    customClass: { popup: 'rounded-4 shadow-lg' }
+                }).then(() => {
+                    if (callback) callback();
+                });
+            } else {
+                alert(`${titulo}\n\n${texto}`);
+                if (callback) callback();
             }
         }
 
@@ -283,87 +324,62 @@
             var precioIngresado = parseFloat($("#txtPrecioEstimado").val());
             var cantidadIngresada = parseFloat($("#txtCantidad").val());
 
-            if (cantidadIngresada < 20) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Cantidad insuficiente',
-                    text: 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.',
-                    confirmButtonColor: '#d33',
-                    background: '#f8f9fa',
-                    customClass: { popup: 'rounded-4 shadow-lg' }
-                });
+            if (isNaN(cantidadIngresada) || cantidadIngresada < 20) {
+                mostrarAlerta('error', 'Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.');
                 return;
             }
 
             if (precioMinPermitido > 0 && precioMaxPermitido > 0) {
                 if (isNaN(precioIngresado) || precioIngresado < precioMinPermitido || precioIngresado > precioMaxPermitido) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Precio fuera de rango estadístico',
-                        text: `El precio ingresado debe estar dentro del margen del 10% permitido ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`,
-                        confirmButtonColor: '#d33',
-                        background: '#f8f9fa',
-                        customClass: { popup: 'rounded-4 shadow-lg' }
-                    });
+                    mostrarAlerta('error', 'Precio fuera de rango estadístico', `El precio ingresado debe estar dentro del margen del 10% permitido ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`);
                     return;
                 }
             }
 
-            Swal.fire({
-                title: '¿Está seguro de publicar esta demanda?',
-                text: "La demanda será registrada formalmente en la plataforma.",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#198754',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'SÍ, publicar',
-                cancelButtonText: 'NO',
-                background: '#f8f9fa',
-                customClass: { popup: 'rounded-4 shadow-lg' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    var formData = $('#formPublicarDemanda').serialize();
+            const procesarGuardado = function () {
+                var formData = $('#formPublicarDemanda').serialize();
 
-                    $.ajax({
-                        url: '@Url.Action("GuardarAjax", "PublicarDemanda")',
-                        type: 'POST',
-                        data: formData,
-                        success: function (response) {
-                            if (response.exito) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: '¡Publicación exitosa!',
-                                    text: response.mensaje,
-                                    confirmButtonColor: '#198754',
-                                    background: '#f8f9fa',
-                                    customClass: { popup: 'rounded-4 shadow-lg' }
-                                }).then(() => {
-                                    window.location.href = response.redirectUrl;
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error de validación',
-                                    text: response.error,
-                                    confirmButtonColor: '#d33',
-                                    background: '#f8f9fa',
-                                    customClass: { popup: 'rounded-4 shadow-lg' }
-                                });
-                            }
-                        },
-                        error: function () {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error de servidor',
-                                text: 'Ocurrió un error inesperado al procesar la solicitud.',
-                                confirmButtonColor: '#d33',
-                                background: '#f8f9fa',
-                                customClass: { popup: 'rounded-4 shadow-lg' }
+                $.ajax({
+                    url: '@Url.Action("GuardarAjax", "PublicarDemanda")',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.exito) {
+                            mostrarAlerta('success', '¡Pedido Validado!', response.mensaje, function () {
+                                window.location.href = response.redirectUrl;
                             });
+                        } else {
+                            mostrarAlerta('error', 'Error de validación', response.error || 'Verifique los campos obligatorios.');
                         }
-                    });
+                    },
+                    error: function () {
+                        mostrarAlerta('error', 'Error de servidor', 'Ocurrió un error inesperado al procesar la solicitud.');
+                    }
+                });
+            };
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Confirmar solicitud del pedido?',
+                    text: "Pasarás a la pasarela de pago seguro para completar y activar tu demanda.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Continuar al Pago',
+                    cancelButtonText: 'Cancelar',
+                    background: '#f8f9fa',
+                    customClass: { popup: 'rounded-4 shadow-lg' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        procesarGuardado();
+                    }
+                });
+            } else {
+                if (confirm('¿Confirmar solicitud del pedido?\n\nPasarás a la pasarela de pago seguro para completar y activar tu demanda.')) {
+                    procesarGuardado();
                 }
-            });
+            }
         }
     </script>
 }

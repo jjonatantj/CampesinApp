@@ -1,0 +1,508 @@
+@model CampesinApp.ViewModels.ConsultaPerfilViewModel
+@{
+    ViewData["Title"] = $"Perfil de {Model.NombreCompleto} - CampesinApp";
+    Layout = "_LayoutCasosUso";
+
+    bool esComprador = string.Equals(Model.Rol, "Comprador", StringComparison.OrdinalIgnoreCase);
+
+    // Determinación de clases de tema basadas en el rol (estándar visual del proyecto)
+    var temaRol = Model.Rol.ToLowerInvariant() switch
+    {
+        "campesino" => "pf-campesino",
+        "comprador" => "pf-comprador",
+        "transportador" => "pf-transportador",
+        _ => "pf-admin"
+    };
+
+    var iconoRol = Model.Rol.ToLowerInvariant() switch
+    {
+        "campesino" => "bi-flower2",
+        "comprador" => "bi-shop",
+        "transportador" => "bi-truck",
+        _ => "bi-shield-check"
+    };
+
+    string encabezadoCol1 = esComprador ? "Venta" : "Producto";
+}
+
+<div class="container main-container py-4 my-4 rounded-4 pf @temaRol">
+
+    <!-- ============================================================== -->
+    <!-- ENCABEZADO DE NAVEGACIÓN SUPERIOR (FA-04-CU015)                -->
+    <!-- ============================================================== -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm" onclick="history.back()">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </button>
+        <span class="pf-etiqueta px-3 py-1 rounded-pill fw-bold">
+            <i class="bi @iconoRol me-1"></i> Perfil de @Model.Rol
+        </span>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ESTRUCTURA PRINCIPAL DIVIDIDA (SPLIT SCREEN - SEGÚN MOCKUP)    -->
+    <!-- Lado Izquierdo: Identidad / Lado Derecho: Pestañas Interactivas-->
+    <!-- ============================================================== -->
+    <div class="row g-4">
+
+        <!-- ---------------------------------------------------------- -->
+        <!-- LADO IZQUIERDO: Avatar, Nombre, Rol, Estado y Volver        -->
+        <!-- ---------------------------------------------------------- -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-4 bg-white h-100 position-relative overflow-hidden">
+                
+                <!-- Decoración visual superior -->
+                <div class="pf-banner position-absolute top-0 start-0 w-100" style="height: 100px;">
+                    <span class="pf-hoja pf-hoja-1"></span>
+                    <span class="pf-hoja pf-hoja-2"></span>
+                </div>
+
+                <!-- Foto de Perfil o Iniciales -->
+                <div class="d-flex justify-content-center mb-3 position-relative" style="margin-top: 35px;">
+                    @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                    {
+                        <img src="@Model.FotoUrl" alt="Foto de @Model.NombreCompleto" 
+                             class="rounded-circle shadow border border-4 border-white" 
+                             style="width: 120px; height: 120px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="pf-avatar pf-avatar-iniciales shadow border border-4 border-white d-flex align-items-center justify-content-center fw-bold" 
+                             style="width: 120px; height: 120px; font-size: 2.8rem; border-radius: 50%;">
+                            @Model.Iniciales
+                        </div>
+                    }
+                </div>
+
+                <!-- Nombre y Rol (según Mockup: "NOMBRE: [Nombre]") -->
+                <small class="text-muted text-uppercase fw-bold d-block">Nombre:</small>
+                <h3 class="fw-bold text-dark mb-1">@Model.NombreCompleto</h3>
+                <p class="text-muted mb-2">
+                    <span class="badge @(esComprador ? "bg-primary" : "bg-success") rounded-pill px-3 py-1">
+                        <i class="bi @iconoRol me-1"></i>@Model.Rol
+                    </span>
+                </p>
+
+                <!-- Calificación Resumida en Estrellas -->
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                    <span class="text-warning fs-5">
+                        <i class="bi bi-star-fill"></i>
+                    </span>
+                    <span class="fw-bold fs-5 text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                    <span class="text-muted small">(@Model.TotalResenas reseñas)</span>
+                </div>
+
+                <hr class="my-3 text-muted" />
+
+                <!-- Regla RN-05: El Administrador puede ver el estado de la cuenta -->
+                @if (Model.EsAdmin)
+                {
+                    <div class="p-3 bg-light rounded-4 mb-3 border text-start">
+                        <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                            <i class="bi bi-shield-lock me-1"></i> Auditoría Admin (RN-05)
+                        </small>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Estado de la Cuenta:</span>
+                            <span class="badge @(Model.EstadoCuenta == "Activo" ? "bg-success" : "bg-danger") rounded-pill px-3 py-1">
+                                @Model.EstadoCuenta
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.CedulaExacta))
+                        {
+                            <div class="d-flex justify-content-between align-items-center mt-2 small">
+                                <span class="text-muted">Cédula Oficial:</span>
+                                <span class="fw-bold text-dark">@Model.CedulaExacta</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+
+
+                <!-- Botón Volver (Mockups 1, 2 y 3: botón debajo de la foto) -->
+                <div class="mt-auto pt-3">
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill py-2 fw-semibold shadow-sm" onclick="history.back()">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ---------------------------------------------------------- -->
+        <!-- LADO DERECHO: Barra de Pestañas (Tabs) e Información       -->
+        <!-- ---------------------------------------------------------- -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+
+                <!-- Barra de Pestañas (Tabs) interactiva -->
+                <ul class="nav nav-pills mb-4 border-bottom pb-3 gap-2" id="perfilTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-pill px-4 fw-semibold" 
+                                id="tab-info-btn" 
+                                type="button" 
+                                onclick="cambiarPestana('tab-info')">
+                            <i class="bi bi-info-circle me-1"></i> Información General
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill px-4 fw-semibold" 
+                                id="tab-productos-btn" 
+                                type="button" 
+                                onclick="cambiarPestana('tab-productos')">
+                            <i class="bi @(esComprador ? "bi-cart-check" : "bi-basket") me-1"></i> @Model.TituloPestana2
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- ============================================================== -->
+                <!-- CONTENIDO PESTAÑA 1: INFORMACIÓN GENERAL (MOCKUP 1)            -->
+                <!-- ============================================================== -->
+                <div id="tab-info" class="pestana-contenido">
+                    <h5 class="fw-bold text-dark mb-4">
+                        <i class="bi bi-card-text text-success me-2"></i>Información General del Perfil
+                    </h5>
+
+                    <div class="row g-3">
+                        <!-- Municipio -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-success">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                    <i class="bi bi-geo-alt me-1 text-success"></i>Municipio
+                                </small>
+                                <span class="fs-5 fw-bold text-dark">@Model.Municipio, @Model.Departamento</span>
+                            </div>
+                        </div>
+
+                        <!-- Dirección -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-info">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                    <i class="bi bi-pin-map me-1 text-info"></i>Dirección
+                                </small>
+                                <span class="fs-5 fw-bold text-dark">@(string.IsNullOrWhiteSpace(Model.Direccion) ? "Vereda / Centro Rural" : Model.Direccion)</span>
+                            </div>
+                        </div>
+
+                        <!-- Calificación -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-warning">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                    <i class="bi bi-star me-1 text-warning"></i>Calificación
+                                </small>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fs-4 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                                    <span class="text-warning">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            if (i <= Math.Round(Model.CalificacionPromedio))
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </span>
+                                    <small class="text-muted">(@Model.TotalResenas reseñas)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Teléfono de Contacto -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-primary">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                    <i class="bi bi-telephone me-1 text-primary"></i>Teléfono de contacto
+                                </small>
+                                <span class="fs-5 fw-bold text-dark">@Model.Telefono</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón para ver las reseñas directas -->
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="text-muted small">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>Perfil activo en la comunidad CampesinApp
+                        </span>
+                        <button type="button" class="btn btn-outline-success rounded-pill px-4 fw-semibold" onclick="abrirModalReputacion()">
+                            <i class="bi bi-chat-quote me-1"></i> Ver Reputación y Reseñas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============================================================== -->
+                <!-- CONTENIDO PESTAÑA 2: PRODUCTOS / HISTORIAL (MOCKUPS 2 Y 3)     -->
+                <!-- ============================================================== -->
+                <div id="tab-productos" class="pestana-contenido d-none">
+                    
+                    <!-- Barra de Control Superior de la Pestaña 2 (FA-03 & FA-05) -->
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 pb-2 border-bottom">
+                        <!-- Botón "Salir" en la parte superior izquierda (vuelve a Tab 1) -->
+                        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 fw-semibold shadow-sm" onclick="cambiarPestana('tab-info')">
+                            <i class="bi bi-arrow-left me-1"></i> Salir
+                        </button>
+
+                        <!-- Desplegable "Categoría" en la parte superior derecha (Mockups 2 y 3) -->
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="filtroCategoria" class="small fw-bold text-muted mb-0">Categoría:</label>
+                            <select id="filtroCategoria" class="form-select form-select-sm rounded-pill shadow-sm" style="min-width: 170px;" onchange="filtrarPorCategoria()">
+                                <option value="todas">Todas las categorías</option>
+                                @foreach (var cat in Model.CategoriasDisponibles)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Listado estructurado con columnas (Producto / Venta y Descripción) -->
+                    @if (Model.ItemsPestana2 == null || !Model.ItemsPestana2.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                            <p class="mb-0">No se encontraron registros de @Model.TituloPestana2.ToLower() para este usuario.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Tabla / Tarjetas organizadas con la semántica del Mockup -->
+                        <div class="table-responsive rounded-4 border mb-3">
+                            <table class="table table-hover align-middle mb-0" id="tablaItemsPestana2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 35%;">@encabezadoCol1</th>
+                                        <th style="width: 65%;">Descripción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.ItemsPestana2)
+                                    {
+                                        <tr class="fila-producto" data-categoria="@item.Categoria">
+                                            <td>
+                                                <div class="fw-bold fs-6 text-dark mb-1">@item.Nombre</div>
+                                                <span class="badge bg-light text-success border border-success rounded-pill px-2 py-1 small">
+                                                    @item.Variedad
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row g-2 small">
+                                                    <div class="col-sm-6">
+                                                        <span class="text-muted">Precio estimado:</span>
+                                                        <strong class="text-success fs-6 d-block">$@item.PrecioEstimado.ToString("N0")</strong>
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        <span class="text-muted">Unidad de medida:</span>
+                                                        <strong class="text-dark d-block">@item.UnidadMedida</strong>
+                                                    </div>
+                                                    @if (!string.IsNullOrWhiteSpace(item.Descripcion))
+                                                    {
+                                                        <div class="col-12 mt-1">
+                                                            <span class="text-muted">Detalles:</span>
+                                                            <span class="text-secondary">@item.Descripcion</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="mensajeSinFiltro" class="text-center py-4 text-muted d-none">
+                            <i class="bi bi-search fs-2 d-block mb-2"></i>
+                            No hay registros en la categoría seleccionada.
+                        </div>
+
+                        <!-- Botón inferior prominente: "REPUTACIÓN Y CALIFICACIONES" (Mockups 2 y 3) -->
+                        <div class="mt-4 pt-3 border-top text-center">
+                            <button type="button" 
+                                    class="btn btn-success rounded-pill px-5 py-2 fw-bold text-uppercase shadow-sm"
+                                    style="background-color: #2e7d32; border-color: #2e7d32;"
+                                    onclick="abrirModalReputacion()">
+                                <i class="bi bi-star-fill me-2"></i> Reputación y Calificaciones
+                            </button>
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- BOTÓN GLOBAL INFERIOR: VOLVER                                  -->
+    <!-- ============================================================== -->
+    <div class="mt-4 pt-3 border-top text-end">
+        <button type="button" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold shadow-sm" onclick="history.back()">
+            <i class="bi bi-arrow-left me-1"></i> Volver a la pantalla anterior
+        </button>
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- VENTANA EMERGENTE (MODAL): REPUTACIÓN Y CALIFICACIONES         -->
+<!-- Cumple FA-06-CU015 con botón gris Cerrar                       -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalReputacion" tabindex="-1" aria-labelledby="modalReputacionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="modalReputacionLabel">
+                        <i class="bi bi-patch-check-fill text-success me-2"></i>Reputación y Calificaciones
+                    </h5>
+                    <p class="text-muted small mb-0">Reseñas y comentarios de transacciones realizadas</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <!-- Resumen de promedio -->
+                <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-4 mb-4 border">
+                    <div>
+                        <span class="fs-2 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                        <span class="text-muted"> / 5.0</span>
+                        <div class="text-warning">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= Math.Round(Model.CalificacionPromedio))
+                                {
+                                    <i class="bi bi-star-fill"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-star"></i>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success rounded-pill px-3 py-1">@Model.TotalResenas Reseñas</span>
+                    </div>
+                </div>
+
+                <!-- Lista de comentarios -->
+                @if (Model.Calificaciones == null || !Model.Calificaciones.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-chat-square-dots fs-1 d-block mb-2 text-secondary"></i>
+                        Aún no se han registrado reseñas para este usuario.
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var cal in Model.Calificaciones)
+                        {
+                            <div class="p-3 bg-light rounded-4 border">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-dark">@cal.Autor <small class="text-muted">(@cal.RolAutor)</small></span>
+                                    <div class="text-warning small">
+                                        @for (int s = 1; s <= 5; s++)
+                                        {
+                                            if (s <= cal.Estrellas)
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <p class="mb-1 text-secondary small">“@cal.Comentario”</p>
+                                <small class="text-muted d-block text-end">@cal.Fecha.ToString("dd/MM/yyyy")</small>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Botón gris Cerrar -->
+            <div class="modal-footer border-0 bg-light py-2 px-4 justify-content-end">
+                <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold shadow-sm" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // -------------------------------------------------------------
+    // LÓGICA DE PESTAÑAS (TABS) EN VANILLA JAVASCRIPT
+    // -------------------------------------------------------------
+    function cambiarPestana(idTab) {
+        // Ocultar todos los contenidos de pestaña
+        document.querySelectorAll('.pestana-contenido').forEach(function(el) {
+            el.classList.add('d-none');
+        });
+
+        // Desactivar botones de tabs
+        document.getElementById('tab-info-btn').classList.remove('active');
+        document.getElementById('tab-productos-btn').classList.remove('active');
+
+        // Mostrar pestaña seleccionada y activar su botón
+        var pestana = document.getElementById(idTab);
+        if (pestana) {
+            pestana.classList.remove('d-none');
+        }
+
+        if (idTab === 'tab-info') {
+            document.getElementById('tab-info-btn').classList.add('active');
+        } else if (idTab === 'tab-productos') {
+            document.getElementById('tab-productos-btn').classList.add('active');
+        }
+    }
+
+    // -------------------------------------------------------------
+    // FILTRADO DINÁMICO POR CATEGORÍA EN VANILLA JAVASCRIPT (FA-03)
+    // -------------------------------------------------------------
+    function filtrarPorCategoria() {
+        var seleccion = document.getElementById('filtroCategoria').value.toLowerCase();
+        var filas = document.querySelectorAll('.fila-producto');
+        var visibles = 0;
+
+        filas.forEach(function(fila) {
+            var cat = (fila.getAttribute('data-categoria') || '').toLowerCase();
+            if (seleccion === 'todas' || cat === seleccion) {
+                fila.classList.remove('d-none');
+                visibles++;
+            } else {
+                fila.classList.add('d-none');
+            }
+        });
+
+        var aviso = document.getElementById('mensajeSinFiltro');
+        if (aviso) {
+            if (visibles === 0) {
+                aviso.classList.remove('d-none');
+            } else {
+                aviso.classList.add('d-none');
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // MODAL DE REPUTACIÓN Y CALIFICACIONES (FA-06)
+    // -------------------------------------------------------------
+    function abrirModalReputacion() {
+        var modalEl = document.getElementById('modalReputacion');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    }
+</script>
+}
+

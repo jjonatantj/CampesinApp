@@ -1,0 +1,390 @@
+@model CampesinApp.ViewModels.PerfilPagoViewModel
+
+@{
+    ViewData["Title"] = "Completar Perfil de Pago";
+    // Layout oficial de casos de uso para usuarios autenticados
+    Layout = "_LayoutCasosUso";
+
+    string merchantId = ViewBag.OpenpayMerchantId ?? "";
+    string publicKey = ViewBag.OpenpayPublicKey ?? "";
+    bool isSandbox = ViewBag.OpenpaySandbox ?? true;
+}
+
+<!-- Librería de iconos Bootstrap integrada en el proyecto -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<div class="container py-4 my-4">
+    <div class="main-container p-4 p-md-5 rounded-4 shadow-sm bg-white">
+
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO DE LA VISTA (Estandarizado según CampesinApp)       -->
+        <!-- ============================================================== -->
+        <div class="d-flex align-items-center mb-4 pb-2 border-bottom">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-wallet2 fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Completar Perfil de Pago</h1>
+                <p class="text-muted mb-0 fw-semibold">
+                    Registra tu medio de pago o cuenta bancaria para transacciones directas en CampesinApp.
+                </p>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- ALERTA DE SEGURIDAD Y PRIVACIDAD                              -->
+        <!-- ============================================================== -->
+        <div class="alert alert-success shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" style="background-color: #f1f8e9; color: #2e7d32;" role="alert">
+            <i class="bi bi-shield-check fs-4 me-3 text-success"></i>
+            <div class="flex-grow-1 small">
+                <strong>Seguridad Garantizada:</strong> La información de pago viaja protegida mediante tokenización bancaria con Openpay. CampesinApp no almacena números completos de tarjeta ni códigos CVC en texto plano.
+            </div>
+        </div>
+
+        <!-- Resumen de validaciones de C# / ModelState -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger shadow-sm rounded-4 mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes campos:</h6>
+                <div asp-validation-summary="All" class="small mb-0"></div>
+            </div>
+        }
+
+        <!-- ============================================================== -->
+        <!-- FORMULARIO DE REGISTRO (CU-014)                                -->
+        <!-- ============================================================== -->
+        <form asp-controller="PerfilPago" asp-action="Guardar" method="post" id="formPerfilPago" novalidate autocomplete="off">
+            @Html.AntiForgeryToken()
+
+            <!-- CAMPOS OCULTOS DE SESIÓN Y TOKENIZACIÓN OPENPAY -->
+            <input type="hidden" asp-for="IdUsuario" />
+            <input type="hidden" id="tokenOpenpay" name="TokenOpenpay" />
+            <input type="hidden" id="deviceSessionId" name="DeviceSessionId" />
+
+            <div class="row g-4">
+
+                <!-- ───────────────────────────────────────────────────────── -->
+                <!-- COLUMNA 1: TITULAR Y ENTIDAD FINANCIERA                   -->
+                <!-- ───────────────────────────────────────────────────────── -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-person-badge me-1"></i> Datos del Titular y Entidad
+                    </h5>
+
+                    <!-- 1. Documento del Titular (RN-01-CU014: Validado con la sesión activa) -->
+                    <div class="mb-3">
+                        <label asp-for="DocumentoTitular" class="form-label fw-bold small text-dark">Titular (Número de Documento) *</label>
+                        <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-person-vcard"></i></span>
+                            <input asp-for="DocumentoTitular" class="form-control border-0 shadow-none px-3 py-2 bg-transparent text-muted" readonly />
+                        </div>
+                        <small class="text-muted ms-2" style="font-size: 0.75rem;">Documento verificado de tu cuenta activa.</small>
+                        <span asp-validation-for="DocumentoTitular" class="text-danger small ms-2 d-block"></span>
+                    </div>
+
+                    <!-- 2. Entidad Financiera -->
+                    <div class="mb-3">
+                        <label asp-for="IdEntiFinanc" class="form-label fw-bold small text-dark">Entidad Financiera *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-bank"></i></span>
+                            <select asp-for="IdEntiFinanc" asp-items="Model.ListaEntidadesFinancieras" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectBanco" required>
+                                <option value="">-- Seleccione una entidad bancaria --</option>
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdEntiFinanc" class="text-danger small ms-2"></span>
+                    </div>
+
+                    <!-- 3. Modalidad de Pago -->
+                    <div class="mb-3">
+                        <label asp-for="IdTipoPago" class="form-label fw-bold small text-dark">Modalidad de Pago *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-cash-stack"></i></span>
+                            <select asp-for="IdTipoPago" asp-items="Model.ListaTiposPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoPago" required>
+                                <option value="">-- Seleccione modalidad de pago --</option>
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdTipoPago" class="text-danger small ms-2"></span>
+                    </div>
+                </div>
+
+                <!-- ───────────────────────────────────────────────────────── -->
+                <!-- COLUMNA 2: DETALLES DE LA CUENTA O TARJETA                -->
+                <!-- ───────────────────────────────────────────────────────── -->
+                <div class="col-lg-6">
+                    <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
+                        <i class="bi bi-credit-card-2-front me-1"></i> Datos de la Cuenta Bancaria
+                    </h5>
+
+                    <!-- 4. Tipo de Cuenta (Ahorros / Corriente) -->
+                    <div class="mb-3">
+                        <label asp-for="IdTipoCuenta" class="form-label fw-bold small text-dark">Tipo de Cuenta *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-card-checklist"></i></span>
+                            <select asp-for="IdTipoCuenta" asp-items="Model.ListaTiposCuenta" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoCuenta" required>
+                                <option value="">-- Seleccione tipo de cuenta --</option>
+                            </select>
+                        </div>
+                        <span asp-validation-for="IdTipoCuenta" class="text-danger small ms-2"></span>
+                    </div>
+
+                    <!-- 5. Número de Cuenta o Tarjeta -->
+                    <div class="mb-3">
+                        <label asp-for="NumCuenta" class="form-label fw-bold small text-dark">Número de Cuenta o Tarjeta *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-credit-card"></i></span>
+                            <input asp-for="NumCuenta" id="numeroCuenta" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" maxlength="19" placeholder="Ej: 4111 1111 1111 1111" required />
+                        </div>
+                        <span asp-validation-for="NumCuenta" class="text-danger small ms-2"></span>
+                    </div>
+
+                    <!-- 6. Código CVC -->
+                    <div class="mb-3">
+                        <label asp-for="Cvc" class="form-label fw-bold small text-dark">Código de Seguridad (CVC) *</label>
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                            <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-lock-fill"></i></span>
+                            <input asp-for="Cvc" id="codigoCvc" type="password" maxlength="4" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="123" required />
+                        </div>
+                        <small class="text-muted ms-2" style="font-size: 0.75rem;">3 o 4 dígitos al reverso de la tarjeta o clave dinámica.</small>
+                        <span asp-validation-for="Cvc" class="text-danger small ms-2 d-block"></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- BOTONES DE ACCIÓN: Volver y Guardar con estilo rounded-pill    -->
+            <!-- ============================================================== -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
+                <!-- Botón Volver -->
+                <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Volver
+                </a>
+
+                <!-- Botón Guardar -->
+                <button type="button" class="btn btn-success px-5 py-2 fw-bold rounded-pill text-white shadow-sm" id="btnGuardar" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    <i class="bi bi-check-circle me-1"></i> Guardar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL DE CONFIRMACIÓN (Paso 4 del CU-014)                      -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalConfirmarRegistro" tabindex="-1" aria-labelledby="modalConfirmarRegistroLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header text-white" style="background-color: #2e7d32;">
+                <h5 class="modal-title fw-bold" id="modalConfirmarRegistroLabel">
+                    <i class="bi bi-bank me-2"></i>Confirmar Medio de Pago
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 bg-white">
+                <p class="text-dark mb-3">
+                    ¿Está seguro de registrar este medio de pago con los siguientes datos?
+                </p>
+                <div class="card bg-light border rounded-3 p-3 mb-3">
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted small">Entidad Financiera:</span>
+                        <strong id="modalBanco" class="text-dark small">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted small">Tipo de Cuenta:</span>
+                        <strong id="modalTipoCuenta" class="text-dark small">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted small">Número de Cuenta:</span>
+                        <strong id="modalNumCuenta" class="text-dark small">-</strong>
+                    </div>
+                </div>
+
+                <!-- Mensaje de error formateado en español -->
+                <div id="alertaErrorPasarela" class="alert alert-danger d-none small mb-0 rounded-3">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-octagon-fill fs-5 me-2 text-danger"></i>
+                        <div id="textoErrorPasarela" class="flex-grow-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarPasarela" class="btn btn-success rounded-pill px-4 fw-bold text-white" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Scripts oficiales de Openpay (Soporte para Colombia resources.openpay.co y México js.openpay.mx) -->
+    @if ((ViewBag.OpenpayPais ?? "CO") == "CO")
+    {
+        <script type="text/javascript" src="https://resources.openpay.co/openpay.v1.min.js"></script>
+        <script type="text/javascript" src="https://resources.openpay.co/openpay-data.v1.min.js"></script>
+    }
+    else
+    {
+        <script type="text/javascript" src="https://js.openpay.mx/openpay.v1.min.js"></script>
+        <script type="text/javascript" src="https://js.openpay.mx/openpay-data.v1.min.js"></script>
+    }
+
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+            const merchantId = "@merchantId";
+            const publicKey = "@publicKey";
+            const isSandbox = @(isSandbox ? "true" : "false");
+
+            // Función para traducir cualquier mensaje de error de Openpay a un español formal
+            function traducirErrorOpenpay(error) {
+                if (!error || !error.data) {
+                    return "No fue posible conectar con la pasarela de pagos. Por favor verifique su conexión a internet.";
+                }
+
+                const codigo = error.data.error_code || error.status;
+                const descripcionIngles = (error.data.description || "").toLowerCase();
+
+                // 1. Error de credenciales o Merchant ID inválido
+                if (codigo === 1002 || descripcionIngles.includes("api key") || descripcionIngles.includes("merchant id")) {
+                    return "Las credenciales de la pasarela de pagos (ID de comercio o Llave pública) no son válidas o no corresponden a la cuenta configurada. Verifique las credenciales en appsettings.json.";
+                }
+
+                // 2. Errores de formato de datos
+                if (codigo === 1001) {
+                    return "Uno o más campos del formulario no cumplen con el formato requerido por la entidad financiera.";
+                }
+
+                // 3. Errores específicos de tarjeta y CVC
+                if (codigo === 2004 || descripcionIngles.includes("card number")) {
+                    return "El número de tarjeta o cuenta ingresado no es válido. Verifique los dígitos.";
+                }
+                if (codigo === 2005 || descripcionIngles.includes("expiration")) {
+                    return "La fecha de vencimiento de la tarjeta es anterior a la fecha actual o inválida.";
+                }
+                if (codigo === 2006 || descripcionIngles.includes("cvv") || descripcionIngles.includes("cvc")) {
+                    return "El código de seguridad (CVC) no es correcto. Debe ingresar 3 o 4 dígitos.";
+                }
+
+                // 4. Errores de fondos y estado bancario
+                if (codigo === 3001) {
+                    return "La transacción fue rechazada por la entidad bancaria emisora.";
+                }
+                if (codigo === 3002) {
+                    return "La tarjeta se encuentra vencida o inactiva.";
+                }
+                if (codigo === 3003) {
+                    return "Fondos insuficientes en la cuenta bancaria para realizar la validación.";
+                }
+                if (codigo === 3004) {
+                    return "La tarjeta ingresada ha sido reportada como extraviada o bloqueada.";
+                }
+                if (codigo === 3005) {
+                    return "La transacción ha sido rechazada por los sistemas de prevención de fraude.";
+                }
+
+                // Mensaje genérico en español por defecto
+                return "Ocurrió un error al validar los datos bancarios con la pasarela. Por favor intente nuevamente o consulte con su entidad bancaria.";
+            }
+
+            // Inicialización estricta de Openpay con tus credenciales
+            if (window.OpenPay) {
+                OpenPay.setId(merchantId);
+                OpenPay.setApiKey(publicKey);
+                OpenPay.setSandboxMode(isSandbox);
+
+                try {
+                    const deviceSessionId = OpenPay.deviceData.setup("formPerfilPago", "deviceSessionId");
+                    const inputDevice = document.getElementById("deviceSessionId");
+                    if (inputDevice) {
+                        inputDevice.value = deviceSessionId;
+                    }
+                } catch (e) {
+                    console.warn("OpenPay deviceData setup:", e);
+                }
+            }
+
+            const btnGuardar = document.getElementById("btnGuardar");
+            const btnConfirmar = document.getElementById("btnConfirmarPasarela");
+            const modalConfirmacion = new bootstrap.Modal(document.getElementById("modalConfirmarRegistro"));
+            const form = document.getElementById("formPerfilPago");
+
+            // Paso 3 y 4 del CU-014: Validar datos y mostrar modal de confirmación
+            btnGuardar.addEventListener("click", function () {
+                const selectBanco = document.getElementById("selectBanco");
+                const selectTipoCuenta = document.getElementById("selectTipoCuenta");
+                const selectTipoPago = document.getElementById("selectTipoPago");
+                const inputNumCuenta = document.getElementById("numeroCuenta");
+                const inputCvc = document.getElementById("codigoCvc");
+
+                if (!selectBanco.value || !selectTipoCuenta.value || !selectTipoPago.value || !inputNumCuenta.value.trim() || !inputCvc.value.trim()) {
+                    alert("Por favor diligencie todos los campos requeridos antes de guardar.");
+                    return;
+                }
+
+                // Cargar datos en el modal de confirmación
+                document.getElementById("modalBanco").textContent = selectBanco.options[selectBanco.selectedIndex].text;
+                document.getElementById("modalTipoCuenta").textContent = selectTipoCuenta.options[selectTipoCuenta.selectedIndex].text;
+
+                const valorCuenta = inputNumCuenta.value.trim().replace(/\s+/g, '');
+                const cuentaVisible = valorCuenta.length > 4 ? "•••• " + valorCuenta.slice(-4) : valorCuenta;
+                document.getElementById("modalNumCuenta").textContent = cuentaVisible;
+
+                const alerta = document.getElementById("alertaErrorPasarela");
+                alerta.classList.add("d-none");
+                document.getElementById("textoErrorPasarela").textContent = "";
+
+                modalConfirmacion.show();
+            });
+
+            // Paso 5 y 6 del CU-014: Tokenización 100% REAL con Openpay
+            btnConfirmar.addEventListener("click", function () {
+                btnConfirmar.disabled = true;
+                btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verificando...';
+
+                const numCuentaLimpio = document.getElementById("numeroCuenta").value.trim().replace(/\s+/g, '');
+                const cvcLimpio = document.getElementById("codigoCvc").value.trim();
+
+                const datosTarjeta = {
+                    "card_number": numCuentaLimpio,
+                    "holder_name": "Titular de Cuenta",
+                    "expiration_year": "28",
+                    "expiration_month": "12",
+                    "cvv2": cvcLimpio
+                };
+
+                // Petición directa a la pasarela Openpay
+                OpenPay.token.create(
+                    datosTarjeta,
+                    function (response) {
+                        // ÉXITO: Openpay validó la tarjeta y emitió el Token real
+                        const tokenId = response.data.id;
+                        document.getElementById("tokenOpenpay").value = tokenId;
+                        document.getElementById("codigoCvc").value = "•••"; // Limpiamos el CVC por seguridad
+                        form.submit();
+                    },
+                    function (error) {
+                        // ERROR: Openpay rechazó la petición
+                        btnConfirmar.disabled = false;
+                        btnConfirmar.textContent = "Confirmar";
+
+                        // Traducimos el error al español
+                        const mensajeEspanol = traducirErrorOpenpay(error);
+
+                        const alerta = document.getElementById("alertaErrorPasarela");
+                        alerta.classList.remove("d-none");
+                        document.getElementById("textoErrorPasarela").textContent = mensajeEspanol;
+                    }
+                );
+            });
+        });
+    </script>
+}
+

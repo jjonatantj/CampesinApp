@@ -32,19 +32,19 @@
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Mis Cultivos</a></li>
                     <li class="nav-item"><a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Comprador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Publicar Demanda</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Mis Pedidos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
                 else if (Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
                 {
                     <li class="nav-item"><a class="nav-link" href="#">Panel Logístico</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Carga DANE</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" title="Pantalla de mapas y consulta general (Próximamente)">Puntos de Acopio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
                 }
             </ul>
 
@@ -310,7 +310,7 @@
                                             <small class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>@camp.Ubicacion</small>
                                         </div>
                                     </div>
-                                    <a href="@Url.Action("ConsultaPerfilCampesino", "Perfil", new { id = camp.Id })" class="btn btn-nav-login btn-sm">Ver perfil de campesino</a>
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = camp.Id, rol = "Campesino" })" class="btn btn-nav-login btn-sm">Ver perfil de campesino</a>
                                 </div>
                             </div>
                         }
@@ -336,7 +336,7 @@
                                             <small class="text-success fw-semibold"><i class="bi bi-patch-check-fill me-1"></i>Verificado</small>
                                         </div>
                                     </div>
-                                    <a href="@Url.Action("ConsultaPerfilComprador", "Perfil", new { id = comp.Id })" class="btn btn-nav-login btn-sm">Ver perfil de comprador</a>
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = comp.Id, rol = "Comprador" })" class="btn btn-nav-login btn-sm">Ver perfil de comprador</a>
                                 </div>
                             </div>
                         }
@@ -355,7 +355,7 @@
                                 <div class="product-card text-center p-2">
                                     <h6 class="product-title fs-6 mb-1">@prod.NombreProducto</h6>
                                     <p class="small text-muted mb-2">@prod.UbicacionCultivo</p>
-                                    <a href="@Url.Action("DetalleProducto", "Catalogo", new { id = prod.Id })" class="btn btn-nav-register btn-sm w-100">Ver detalle del producto</a>
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = prod.IdUsuario, rol = "Campesino" })" class="btn btn-nav-register btn-sm w-100">Ver detalle del producto</a>
                                 </div>
                             </div>
                         }

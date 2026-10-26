@@ -73,6 +73,7 @@ namespace CampesinApp.ViewModels
     public class ProductoOfertaItem
     {
         public int Id { get; set; }
+        public int IdUsuario { get; set; }
         public string NombreProducto { get; set; } = string.Empty;
         public string Variedad { get; set; } = string.Empty;
         public string UbicacionCultivo { get; set; } = string.Empty;

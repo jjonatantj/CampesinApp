@@ -1,0 +1,501 @@
+@model CampesinApp.ViewModels.OfertaProductoViewModel
+
+@{
+    ViewData["Title"] = "Registro de Producto - Ofertar a Demanda";
+    Layout = "_LayoutCasosUso";
+}
+
+<!-- Iconos de Bootstrap ya incluidos en el aplicativo -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<!-- Contenedor centrado para la vista del formulario -->
+<div class="container py-4 my-4" style="max-width: 800px;">
+    <div class="main-container p-4 p-md-5 rounded-4 shadow-sm bg-white">
+
+        <!-- ============================================================== -->
+        <!-- PANTALLA DE ÉXITO CON REDIRECCIÓN TEMPORAL (Paso 6 CU-013)     -->
+        <!-- ============================================================== -->
+        @if (ViewBag.RegistroExitoso == true)
+        {
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm"
+                         style="width: 80px; height: 80px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-check-circle-fill fs-1"></i>
+                    </div>
+                </div>
+
+                <h2 class="fw-bold text-success mb-3">Registro Exitoso</h2>
+                
+                <p class="fs-5 text-dark fw-semibold mb-4 px-3">
+                    @ViewBag.MensajeExito
+                </p>
+
+                <div class="alert alert-light border rounded-pill d-inline-block px-4 py-2 text-muted small mb-4">
+                    <i class="bi bi-clock me-1"></i> Redirigiendo automáticamente al Catálogo de Demanda en <span id="contadorSegundos">3</span> segundos...
+                </div>
+
+                <div>
+                    <a asp-controller="catalogo" asp-action="Index" class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        Ir al Catálogo de Demanda
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- ============================================================== -->
+            <!-- ENCABEZADO DE LA VISTA (CU-013)                                -->
+            <!-- ============================================================== -->
+            <div class="text-center mb-4 pb-2 border-bottom">
+                <span class="badge bg-success rounded-pill px-3 py-1 mb-2 fs-6" style="background-color: #2e7d32 !important;">
+                    Caso de Uso CU-013
+                </span>
+                <h1 class="brand-title mb-1 fs-2" style="color: #1b5e20;">Registro de Producto</h1>
+                <p class="text-muted fw-semibold mb-2">
+                    Responde a la solicitud de compra ofertando tu producto agrícola.
+                </p>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- ALERTAS Y MENSAJES DE ERROR DEL SERVIDOR                      -->
+            <!-- ============================================================== -->
+            @if (ViewBag.MensajeErrorConexion != null)
+            {
+                <div class="alert alert-danger shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-danger"></i>
+                    <div class="flex-grow-1">
+                        <strong>Error:</strong> @ViewBag.MensajeErrorConexion
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            }
+
+            <div id="alertaErrorFrontend" class="alert alert-danger shadow-sm border-0 rounded-4 d-none align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
+                <div class="flex-grow-1" id="mensajeErrorFrontend"></div>
+                <button type="button" class="btn-close" onclick="cerrarAlertaFrontend()" aria-label="Cerrar"></button>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger shadow-sm border-0 rounded-4 mb-4">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-x-circle-fill me-1"></i> Por favor verifique los siguientes campos:</h6>
+                    <div asp-validation-summary="All" class="small mb-0"></div>
+                </div>
+            }
+
+            <!-- ============================================================== -->
+            <!-- SECCIÓN SUPERIOR: DATOS DE LA SOLICITUD DE COMPRA (DEMANDA)   -->
+            <!-- ============================================================== -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-light overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted text-uppercase fw-bold d-block">Solicitud de Compra #@Model.IdDemanda</small>
+                        <h4 class="mb-0 fw-bold text-dark">@Model.NombreProducto</h4>
+                    </div>
+                    <span class="badge rounded-pill bg-light text-success border border-success px-3 py-2 fw-bold">
+                        Variedad: @Model.VariedadProducto
+                    </span>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Métricas visuales de cantidades y precios -->
+                    <div class="row g-3 text-center mb-3">
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded-4 shadow-sm border">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Total Pedido</small>
+                                <span class="fs-4 fw-bold text-dark">@Model.CantidadTotal.ToString("N0")</span>
+                                <small class="text-muted d-block">Kg / Unidades</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded-4 shadow-sm border border-success">
+                                <small class="text-success text-uppercase fw-bold d-block mb-1">Faltante</small>
+                                <span class="fs-4 fw-bold text-success" id="valorCantidadFaltante">@Model.CantidadFaltante.ToString("N0")</span>
+                                <small class="text-muted d-block">Por completar</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded-4 shadow-sm border">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Precio / Unidad</small>
+                                <span class="fs-4 fw-bold text-dark">$@Model.PrecioPropuesto.ToString("N0")</span>
+                                <small class="text-muted d-block">Propuesto</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos logísticos del pedido y condición de aporte -->
+                    <div class="p-3 bg-white rounded-4 border small">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <span class="text-muted">Punto de Entrega:</span>
+                                <span class="fw-semibold text-dark d-block">@Model.MunicipioEntrega, @Model.DepartamentoEntrega</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">Tope mínimo general (10%):</span>
+                                <span class="fw-bold text-dark d-block">
+                                    @Model.TopeDiezPorciento.ToString("N0") unidades
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.YaCumplioMinimoDiez)
+                    {
+                        <!-- Notificación especial: El campesino ya cumplió el 10% y puede registrar ofertas complementarias -->
+                        <div class="alert alert-success border-0 shadow-sm rounded-4 p-3 mt-3 mb-0 d-flex align-items-center">
+                            <i class="bi bi-patch-check-fill text-success fs-3 me-3"></i>
+                            <div class="small">
+                                <strong class="text-success d-block">¡Aporte Complementario Habilitado!</strong>
+                                Ya registraste previamente <strong>@Model.AportePrevioCampesino unidades</strong> en esta demanda (cubriendo el 10% requerido). En esta nueva oferta puedes aportar desde <strong>1 unidad</strong> adicional.
+                            </div>
+                        </div>
+                    }
+                    else if (Model.AportePrevioCampesino > 0)
+                    {
+                        <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mt-3 mb-0 d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill text-primary fs-3 me-3"></i>
+                            <div class="small">
+                                <strong class="text-primary d-block">Aporte Acumulativo</strong>
+                                Registraste previamente <strong>@Model.AportePrevioCampesino unidades</strong>. Para alcanzar el 10% mínimo de la demanda (@Model.TopeDiezPorciento unidades), debes registrar al menos <strong>@Model.MinimoPermitido unidades</strong>.
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- FORMULARIO DE REGISTRO DE PRODUCTO / OFERTA                   -->
+            <!-- ============================================================== -->
+            <form asp-controller="Oferta" asp-action="Registrar" method="post" enctype="multipart/form-data" id="formOferta" novalidate>
+                @Html.AntiForgeryToken()
+
+                <!-- Campo oculto para el identificador de la demanda -->
+                <input type="hidden" asp-for="IdDemanda" id="hiddenIdDemanda" />
+
+                <!-- 1. CAMPO DE ENTRADA: Cantidad a Aportar -->
+                <div class="mb-4">
+                    <label asp-for="CantidadAporte" class="form-label fw-bold text-dark">
+                        <i class="bi bi-calculator me-1 text-success"></i> Cantidad que aportará *
+                    </label>
+                    <div class="input-group">
+                        <input asp-for="CantidadAporte" 
+                               type="number" 
+                               class="form-control rounded-pill px-3 py-2 shadow-none border" 
+                               id="inputCantidadAporte"
+                               placeholder="Ingrese la cantidad numérica a aportar (ej. @Model.MinimoPermitido)"
+                               min="1" 
+                               step="1" 
+                               required />
+                    </div>
+                    <div class="form-text text-muted small mt-1">
+                        @if (Model.YaCumplioMinimoDiez)
+                        {
+                            <span>Puedes registrar desde <strong>1 unidad</strong> hasta máximo <strong>@Model.CantidadFaltante</strong> unidades faltantes.</span>
+                        }
+                        else
+                        {
+                            <span>Debe ser un número entero mayor a cero, mínimo <strong>@Model.MinimoPermitido</strong> y máximo <strong>@Model.CantidadFaltante</strong> unidades.</span>
+                        }
+                    </div>
+                    <div id="errorFrontendCantidad" class="text-danger small fw-semibold mt-1 d-none"></div>
+                </div>
+
+                <!-- 2. CAMPO DE ENTRADA: Cargar Imagen del Producto -->
+                <div class="mb-4">
+                    <label asp-for="ImagenProducto" class="form-label fw-bold text-dark">
+                        <i class="bi bi-camera me-1 text-success"></i> Foto o Imagen de su Producto *
+                    </label>
+                    <div class="input-group">
+                        <input asp-for="ImagenProducto" 
+                               type="file" 
+                               class="form-control rounded-pill px-3 py-2 shadow-none border" 
+                               id="inputImagenProducto"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" 
+                               required />
+                    </div>
+                    <div class="form-text text-muted small mt-1">
+                        Formatos permitidos: <strong>JPG, JPEG, PNG y WebP</strong>. Tamaño máximo: 5 MB.
+                    </div>
+                    <div id="errorFrontendImagen" class="text-danger small fw-semibold mt-1 d-none"></div>
+
+                    <!-- Vista previa opcional de la imagen seleccionada -->
+                    <div id="contenedorVistaPrevia" class="mt-3 d-none text-center p-3 border rounded-4 bg-light">
+                        <small class="text-muted d-block mb-2">Vista previa de la imagen seleccionada:</small>
+                        <img id="imgVistaPrevia" src="#" alt="Vista previa del producto" class="rounded-3 shadow-sm" style="max-height: 180px; max-width: 100%; object-fit: contain;" />
+                    </div>
+                </div>
+
+                <!-- ============================================================== -->
+                <!-- BOTONES DE ACCIÓN (Estandarizados según requerimiento)          -->
+                <!-- Botón verde "Registrar" (inferior izquierda)                   -->
+                <!-- Botón gris "Volver" (inferior derecha)                         -->
+                <!-- ============================================================== -->
+                <div class="d-flex justify-content-between align-items-center pt-4 border-top mt-4 gap-3">
+                    
+                    <!-- Botón Principal Verde "Registrar" (Inferior Izquierda) -->
+                    <div>
+                        <button type="button" 
+                                id="btnAbrirModalConfirmacion" 
+                                class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
+                                style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="bi bi-check2-circle me-1"></i> Registrar
+                        </button>
+                    </div>
+
+                    <!-- Botón Gris "Volver" (Inferior Derecha) -->
+                    <div>
+                        <a asp-controller="catalogo" asp-action="Index" 
+                           class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold text-white shadow-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Volver
+                        </a>
+                    </div>
+
+                </div>
+
+            </form>
+        }
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- VENTANA EMERGENTE (MODAL DE CONFIRMACIÓN HTML)                 -->
+<!-- Muestra "¿Está seguro de ofertar [X] cantidades?"             -->
+<!-- Con botones "Confirmar" y "Cancelar"                           -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalConfirmarOferta" tabindex="-1" aria-labelledby="modalConfirmarOfertaLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            
+            <div class="modal-header border-0 pb-0 pt-4 px-4 justify-content-center position-relative">
+                <div class="text-center">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
+                         style="width: 55px; height: 55px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-question-circle-fill fs-2"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold text-dark fs-4" id="modalConfirmarOfertaLabel">Confirmación de Oferta</h5>
+                </div>
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body py-3 px-4 text-center">
+                <p id="modalTextoConfirmacion" class="fs-5 mb-1 text-dark fw-bold">
+                    ¿Está seguro de ofertar [X] cantidades?
+                </p>
+                <p class="text-muted small mb-0">
+                    Al confirmar, tu aporte se registrará en el sistema y se descontará del faltante de la demanda.
+                </p>
+            </div>
+
+            <div class="modal-footer border-0 pt-2 pb-4 px-4 d-flex justify-content-center gap-3">
+                <!-- Botón Cancelar (FA02-CU013: Cierra el modal y mantiene al campesino en el formulario) -->
+                <button type="button" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <!-- Botón Confirmar: Envía el formulario -->
+                <button type="button" id="btnConfirmarOferta" class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    Confirmar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    @if (ViewBag.RegistroExitoso == true)
+    {
+        <script>
+            // Redirección automática tras 3 segundos según especificación CU-013 (Paso 6)
+            let segundosRestantes = 3;
+            const contadorSpan = document.getElementById("contadorSegundos");
+            const intervalo = setInterval(function () {
+                segundosRestantes--;
+                if (contadorSpan) {
+                    contadorSpan.innerText = segundosRestantes;
+                }
+                if (segundosRestantes <= 0) {
+                    clearInterval(intervalo);
+                    window.location.href = '@Url.Action("Index", "catalogo")';
+                }
+            }, 1000);
+        </script>
+    }
+    else
+    {
+        <script>
+            // =========================================================================
+            // LÓGICA EN JAVASCRIPT PURO (FRONTEND VALIDATIONS & MODAL FLOW)
+            // Reglas de negocio: RN-01, RN-04, RN-05, RN-06
+            // =========================================================================
+
+            (function () {
+            // Valores de referencia provenientes del servidor
+            const cantidadTotal = @(Model?.CantidadTotal ?? 0);
+            const cantidadFaltante = @(Model?.CantidadFaltante ?? 0);
+            const minimoPermitido = @(Model?.MinimoPermitido ?? 1);
+            const topeDiezPorciento = @(Model?.TopeDiezPorciento ?? 0);
+            const aportePrevioCampesino = @(Model?.AportePrevioCampesino ?? 0);
+            const yaCumplioMinimo = @(Model?.YaCumplioMinimoDiez == true ? "true" : "false");
+
+            // Elementos del DOM
+            const formOferta = document.getElementById("formOferta");
+            const inputCantidad = document.getElementById("inputCantidadAporte");
+            const inputImagen = document.getElementById("inputImagenProducto");
+            const btnAbrirModal = document.getElementById("btnAbrirModalConfirmacion");
+            const btnConfirmar = document.getElementById("btnConfirmarOferta");
+            const modalTexto = document.getElementById("modalTextoConfirmacion");
+            const errorCantidadDiv = document.getElementById("errorFrontendCantidad");
+            const errorImagenDiv = document.getElementById("errorFrontendImagen");
+            const alertaGeneral = document.getElementById("alertaErrorFrontend");
+            const mensajeGeneral = document.getElementById("mensajeErrorFrontend");
+            const vistaPreviaDiv = document.getElementById("contenedorVistaPrevia");
+            const imgVistaPrevia = document.getElementById("imgVistaPrevia");
+
+            if (!btnAbrirModal) return;
+
+            // Instancia de modal de Bootstrap 5
+            const modalElement = document.getElementById("modalConfirmarOferta");
+            const modalBootstrap = new bootstrap.Modal(modalElement);
+
+            // Vista previa de imagen seleccionada
+            if (inputImagen) {
+                inputImagen.addEventListener("change", function () {
+                    const archivo = this.files[0];
+                    if (archivo) {
+                        const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
+                        const permitidas = [".jpg", ".jpeg", ".png", ".webp"];
+                        if (permitidas.includes(extension)) {
+                            const lector = new FileReader();
+                            lector.onload = function (e) {
+                                imgVistaPrevia.src = e.target.result;
+                                vistaPreviaDiv.classList.remove("d-none");
+                            };
+                            lector.readAsDataURL(archivo);
+                        } else {
+                            vistaPreviaDiv.classList.add("d-none");
+                        }
+                    } else {
+                        vistaPreviaDiv.classList.add("d-none");
+                    }
+                });
+            }
+
+            // Manejador del botón "Registrar"
+            btnAbrirModal.addEventListener("click", function (e) {
+                e.preventDefault();
+                limpiarErrores();
+
+                let esValido = true;
+                const valorTexto = inputCantidad.value.trim();
+
+                // -------------------------------------------------------------
+                // 1. VALIDACIÓN RN-05-CU013 & FE05: Números enteros mayores a cero
+                // -------------------------------------------------------------
+                if (valorTexto === "") {
+                    mostrarErrorCantidad("Debe ingresar la cantidad que aportará.");
+                    esValido = false;
+                } else if (!/^[0-9]+$/.test(valorTexto)) {
+                    mostrarErrorCantidad("Por favor ingrese solo números enteros en el campo de cantidad ofertada. Usted ingresó: " + valorTexto);
+                    esValido = false;
+                } else {
+                    const cantidadNum = parseInt(valorTexto, 10);
+
+                    if (cantidadNum <= 0) {
+                        mostrarErrorCantidad("Por favor ingrese un número entero mayor a cero.");
+                        esValido = false;
+                    } 
+                    // ---------------------------------------------------------
+                    // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo permitido (10% acumulativo)
+                    // ---------------------------------------------------------
+                    else if (cantidadNum < minimoPermitido) {
+                        if (yaCumplioMinimo) {
+                            mostrarErrorCantidad("Debes registrar al menos 1 unidad para tu oferta.");
+                        } else {
+                            mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades para alcanzar el 10% del total demandado.");
+                        }
+                        esValido = false;
+                    } 
+                    // ---------------------------------------------------------
+                    // 3. VALIDACIÓN RN-01-CU013 & FE01: No superar la cantidad faltante
+                    // ---------------------------------------------------------
+                    else if (cantidadNum > cantidadFaltante) {
+                        mostrarErrorCantidad("La cantidad ingresada supera lo solicitado. Solo puedes registrar hasta " + cantidadFaltante + " cantidades para esta compra.");
+                        esValido = false;
+                    }
+                }
+
+                // -------------------------------------------------------------
+                // 4. VALIDACIÓN RN-06-CU013: Formatos JPG, JPEG, PNG y WebP
+                // -------------------------------------------------------------
+                if (!inputImagen.files || inputImagen.files.length === 0) {
+                    mostrarErrorImagen("Debe adjuntar una imagen del producto que va a ofertar.");
+                    esValido = false;
+                } else {
+                    const archivo = inputImagen.files[0];
+                    const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
+                    const extensionesPermitidas = [".jpg", ".jpeg", ".png", ".webp"];
+
+                    if (!extensionesPermitidas.includes(extension)) {
+                        mostrarErrorImagen("Los únicos formatos permitidos para las imágenes del producto son JPG, JPEG, PNG y WebP.");
+                        esValido = false;
+                    } else if (archivo.size > 5 * 1024 * 1024) {
+                        mostrarErrorImagen("La imagen no debe superar los 5 MB de tamaño.");
+                        esValido = false;
+                    }
+                }
+
+                // -------------------------------------------------------------
+                // 5. APERTURA DEL MODAL SI TODAS LAS REGLAS SE CUMPLEN
+                // -------------------------------------------------------------
+                if (esValido) {
+                    const cantidadIngresada = parseInt(valorTexto, 10);
+                    // Mensaje estricto requerido por el caso de uso
+                    modalTexto.textContent = "¿Está seguro de ofertar " + cantidadIngresada + " cantidades?";
+                    modalBootstrap.show();
+                }
+            });
+
+            // Acción del botón "Confirmar" dentro del modal
+            btnConfirmar.addEventListener("click", function () {
+                btnConfirmar.disabled = true;
+                btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registrando...';
+                formOferta.submit();
+            });
+
+            // Funciones auxiliares para mostrar y limpiar mensajes
+            function mostrarErrorCantidad(mensaje) {
+                inputCantidad.classList.add("is-invalid");
+                errorCantidadDiv.textContent = mensaje;
+                errorCantidadDiv.classList.remove("d-none");
+            }
+
+            function mostrarErrorImagen(mensaje) {
+                inputImagen.classList.add("is-invalid");
+                errorImagenDiv.textContent = mensaje;
+                errorImagenDiv.classList.remove("d-none");
+            }
+
+            function limpiarErrores() {
+                inputCantidad.classList.remove("is-invalid");
+                inputImagen.classList.remove("is-invalid");
+                errorCantidadDiv.classList.add("d-none");
+                errorImagenDiv.classList.add("d-none");
+                if (alertaGeneral) alertaGeneral.classList.add("d-none");
+            }
+
+            window.cerrarAlertaFrontend = function () {
+                if (alertaGeneral) alertaGeneral.classList.add("d-none");
+            };
+        })();
+    </script>
+    }
+}
+

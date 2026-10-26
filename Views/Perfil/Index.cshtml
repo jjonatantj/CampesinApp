@@ -91,10 +91,28 @@
     Microsoft.AspNetCore.Html.IHtmlContent Boton(OpcionPerfilDto opcion, string clase)
     {
         var icono = $"<i class=\"bi {opcion.Icono} me-1\"></i>";
-        string html;
-        if (opcion.UrlPagina != null)
+        var texto = opcion.Texto?.Trim() ?? "";
+
+        // Enlace garantizado para "Puntos de acopio" hacia la consulta en mapas (CU-019)
+        string? urlPagina = opcion.UrlPagina;
+        if (string.Equals(texto, "Puntos de acopio", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(texto, "Punto de acopio", StringComparison.OrdinalIgnoreCase))
         {
-            html = $"<a class=\"{clase} text-decoration-none\" href=\"{System.Net.WebUtility.HtmlEncode(opcion.UrlPagina)}\">{icono}{System.Net.WebUtility.HtmlEncode(opcion.Texto)}</a>";
+            urlPagina = "/PuntoAcopio/Index";
+        }
+        else if (string.Equals(texto, "Registrar Punto de Acopio", StringComparison.OrdinalIgnoreCase))
+        {
+            urlPagina = "/PuntoAcopio/Registrar";
+        }
+        else if (string.Equals(texto, "Perfil de pago", StringComparison.OrdinalIgnoreCase))
+        {
+            urlPagina = "/PerfilPago";
+        }
+
+        string html;
+        if (urlPagina != null)
+        {
+            html = $"<a class=\"{clase} text-decoration-none\" href=\"{System.Net.WebUtility.HtmlEncode(urlPagina)}\">{icono}{System.Net.WebUtility.HtmlEncode(opcion.Texto)}</a>";
         }
         else
         {
@@ -104,3 +122,4 @@
         return new Microsoft.AspNetCore.Html.HtmlString(html);
     }
 }
+
