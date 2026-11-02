@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CampesinApp.Repositories.Models;
@@ -11,9 +11,13 @@ public partial class PrecioEstimado
 
     public int IdVariedad { get; set; }
 
-    public int PrecioEsti { get; set; }
-
     public DateOnly FechaPreci { get; set; }
+
+    public double PrecioEstiComprador { get; set; }
+
+    public double PrecioEstiCampesino { get; set; }
+
+    public double FletePromedioAplicado { get; set; }
 
     public virtual TipoProducto IdTipoProductoNavigation { get; set; } = null!;
 
