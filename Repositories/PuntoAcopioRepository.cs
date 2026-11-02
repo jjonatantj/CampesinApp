@@ -51,6 +51,7 @@ namespace CampesinApp.Repositories
             // 2. Instanciamos la entidad física PuntoAcopio con todos los campos del formulario
             var nuevoPunto = new PuntoAcopio
             {
+                IdUsuario = datos.IdUsuario,
                 IdMunicipio = datos.IdMunicipio,
                 NombrePunto = datos.NombrePunto.Trim(),
                 Direccion = datos.Direccion.Trim(),
@@ -60,6 +61,8 @@ namespace CampesinApp.Repositories
                 Longitud = datos.Longitud,
                 Capacidad = datos.Capacidad,
                 AccesoVehicular = datos.AccesoVehicular,
+                TipoAcopio = datos.TipoAcopio,
+                Descripcion = datos.Descripcion,
                 FechaRegistro = DateTime.Now
             };
 
@@ -123,9 +126,9 @@ namespace CampesinApp.Repositories
         }
 
         /// <summary>
-        /// CU-019: Consulta los puntos de acopio activos aplicando filtros opcionales de Demanda y Municipio.
+        /// CU-019: Consulta los puntos de acopio activos aplicando filtros opcionales de Tipo (bit: 1=Comprador, 0=Campesino), Departamento y Municipio.
         /// </summary>
-        public async Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(int? idDemanda, int? idMunicipio)
+        public async Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(bool? tipoAcopio, int? idDepartamento, int? idMunicipio, int? idDemanda = null)
         {
             var query = _context.PuntoAcopios
                 .Include(p => p.IdMunicipioNavigation)
@@ -134,13 +137,25 @@ namespace CampesinApp.Repositories
                 .AsNoTracking()
                 .AsQueryable();
 
-            // 1. Filtro por Municipio
+            // 1. Filtro por Tipo de Acopio en Base de Datos (bit: 1 = Comprador, 0 = Campesino)
+            if (tipoAcopio.HasValue)
+            {
+                query = query.Where(p => p.TipoAcopio == tipoAcopio.Value);
+            }
+
+            // 2. Filtro por Departamento (a través del municipio)
+            if (idDepartamento.HasValue && idDepartamento.Value > 0)
+            {
+                query = query.Where(p => p.IdMunicipioNavigation.IdDepartamento == idDepartamento.Value);
+            }
+
+            // 3. Filtro por Municipio
             if (idMunicipio.HasValue && idMunicipio.Value > 0)
             {
                 query = query.Where(p => p.IdMunicipio == idMunicipio.Value);
             }
 
-            // 2. Filtro por Demanda (si se especificó una demanda particular)
+            // 4. Filtro por Demanda (opcional por compatibilidad)
             if (idDemanda.HasValue && idDemanda.Value > 0)
             {
                 query = query.Where(p => p.Demanda.Any(d => d.IdDemanda == idDemanda.Value)
@@ -170,4 +185,3 @@ namespace CampesinApp.Repositories
         }
     }
 }
-

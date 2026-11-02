@@ -33,18 +33,57 @@ namespace CampesinApp.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly NotificacionService _notificacionService;
         private readonly ILogService _logService;
+        private readonly IConfiguration _configuration;
 
         // Inyección de dependencias por constructor
         public OfertaController(
             Campesinapp3Context context,
             IWebHostEnvironment webHostEnvironment,
             NotificacionService notificacionService,
-            ILogService logService)
+            ILogService logService,
+            IConfiguration configuration)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
             _notificacionService = notificacionService;
             _logService = logService;
+            _configuration = configuration;
+        }
+
+        /// <summary>
+        /// Carga los puntos de acopio disponibles para que el campesino elija dónde dejará su producto.
+        /// Incluye sus propios puntos registrados y todos los puntos de campesinos.
+        /// </summary>
+        private async Task CargarPuntosAcopioParaOfertaAsync(OfertaProductoViewModel model, int idUsuarioCampesino)
+        {
+            model.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
+
+            var puntos = await _context.PuntoAcopios
+                .Include(p => p.IdMunicipioNavigation)
+                    .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Where(p => p.TipoAcopio == false || p.IdUsuario == idUsuarioCampesino)
+                .AsNoTracking()
+                .OrderByDescending(p => p.IdUsuario == idUsuarioCampesino)
+                .ThenBy(p => p.NombrePunto)
+                .ToListAsync();
+
+            model.PuntosAcopioDisponibles = puntos.Select(p => new PuntoAcopioItemViewModel
+            {
+                IdPuntoAcopio = p.IdPuntoAcopio,
+                NombrePunto = p.NombrePunto,
+                Direccion = p.Direccion,
+                Municipio = p.IdMunicipioNavigation?.Municipio1 ?? "Sin municipio",
+                Departamento = p.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia",
+                Telefono = p.Telefono,
+                HorarioAtencion = p.HorarioAtencion,
+                Latitud = p.Latitud,
+                Longitud = p.Longitud,
+                Capacidad = p.Capacidad,
+                AccesoVehicular = p.AccesoVehicular,
+                Descripcion = p.Descripcion,
+                TipoAcopio = p.TipoAcopio,
+                EsPropio = (p.IdUsuario == idUsuarioCampesino)
+            }).ToList();
         }
 
         // =========================================================================
@@ -100,6 +139,14 @@ namespace CampesinApp.Controllers
                 }
 
                 // Consultar aportes previos que este mismo campesino ya realizó a esta demanda
+                var aportePrevio = await _context.AporteCamps
+                    .Include(a => a.IdPuntoAcopioNavigation)
+                        .ThenInclude(p => p!.IdMunicipioNavigation)
+                            .ThenInclude(m => m!.IdDepartamentoNavigation)
+                    .Where(a => a.IdDemanda == idDemanda && a.IdUsuario == idUsuarioCampesino)
+                    .OrderByDescending(a => a.IdAporte)
+                    .FirstOrDefaultAsync();
+
                 int aportePrevioCampesino = await _context.AporteCamps
                     .Where(a => a.IdDemanda == idDemanda && a.IdUsuario == idUsuarioCampesino)
                     .SumAsync(a => a.CantAporte);
@@ -146,6 +193,15 @@ namespace CampesinApp.Controllers
                     CompradorNombre = $"{demanda.IdUsuarioNavigation?.NombreCom} {demanda.IdUsuarioNavigation?.ApellidoCom}".Trim()
                 };
 
+                if (aportePrevio != null && aportePrevio.IdPuntoAcopio.HasValue && aportePrevio.IdPuntoAcopio.Value > 0)
+                {
+                    viewModel.IdPuntoAcopioFijo = aportePrevio.IdPuntoAcopio.Value;
+                    viewModel.IdPuntoAcopio = aportePrevio.IdPuntoAcopio.Value;
+                    viewModel.NombrePuntoAcopioFijo = aportePrevio.IdPuntoAcopioNavigation?.NombrePunto ?? $"Punto #{aportePrevio.IdPuntoAcopio.Value}";
+                    viewModel.DetallePuntoAcopioFijo = $"{aportePrevio.IdPuntoAcopioNavigation?.Direccion} ({aportePrevio.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1}, {aportePrevio.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1})";
+                }
+
+                await CargarPuntosAcopioParaOfertaAsync(viewModel, idUsuarioCampesino);
                 return View(viewModel);
             }
             catch (Exception)
@@ -193,6 +249,14 @@ namespace CampesinApp.Controllers
             int cantidadFaltanteActual = Math.Max(0, demanda.CantidadDeman - totalAportadoActual);
 
             // Consultar aportes previos que este mismo campesino ya realizó a esta demanda
+            var aportePrevio = await _context.AporteCamps
+                .Include(a => a.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p!.IdMunicipioNavigation)
+                        .ThenInclude(m => m!.IdDepartamentoNavigation)
+                .Where(a => a.IdDemanda == model.IdDemanda && a.IdUsuario == idUsuarioCampesino)
+                .OrderByDescending(a => a.IdAporte)
+                .FirstOrDefaultAsync();
+
             int aportePrevioCampesino = await _context.AporteCamps
                 .Where(a => a.IdDemanda == model.IdDemanda && a.IdUsuario == idUsuarioCampesino)
                 .SumAsync(a => a.CantAporte);
@@ -304,9 +368,33 @@ namespace CampesinApp.Controllers
                 }
             }
 
+            // REGLA DE NEGOCIO: Si ya registró previamente en esta demanda, debe usar el mismo punto de acopio
+            if (aportePrevio != null && aportePrevio.IdPuntoAcopio.HasValue && aportePrevio.IdPuntoAcopio.Value > 0)
+            {
+                model.IdPuntoAcopioFijo = aportePrevio.IdPuntoAcopio.Value;
+                model.NombrePuntoAcopioFijo = aportePrevio.IdPuntoAcopioNavigation?.NombrePunto ?? $"Punto #{aportePrevio.IdPuntoAcopio.Value}";
+                model.DetallePuntoAcopioFijo = $"{aportePrevio.IdPuntoAcopioNavigation?.Direccion} ({aportePrevio.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1}, {aportePrevio.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1})";
+
+                if (model.IdPuntoAcopio.HasValue && model.IdPuntoAcopio.Value != aportePrevio.IdPuntoAcopio.Value)
+                {
+                    ModelState.AddModelError("IdPuntoAcopio", $"Al añadir más producto a esta solicitud, debes usar el mismo punto de acopio de tu registro anterior: '{model.NombrePuntoAcopioFijo}'.");
+                }
+                // Fijamos el punto previo para asegurar coherencia
+                model.IdPuntoAcopio = aportePrevio.IdPuntoAcopio.Value;
+            }
+            else
+            {
+                // Si es su primer aporte, debe seleccionar un punto de acopio obligatorio
+                if (!model.IdPuntoAcopio.HasValue || model.IdPuntoAcopio.Value <= 0)
+                {
+                    ModelState.AddModelError("IdPuntoAcopio", "Debe seleccionar el punto de acopio donde entregará su producto.");
+                }
+            }
+
             // Si hay errores de validación, retornar la vista con los mensajes
             if (!ModelState.IsValid)
             {
+                await CargarPuntosAcopioParaOfertaAsync(model, idUsuarioCampesino);
                 return View(model);
             }
 
@@ -338,6 +426,7 @@ namespace CampesinApp.Controllers
             catch (Exception)
             {
                 ModelState.AddModelError("ImagenProducto", "Ocurrió un error al guardar la imagen en el servidor. Intente nuevamente.");
+                await CargarPuntosAcopioParaOfertaAsync(model, idUsuarioCampesino);
                 return View(model);
             }
 
@@ -351,7 +440,7 @@ namespace CampesinApp.Controllers
                     IdDemanda = demanda.IdDemanda,
                     CantAporte = model.CantidadAporte!.Value,
                     Imagen = rutaConsultaWeb, // Se almacena la dirección de consulta web en la BD
-                    IdPuntoAcopio = demanda.IdPuntoAcopio
+                    IdPuntoAcopio = model.IdPuntoAcopio!.Value // Punto de acopio seleccionado por el campesino para entrega
                 };
 
                 _context.AporteCamps.Add(nuevoAporte);
@@ -441,6 +530,7 @@ namespace CampesinApp.Controllers
                 model.CantidadAportadaPrevia = totalAportadoActual + model.CantidadAporte.Value;
                 model.CantidadFaltante = Math.Max(0, demanda.CantidadDeman - model.CantidadAportadaPrevia);
 
+                await CargarPuntosAcopioParaOfertaAsync(model, idUsuarioCampesino);
                 return View(model);
             }
             catch (Exception ex)
@@ -459,6 +549,7 @@ namespace CampesinApp.Controllers
 
                 // FE04-CU013: Error al registrar en base de datos
                 ViewBag.MensajeErrorConexion = "No fue posible registrar la oferta en la base de datos. Por favor verifique su conexión e intente nuevamente.";
+                await CargarPuntosAcopioParaOfertaAsync(model, idUsuarioCampesino);
                 return View(model);
             }
         }

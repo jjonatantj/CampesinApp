@@ -1,4 +1,4 @@
-@model CampesinApp.ViewModels.PuntoAcopioViewModel
+﻿@model CampesinApp.ViewModels.PuntoAcopioViewModel
 
 @{
     ViewData["Title"] = "Registrar Punto de Acopio";
@@ -93,6 +93,33 @@
                     <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">
                         <i class="bi bi-building me-1"></i> Datos del Lugar
                     </h5>
+
+                                        <!-- Selector exclusivo para usuario Administrador (CU-018) -->
+                    @if (Model.EsAdministrador)
+                    {
+                        <div class="card border-success-subtle bg-light rounded-4 p-3 mb-3 shadow-sm">
+                            <label class="form-label fw-bold small text-dark d-block mb-2">
+                                <i class="bi bi-shield-lock-fill text-success me-1"></i> Tipo de Punto de Acopio (Panel Administrador) *
+                            </label>
+                            <div class="d-flex gap-2">
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check" asp-for="TipoAcopioManual" id="radioTipoCampesino" value="false" checked autocomplete="off">
+                                    <label class="btn btn-outline-success w-100 py-2 rounded-pill fw-semibold text-center shadow-none" for="radioTipoCampesino">
+                                        <i class="bi bi-person-workspace me-1"></i> Campesino
+                                    </label>
+                                </div>
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check" asp-for="TipoAcopioManual" id="radioTipoComprador" value="true" autocomplete="off">
+                                    <label class="btn btn-outline-primary w-100 py-2 rounded-pill fw-semibold text-center shadow-none" for="radioTipoComprador">
+                                        <i class="bi bi-shop me-1"></i> Comprador
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2" style="font-size: 0.78rem;">
+                                Como Administrador, seleccione si este punto pertenece a un productor campesino o a un comprador.
+                            </small>
+                        </div>
+                    }
 
                     <!-- 1. Nombre del Punto -->
                     <div class="mb-3">
@@ -221,13 +248,13 @@
 
                         <!-- Fila 3: Indicación Extra (Urbana) -->
                         <div class="mt-2">
-                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional - solo referencia visual)</label>
+                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
                             <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                 <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
-                                <input type="text" id="urbanoIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Casa verde de dos pisos, frente al parque" maxlength="120" />
+                                <input type="text" id="urbanoIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Casa verde de dos pisos, frente al parque" maxlength="150" value="@Model.Descripcion" />
                             </div>
                             <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
-                                <i class="bi bi-eye text-secondary me-1"></i> Nota: Este campo es una ayuda visual temporal en la interfaz y no se almacena en la base de datos.
+                                <i class="bi bi-info-circle text-secondary me-1"></i> Esta indicación se guarda en la descripción del punto de acopio.
                             </small>
                         </div>
                     </div>
@@ -255,19 +282,20 @@
 
                         <!-- Fila 2: Indicación Extra (Rural) -->
                         <div class="mt-2">
-                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional - solo referencia visual)</label>
+                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
                             <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                 <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
-                                <input type="text" id="ruralIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Finca El Paraíso, a 300m de la escuela rural" maxlength="120" />
+                                <input type="text" id="ruralIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Finca El Paraíso, a 300m de la escuela rural" maxlength="150" value="@Model.Descripcion" />
                             </div>
                             <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
-                                <i class="bi bi-eye text-secondary me-1"></i> Nota: Este campo es una ayuda visual temporal en la interfaz y no se almacena en la base de datos.
+                                <i class="bi bi-info-circle text-secondary me-1"></i> Esta indicación se guarda en la descripción del punto de acopio.
                             </small>
                         </div>
                     </div>
 
                     <!-- CAMPO OCULTO QUE CONCATENA LA DIRECCIÓN PRINCIPAL PARA LA BASE DE DATOS (varchar 150) -->
                     <input type="hidden" asp-for="Direccion" id="inputDireccion" />
+                    <input type="hidden" asp-for="Descripcion" id="inputDescripcion" />
 
                     <!-- RECUADRO DE VISTA PREVIA Y ACCIONES DE UBICACIÓN -->
                     <div class="card p-3 border-success-subtle bg-light rounded-4 mb-3 shadow-sm">
@@ -533,12 +561,13 @@
                 fijarMarcador(event.latLng);
             });
         }
+        window.initMap = initMap;
 
         // =========================================================================
         // 2. FUNCIÓN PARA FIJAR/MOVER EL MARCADOR (draggable: true)
         // INDEPENDENCIA DEL MARCADOR: NO altera los campos de texto de la dirección.
         // =========================================================================
-        function fijarMarcador(latLng) {
+        function fijarMarcador(latLng, autocompletarUrbano = true) {
             const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
             const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
 
@@ -553,15 +582,90 @@
                 });
 
                 // Al arrastrar y soltar el marcador:
-                // Solo actualiza latitud y longitud; NO modifica los campos de texto de dirección.
                 marker.addListener('dragend', function (event) {
                     actualizarCamposOcultos(event.latLng.lat(), event.latLng.lng());
+                    if (obtenerZonaSeleccionada() === 'Urbano') {
+                        autocompletarDireccionUrbanaDesdeCoordenadas(event.latLng.lat(), event.latLng.lng());
+                    }
                 });
             } else {
                 marker.setPosition({ lat: lat, lng: lng });
             }
 
             actualizarCamposOcultos(lat, lng);
+
+            // Requerimiento: Al seleccionar un punto en el mapa y estar en Urbano, llena los campos de la dirección
+            if (autocompletarUrbano && obtenerZonaSeleccionada() === 'Urbano') {
+                autocompletarDireccionUrbanaDesdeCoordenadas(lat, lng);
+            }
+        }
+
+        // =========================================================================
+        // AUTOCOMPLETAR DIRECCIÓN URBANA DESDE COORDENADAS (GEOCODER INVERSO)
+        // Solo aplica en zona Urbana. El usuario puede luego editar los campos libremente
+        // sin que eso altere o mueva el marcador fijado en el mapa.
+        // =========================================================================
+        function autocompletarDireccionUrbanaDesdeCoordenadas(lat, lng) {
+            if (!geocoder) return;
+
+            geocoder.geocode({ location: { lat: lat, lng: lng } }, function (results, status) {
+                if (status === 'OK' && results && results[0]) {
+                    const direccionFormateada = results[0].formatted_address || '';
+                    const partes = direccionFormateada.split(',');
+                    const callePrincipal = partes[0] ? partes[0].trim() : '';
+
+                    if (!callePrincipal) return;
+
+                    // Normalización de prefijos colombianos habituales
+                    let calleNormalizada = callePrincipal
+                        .replace(/^Cl\.\s*/i, 'Calle ')
+                        .replace(/^Cra\.\s*/i, 'Carrera ')
+                        .replace(/^Kra\.\s*/i, 'Carrera ')
+                        .replace(/^Cr\.\s*/i, 'Carrera ')
+                        .replace(/^Dg\.\s*/i, 'Diagonal ')
+                        .replace(/^Diag\.\s*/i, 'Diagonal ')
+                        .replace(/^Tv\.\s*/i, 'Transversal ')
+                        .replace(/^Trans\.\s*/i, 'Transversal ')
+                        .replace(/^Av\.\s*/i, 'Avenida ')
+                        .replace(/^Autop\.\s*/i, 'Autopista ')
+                        .replace(/^Cq\.\s*/i, 'Circular ');
+
+                    // Formato: "Calle 45 # 12-34"
+                    const regexCol = /^(Calle|Carrera|Diagonal|Transversal|Avenida|Autopista|Circular)\s+([0-9]+[a-zA-Z]?)(?:\s+([a-zA-Z]+))?\s*#\s*([0-9]+[a-zA-Z]?)(?:\s*-\s*([0-9]+))?/i;
+                    const match = calleNormalizada.match(regexCol);
+
+                    if (match) {
+                        const tipoVia = match[1];
+                        const numVia = match[2] || '';
+                        const letra = match[3] || '';
+                        const numGen = match[4] || '';
+                        const placa = match[5] || '';
+
+                        const selTipo = document.getElementById('urbanoTipoVia');
+                        if (selTipo) {
+                            for (let i = 0; i < selTipo.options.length; i++) {
+                                if (selTipo.options[i].value.toLowerCase() === tipoVia.toLowerCase()) {
+                                    selTipo.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (document.getElementById('urbanoNumeroVia')) document.getElementById('urbanoNumeroVia').value = numVia;
+                        if (document.getElementById('urbanoLetraVia')) document.getElementById('urbanoLetraVia').value = letra;
+                        if (document.getElementById('urbanoNumeroGenerador')) document.getElementById('urbanoNumeroGenerador').value = numGen;
+                        if (document.getElementById('urbanoPlaca')) document.getElementById('urbanoPlaca').value = placa;
+                    } else {
+                        // Si no cumple el formato con numeral, se asigna al campo de número/nombre de vía
+                        if (document.getElementById('urbanoNumeroVia')) {
+                            document.getElementById('urbanoNumeroVia').value = callePrincipal;
+                        }
+                    }
+
+                    // Se actualiza la dirección para el modelo sin mover el mapa
+                    construirDireccion();
+                }
+            });
         }
 
         // Asigna los valores a los inputs ocultos de latitud y longitud y actualiza el indicador visual
@@ -619,7 +723,7 @@
                         const ubicacion = results[0].geometry.location;
                         map.setCenter(ubicacion);
                         map.setZoom(16);
-                        fijarMarcador(ubicacion);
+                        fijarMarcador(ubicacion, false);
                     } else {
                         // FALLBACK: Si no reconoce la dirección exacta, centrar en el Municipio seleccionado
                         centrarMapa('municipio');
@@ -701,6 +805,19 @@
             return (radioRural && radioRural.checked) ? 'Rural' : 'Urbano';
         }
 
+        function actualizarDescripcion() {
+            const zona = obtenerZonaSeleccionada();
+            const inputUrbano = document.getElementById('urbanoIndicacionExtra');
+            const inputRural = document.getElementById('ruralIndicacionExtra');
+            const valor = (zona === 'Urbano') ? (inputUrbano?.value.trim() || '') : (inputRural?.value.trim() || '');
+
+            const inputDesc = document.getElementById('inputDescripcion');
+            if (inputDesc) {
+                inputDesc.value = valor;
+            }
+            return valor;
+        }
+
         function alternarZonaDireccion() {
             const zona = obtenerZonaSeleccionada();
             const bloqueUrbano = document.getElementById('bloqueDireccionUrbana');
@@ -715,6 +832,12 @@
                 // En zona rural se oculta el botón de geocodificar de maps y se activa "Usar mi Ubicación Actual"
                 if (btnGeocodificar) btnGeocodificar.style.display = 'none';
                 if (btnUbicacionRural) btnUbicacionRural.style.display = 'inline-block';
+
+                const valUrbano = document.getElementById('urbanoIndicacionExtra')?.value || '';
+                const ruralExtra = document.getElementById('ruralIndicacionExtra');
+                if (valUrbano && ruralExtra && !ruralExtra.value) {
+                    ruralExtra.value = valUrbano;
+                }
             } else {
                 bloqueUrbano.style.display = 'block';
                 bloqueRural.style.display = 'none';
@@ -722,9 +845,16 @@
                 // En zona urbana se reactiva el botón "Ubicar en Mapa"
                 if (btnGeocodificar) btnGeocodificar.style.display = 'inline-block';
                 if (btnUbicacionRural) btnUbicacionRural.style.display = 'none';
+
+                const valRural = document.getElementById('ruralIndicacionExtra')?.value || '';
+                const urbanoExtra = document.getElementById('urbanoIndicacionExtra');
+                if (valRural && urbanoExtra && !urbanoExtra.value) {
+                    urbanoExtra.value = valRural;
+                }
             }
 
             construirDireccion();
+            actualizarDescripcion();
         }
 
         // Concatena los campos de la dirección en una sola cadena limpia para varchar(150)
@@ -958,6 +1088,18 @@
                 ruralInput.addEventListener('change', construirDireccion);
             }
 
+            // Indicación extra (Descripción del punto)
+            const inputDescUrbano = document.getElementById('urbanoIndicacionExtra');
+            if (inputDescUrbano) {
+                inputDescUrbano.addEventListener('input', actualizarDescripcion);
+                inputDescUrbano.addEventListener('change', actualizarDescripcion);
+            }
+            const inputDescRural = document.getElementById('ruralIndicacionExtra');
+            if (inputDescRural) {
+                inputDescRural.addEventListener('input', actualizarDescripcion);
+                inputDescRural.addEventListener('change', actualizarDescripcion);
+            }
+
             // D. Botón explícito para ubicar la dirección urbana en el mapa
             const btnGeocodificar = document.getElementById('btnGeocodificarDireccion');
             if (btnGeocodificar) {
@@ -1038,6 +1180,7 @@
                 form.addEventListener('submit', function (e) {
                     const dir = construirDireccion();
                     const hor = construirHorario();
+                    actualizarDescripcion();
 
                     // Validación de Dirección generada
                     if (!dir || dir.trim() === '' || dir.trim() === 'Vereda') {
@@ -1087,6 +1230,7 @@
             // Inicializar concatenaciones visuales
             construirDireccion();
             construirHorario();
+            actualizarDescripcion();
 
             // I. Control de tiempo de alertas flotantes (FE-01, FE-02 Y ÉXITO)
             const alertaConexion = document.getElementById('alertaErrorConexion');

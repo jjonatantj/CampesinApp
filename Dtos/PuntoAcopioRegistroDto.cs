@@ -17,6 +17,7 @@ namespace CampesinApp.Dtos
         public decimal Longitud { get; set; }
         public decimal Capacidad { get; set; }
         public bool AccesoVehicular { get; set; }
+        public bool TipoAcopio { get; set; } // 1 = Comprador, 0 = Campesino
+        public string? Descripcion { get; set; }
     }
 }
-
