@@ -12,7 +12,7 @@
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
 
         <!-- ============================================================== -->
-        <!-- ENCABEZADO DE LA VISTA (CU-019: Limpio, sin emojis)            -->
+        <!-- ENCABEZADO DE LA VISTA (CU-019: Revisar Puntos de Acopio)       -->
         <!-- ============================================================== -->
         <div class="d-flex align-items-center mb-4">
             <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
@@ -21,38 +21,53 @@
             <div>
                 <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Revisar Puntos de Acopio</h1>
                 <p class="text-muted mb-0 fw-semibold">
-                    Visualiza en el mapa interactivo los centros de acopio autorizados para recepción y entrega agrícola.
+                    Visualiza en el mapa interactivo los puntos de acopio de campesinos y compradores registrados.
                 </p>
             </div>
         </div>
 
         <!-- ============================================================== -->
-        <!-- PANEL SUPERIOR: FILTROS DE CONSULTA (DEMANDAS Y MUNICIPIOS)    -->
+        <!-- PANEL SUPERIOR: FILTROS MEJORADOS (TIPO, DEPARTAMENTO, MUNICIPIO) -->
         <!-- ============================================================== -->
         <div class="card border rounded-4 p-3 bg-white shadow-sm mb-4">
             <div class="row g-3 align-items-end">
 
-                <!-- 1. Desplegable de Demandas / Ofertas Activas -->
-                <div class="col-lg-4 col-md-6">
-                    <label for="selectDemanda" class="form-label fw-bold small text-dark mb-1">
-                        <i class="bi bi-card-checklist text-success me-1"></i> Demandas / Ofertas
+                <!-- 1. Filtro por Tipo de Acopio (Bit: 0 = Campesino, 1 = Comprador) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectTipoAcopio" class="form-label fw-bold small text-dark mb-1">
+                        <i class="bi bi-people text-success me-1"></i> Tipo de Punto
                     </label>
                     <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
-                        <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-bag-check"></i></span>
-                        <select id="selectDemanda" class="form-select border-0 bg-transparent shadow-none px-2 py-2 small">
-                            <option value="">-- Todas las demandas / ofertas --</option>
-                            @foreach (var demanda in Model.DemandasDisponibles)
+                        <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-person-badge"></i></span>
+                        <select id="selectTipoAcopio" class="form-select border-0 bg-transparent shadow-none px-2 py-2 small">
+                            <option value="">-- Todos los tipos --</option>
+                            <option value="0" selected="@(Model.TipoAcopioSeleccionado.HasValue && !Model.TipoAcopioSeleccionado.Value)">Campesino</option>
+                            <option value="1" selected="@(Model.TipoAcopioSeleccionado.HasValue && Model.TipoAcopioSeleccionado.Value)">Comprador</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 2. Filtro por Departamento (Catálogo de Base de Datos) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectDepartamento" class="form-label fw-bold small text-dark mb-1">
+                        <i class="bi bi-map text-success me-1"></i> Departamento
+                    </label>
+                    <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
+                        <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-compass"></i></span>
+                        <select id="selectDepartamento" class="form-select border-0 bg-transparent shadow-none px-2 py-2 small">
+                            <option value="">-- Todos los departamentos --</option>
+                            @foreach (var depto in Model.DepartamentosDisponibles)
                             {
-                                <option value="@demanda.Value" selected="@demanda.Selected">@demanda.Text</option>
+                                <option value="@depto.Value" selected="@depto.Selected">@depto.Text</option>
                             }
                         </select>
                     </div>
                 </div>
 
-                <!-- 2. Desplegable de Ciudades / Municipios -->
-                <div class="col-lg-4 col-md-6">
+                <!-- 3. Filtro por Municipio (Dependiente del departamento) -->
+                <div class="col-lg-3 col-md-6">
                     <label for="selectMunicipio" class="form-label fw-bold small text-dark mb-1">
-                        <i class="bi bi-pin-map text-success me-1"></i> Ciudades / Municipios
+                        <i class="bi bi-pin-map text-success me-1"></i> Municipio
                     </label>
                     <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                         <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-geo"></i></span>
@@ -66,18 +81,19 @@
                     </div>
                 </div>
 
-                <!-- 3. Botón Filtrar -->
-                <div class="col-lg-2 col-md-6">
-                    <button type="button" id="btnFiltrar" class="btn btn-success w-100 py-2 rounded-pill fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
-                        <i class="bi bi-funnel-fill me-1"></i> Filtrar
-                    </button>
-                </div>
-
-                <!-- 4. Botón Regresar (Redirige a Pantalla Principal CU-009) -->
-                <div class="col-lg-2 col-md-6 text-md-end">
-                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-secondary w-100 py-2 rounded-pill fw-semibold shadow-sm">
-                        <i class="bi bi-arrow-left me-1"></i> Regresar
-                    </a>
+                <!-- 4. Botones de Acción (Filtrar, Limpiar Filtros y Regresar) -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" id="btnFiltrar" class="btn btn-success flex-grow-1 py-2 px-3 rounded-pill fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="bi bi-funnel-fill me-1"></i> Filtrar
+                        </button>
+                        <button type="button" id="btnLimpiarFiltros" class="btn btn-outline-secondary py-2 px-3 rounded-pill fw-semibold shadow-sm" title="Restablecer todos los filtros">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
+                        </button>
+                        <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-secondary py-2 px-3 rounded-pill fw-semibold shadow-sm" title="Regresar al inicio">
+                            <i class="bi bi-arrow-left me-1"></i> Regresar
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -88,10 +104,15 @@
         <!-- ============================================================== -->
         <div id="alertaMensaje" class="alert alert-warning shadow-sm border-0 rounded-4 d-none align-items-center mb-3 py-3" role="alert">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
-            <div class="flex-grow-1" id="textoAlertaMensaje">
-                No se encontraron puntos de acopio en esa ubicación.
+            <div class="flex-grow-1 d-flex align-items-center justify-content-between flex-wrap gap-2" id="contenedorAlertaMensaje">
+                <span id="textoAlertaMensaje">
+                    No se encontraron puntos de acopio para los criterios seleccionados.
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1 fw-semibold" onclick="limpiarFiltros()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar filtros
+                </button>
             </div>
-            <button type="button" class="btn-close" id="btnCerrarAlerta" aria-label="Cerrar"></button>
+            <button type="button" class="btn-close ms-2" id="btnCerrarAlerta" aria-label="Cerrar"></button>
         </div>
 
         <!-- ============================================================== -->
@@ -99,11 +120,22 @@
         <!-- ============================================================== -->
         <div class="card border rounded-4 shadow-sm overflow-hidden position-relative mb-2">
 
-            <!-- Barra informativa superior del mapa -->
+            <!-- Barra informativa superior del mapa con leyenda visual -->
             <div class="bg-light px-3 py-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="small text-muted fw-semibold">
-                    <i class="bi bi-info-circle text-success me-1"></i>
-                    Haz clic sobre cualquier marcador para consultar nombre, dirección, horario, capacidad y teléfono.
+                <div class="small text-muted fw-semibold d-flex align-items-center flex-wrap gap-3">
+                    <span>
+                        <i class="bi bi-info-circle text-success me-1"></i>
+                        Haz clic sobre un marcador para ver la información detallada.
+                    </span>
+                    <!-- Leyenda de colores -->
+                    <span class="d-inline-flex align-items-center">
+                        <span class="badge rounded-circle p-1 me-1" style="background-color: #2e7d32; width: 10px; height: 10px; display: inline-block;"></span>
+                        <span class="small text-dark">Campesino</span>
+                    </span>
+                    <span class="d-inline-flex align-items-center">
+                        <span class="badge rounded-circle p-1 me-1" style="background-color: #1976d2; width: 10px; height: 10px; display: inline-block;"></span>
+                        <span class="small text-dark">Comprador</span>
+                    </span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <span id="badgeContadorPuntos" class="badge bg-success text-white rounded-pill px-3 py-1 fw-normal">
@@ -142,13 +174,17 @@
         let map;               // Instancia del mapa de Google Maps
         let marcadores = [];   // Arreglo para almacenar los marcadores activos
         let infoWindow;        // Ventana emergente nativa de Google Maps
-        let geocoder;          // Servicio de Geocodificación para centrar municipios
+        let geocoder;          // Servicio de Geocodificación para centrar departamentos y municipios
 
         // Coordenadas geográficas del centro de Colombia
         const CENTRO_COLOMBIA = { lat: 4.570868, lng: -74.297333 };
 
+        // Iconos diferenciados por tipo (Verde = Campesino, Azul = Comprador)
+        const ICONO_CAMPESINO = "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
+        const ICONO_COMPRADOR = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+
         // =========================================================================
-        // 1. INICIALIZACIÓN DEL MAPA INTERACTIVO (Requerimiento 2)
+        // 1. INICIALIZACIÓN DEL MAPA INTERACTIVO (CU-019)
         // =========================================================================
         function initMapaCU019() {
             const mapContainer = document.getElementById('map');
@@ -158,12 +194,12 @@
             geocoder = new google.maps.Geocoder();
             infoWindow = new google.maps.InfoWindow();
 
-            // Configuración del mapa centrado en la región general de Colombia
+            // Configuración del mapa centrado inicialmente en Colombia
             map = new google.maps.Map(mapContainer, {
                 center: CENTRO_COLOMBIA,
                 zoom: 6,
-                mapTypeId: 'hybrid',     // Satélite con etiquetas para visualización clara
-                mapTypeControl: true,    // Permite alternar entre Satélite y Mapa
+                mapTypeId: 'roadmap',    // Vista de mapa clara y legible
+                mapTypeControl: true,    // Permite alternar entre Mapa y Satélite
                 streetViewControl: false,
                 zoomControl: true
             });
@@ -173,10 +209,8 @@
                 if (infoWindow) infoWindow.close();
             });
 
-            // Carga inicial de todos los puntos de acopio sin filtros
-            const paramDemanda = document.getElementById('selectDemanda').value;
-            const paramMunicipio = document.getElementById('selectMunicipio').value;
-            cargarPuntosAcopio(paramDemanda, paramMunicipio);
+            // Carga inicial de puntos con los filtros actuales
+            ejecutarFiltroPuntos();
         }
 
         // =========================================================================
@@ -189,9 +223,17 @@
         };
 
         // =========================================================================
-        // 3. CONSULTA AJAX AL BACKEND Y PINTADO DE MARCADORES (Requerimiento 2 y 3)
+        // 3. CONSULTA AJAX AL BACKEND Y PINTADO DE MARCADORES (Filtros actualizados)
         // =========================================================================
-        function cargarPuntosAcopio(idDemanda, idMunicipio) {
+        function ejecutarFiltroPuntos() {
+            const tipoAcopio = document.getElementById('selectTipoAcopio').value;
+            const idDepartamento = document.getElementById('selectDepartamento').value;
+            const idMunicipio = document.getElementById('selectMunicipio').value;
+
+            cargarPuntosAcopio(tipoAcopio, idDepartamento, idMunicipio);
+        }
+
+        function cargarPuntosAcopio(tipoAcopio, idDepartamento, idMunicipio) {
             const badgeContador = document.getElementById('badgeContadorPuntos');
             const alerta = document.getElementById('alertaMensaje');
             const textoAlerta = document.getElementById('textoAlertaMensaje');
@@ -199,10 +241,11 @@
             if (badgeContador) badgeContador.textContent = 'Consultando...';
             if (alerta) alerta.classList.add('d-none');
 
-            // Construir la URL del endpoint JSON creado en el controlador
+            // Construir la URL del endpoint JSON con los filtros
             let url = '@Url.Action("ObtenerPuntosMapaJson", "PuntoAcopio")';
             const params = [];
-            if (idDemanda) params.push('idDemanda=' + encodeURIComponent(idDemanda));
+            if (tipoAcopio !== "") params.push('tipoAcopio=' + encodeURIComponent(tipoAcopio));
+            if (idDepartamento) params.push('idDepartamento=' + encodeURIComponent(idDepartamento));
             if (idMunicipio) params.push('idMunicipio=' + encodeURIComponent(idMunicipio));
             if (params.length > 0) url += '?' + params.join('&');
 
@@ -214,19 +257,19 @@
                     return response.json();
                 })
                 .then(puntos => {
-                    // Limpiar marcadores anteriores del mapa
+                    // Limpiar marcadores anteriores
                     limpiarMarcadores();
 
                     // Caso FE-02-CU019: No se encontraron puntos
                     if (!puntos || puntos.length === 0) {
                         if (badgeContador) badgeContador.textContent = '0 puntos encontrados';
                         if (textoAlerta) {
-                            textoAlerta.innerHTML = '<i class="bi bi-info-circle me-1"></i> <strong>No se encontraron puntos de acopio</strong> para los criterios seleccionados.';
+                            textoAlerta.innerHTML = '<i class="bi bi-info-circle me-1"></i> No se encontraron puntos de acopio para los criterios seleccionados.';
                         }
                         if (alerta) alerta.classList.remove('d-none');
 
-                        // Si el usuario filtró por un municipio específico, centrar el mapa en ese municipio
-                        centrarMapaEnMunicipioSeleccionado();
+                        // Centrar mapa según el lugar seleccionado (departamento o municipio)
+                        centrarMapaSegunLugar();
                         return;
                     }
 
@@ -235,10 +278,10 @@
                         badgeContador.textContent = `${puntos.length} punto(s) de acopio disponible(s)`;
                     }
 
-                    // Objeto de límites geográficos para ajustar el zoom automáticamente
+                    // Límites geográficos para centrar los marcadores encontrados
                     const bounds = new google.maps.LatLngBounds();
 
-                    // Renderizar cada punto de acopio en el mapa
+                    // Renderizar cada punto de acopio
                     puntos.forEach(p => {
                         const lat = parseFloat(p.latitud);
                         const lng = parseFloat(p.longitud);
@@ -247,26 +290,49 @@
 
                         const posicion = { lat: lat, lng: lng };
 
-                        // Crear el marcador interactivo
+                        // Icono diferenciado: Verde para Campesino (0), Azul para Comprador (1)
+                        const iconoMarcador = p.tipoAcopio ? ICONO_COMPRADOR : ICONO_CAMPESINO;
+
+                        // Crear marcador
                         const marker = new google.maps.Marker({
                             position: posicion,
                             map: map,
                             title: p.nombrePunto,
+                            icon: iconoMarcador,
                             animation: google.maps.Animation.DROP
                         });
 
-                        // Construir el contenido de la ventana emergente (InfoWindow)
+                        // Badge distintivo para la ventana emergente
+                        const badgeTipo = p.tipoAcopio
+                            ? '<span class="badge bg-primary text-white px-2 py-1"><i class="bi bi-shop me-1"></i> Punto de Comprador</span>'
+                            : '<span class="badge bg-success text-white px-2 py-1"><i class="bi bi-person-workspace me-1"></i> Punto de Campesino</span>';
+
+                        // Descripción del punto de acopio si existe
+                        const descHTML = p.descripcion && p.descripcion.trim() !== ''
+                            ? `<p class="small text-muted mb-1"><i class="bi bi-card-text text-secondary me-1"></i> <strong>Descripción:</strong> ${p.descripcion}</p>`
+                            : '';
+
+                        // Contenido de la ventana emergente (InfoWindow)
                         const contenidoHTML = `
-                            <div class="p-2" style="max-width: 290px; font-family: 'Mulish', sans-serif;">
-                                <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
-                                    <div class="p-2 rounded-circle me-2" style="background-color: #e8f5e9; color: #2e7d32;">
-                                        <i class="bi bi-building"></i>
+                            <div class="p-2" style="max-width: 310px; font-family: 'Mulish', sans-serif;">
+                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom gap-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="p-2 rounded-circle me-2" style="background-color: ${p.tipoAcopio ? '#e3f2fd' : '#e8f5e9'}; color: ${p.tipoAcopio ? '#1565c0' : '#2e7d32'};">
+                                            <i class="bi ${p.tipoAcopio ? 'bi-shop' : 'bi-building'}"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0 text-success" style="color: #1b5e20;">${p.nombrePunto}</h6>
                                     </div>
-                                    <h6 class="fw-bold mb-0 text-success" style="color: #1b5e20;">${p.nombrePunto}</h6>
                                 </div>
+
+                                <div class="mb-2">
+                                    ${badgeTipo}
+                                </div>
+
+                                ${descHTML}
+
                                 <p class="small text-muted mb-1">
                                     <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                                    <strong>Dirección:</strong> ${p.direccion} (${p.municipio}, ${p.departamento})
+                                    <strong>Ubicación:</strong> ${p.direccion} (${p.municipio}, ${p.departamento})
                                 </p>
                                 <p class="small text-muted mb-1">
                                     <i class="bi bi-clock-fill text-primary me-1"></i>
@@ -292,7 +358,7 @@
                             </div>
                         `;
 
-                        // Evento de clic en el marcador para abrir la ventana emergente
+                        // Evento de clic en el marcador
                         marker.addListener('click', function () {
                             infoWindow.setContent(contenidoHTML);
                             infoWindow.open(map, marker);
@@ -302,7 +368,7 @@
                         bounds.extend(posicion);
                     });
 
-                    // Ajustar el mapa a los límites de los marcadores encontrados
+                    // Centrar y hacer zoom en el mapa según los puntos encontrados
                     if (marcadores.length === 1) {
                         map.setCenter(marcadores[0].getPosition());
                         map.setZoom(15);
@@ -331,22 +397,37 @@
         }
 
         // =========================================================================
-        // 5. CENTRAR MAPA SI SE FILTRÓ POR UN MUNICIPIO
+        // 5. CENTRAR MAPA SEGÚN EL LUGAR SELECCIONADO (DEPARTAMENTO / MUNICIPIO)
         // =========================================================================
-        function centrarMapaEnMunicipioSeleccionado() {
+        function centrarMapaSegunLugar() {
             const selectMun = document.getElementById('selectMunicipio');
-            const textoMunicipio = selectMun.options[selectMun.selectedIndex]?.text.trim() || '';
+            const selectDepto = document.getElementById('selectDepartamento');
 
-            if (textoMunicipio && !textoMunicipio.includes('--')) {
-                const consulta = `${textoMunicipio}, Colombia`;
-                if (geocoder && map) {
-                    geocoder.geocode({ address: consulta, componentRestrictions: { country: 'CO' } }, function (results, status) {
-                        if (status === 'OK' && results && results[0]) {
-                            map.setCenter(results[0].geometry.location);
-                            map.setZoom(13);
-                        }
-                    });
-                }
+            const textoMun = selectMun.value ? selectMun.options[selectMun.selectedIndex]?.text.trim() : '';
+            const textoDepto = selectDepto.value ? selectDepto.options[selectDepto.selectedIndex]?.text.trim() : '';
+
+            let direccionGeocodificar = '';
+            let zoomNivel = 6;
+
+            if (textoMun && !textoMun.includes('--')) {
+                // Si hay municipio seleccionado
+                direccionGeocodificar = textoDepto && !textoDepto.includes('--')
+                    ? `${textoMun}, ${textoDepto}, Colombia`
+                    : `${textoMun}, Colombia`;
+                zoomNivel = 13;
+            } else if (textoDepto && !textoDepto.includes('--')) {
+                // Solo departamento seleccionado
+                direccionGeocodificar = `${textoDepto}, Colombia`;
+                zoomNivel = 9;
+            }
+
+            if (direccionGeocodificar && geocoder && map) {
+                geocoder.geocode({ address: direccionGeocodificar, componentRestrictions: { country: 'CO' } }, function (results, status) {
+                    if (status === 'OK' && results && results[0]) {
+                        map.setCenter(results[0].geometry.location);
+                        map.setZoom(zoomNivel);
+                    }
+                });
             } else if (map) {
                 map.setCenter(CENTRO_COLOMBIA);
                 map.setZoom(6);
@@ -354,36 +435,111 @@
         }
 
         // =========================================================================
-        // 6. ASIGNACIÓN DE EVENTOS DE LA INTERFAZ
+        // 6. FUNCIÓN PARA LIMPIAR TODOS LOS FILTROS (FE-02-CU019)
+        // =========================================================================
+        window.limpiarFiltros = function () {
+            // Restablecer valores de los selects
+            const selectTipo = document.getElementById('selectTipoAcopio');
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+            const alerta = document.getElementById('alertaMensaje');
+
+            if (selectTipo) selectTipo.value = '';
+            if (selectDepto) selectDepto.value = '';
+
+            // Resetear lista de municipios a todos los municipios
+            if (selectMun) {
+                selectMun.innerHTML = '<option value="">-- Todos los municipios --</option>';
+                // Recargar todos los municipios llamando al endpoint sin departamento
+                fetch('@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=0')
+                    .then(res => res.json())
+                    .then(data => {
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.nombre;
+                            selectMun.appendChild(opt);
+                        });
+                    })
+                    .catch(() => {});
+            }
+
+            if (alerta) alerta.classList.add('d-none');
+
+            // Centrar el mapa de nuevo en Colombia
+            if (map) {
+                map.setCenter(CENTRO_COLOMBIA);
+                map.setZoom(6);
+            }
+
+            // Consultar todos los puntos sin ningún filtro
+            cargarPuntosAcopio('', '', '');
+        };
+
+        // =========================================================================
+        // 7. ASIGNACIÓN DE EVENTOS DE INTERFAZ Y CARGA DINÁMICA DE MUNICIPIOS
         // =========================================================================
         document.addEventListener('DOMContentLoaded', function () {
-            // Botón "Filtrar"
             const btnFiltrar = document.getElementById('btnFiltrar');
+            const btnLimpiar = document.getElementById('btnLimpiarFiltros');
+            const selectTipo = document.getElementById('selectTipoAcopio');
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+
+            // Evento al cambiar de Departamento: Cargar municipios de ese departamento dinámicamente
+            if (selectDepto) {
+                selectDepto.addEventListener('change', function () {
+                    const idDepartamento = this.value;
+
+                    // Limpiar y resetear el select de municipios
+                    selectMun.innerHTML = '<option value="">-- Todos los municipios --</option>';
+
+                    if (idDepartamento) {
+                        fetch(`@Url.Action("ObtenerMunicipios", "PuntoAcopio")?idDepartamento=${encodeURIComponent(idDepartamento)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                data.forEach(item => {
+                                    const opt = document.createElement('option');
+                                    opt.value = item.id;
+                                    opt.textContent = item.nombre;
+                                    selectMun.appendChild(opt);
+                                });
+                                // Centrar el mapa en el departamento elegido y filtrar
+                                centrarMapaSegunLugar();
+                                ejecutarFiltroPuntos();
+                            })
+                            .catch(err => console.error('Error al cargar municipios:', err));
+                    } else {
+                        // Si deseleccionó departamento, recargar puntos
+                        centrarMapaSegunLugar();
+                        ejecutarFiltroPuntos();
+                    }
+                });
+            }
+
+            // Filtrado automático al cambiar Tipo o Municipio
+            if (selectTipo) {
+                selectTipo.addEventListener('change', ejecutarFiltroPuntos);
+            }
+
+            if (selectMun) {
+                selectMun.addEventListener('change', function () {
+                    centrarMapaSegunLugar();
+                    ejecutarFiltroPuntos();
+                });
+            }
+
+            // Botón manual de "Filtrar"
             if (btnFiltrar) {
                 btnFiltrar.addEventListener('click', function () {
-                    const idDemanda = document.getElementById('selectDemanda').value;
-                    const idMunicipio = document.getElementById('selectMunicipio').value;
-                    cargarPuntosAcopio(idDemanda, idMunicipio);
+                    centrarMapaSegunLugar();
+                    ejecutarFiltroPuntos();
                 });
             }
 
-            // Filtrado automático al cambiar de opción en los selects
-            const selectDemanda = document.getElementById('selectDemanda');
-            if (selectDemanda) {
-                selectDemanda.addEventListener('change', function () {
-                    const idDemanda = this.value;
-                    const idMunicipio = document.getElementById('selectMunicipio').value;
-                    cargarPuntosAcopio(idDemanda, idMunicipio);
-                });
-            }
-
-            const selectMunicipio = document.getElementById('selectMunicipio');
-            if (selectMunicipio) {
-                selectMunicipio.addEventListener('change', function () {
-                    const idDemanda = document.getElementById('selectDemanda').value;
-                    const idMunicipio = this.value;
-                    cargarPuntosAcopio(idDemanda, idMunicipio);
-                });
+            // Botón manual de "Limpiar Filtros"
+            if (btnLimpiar) {
+                btnLimpiar.addEventListener('click', window.limpiarFiltros);
             }
 
             // Botón para restablecer vista general a Colombia
@@ -407,4 +563,3 @@
         });
     </script>
 }
-

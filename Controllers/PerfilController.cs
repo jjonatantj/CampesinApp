@@ -1,3 +1,5 @@
+using CampesinApp.Dtos;
+using CampesinApp.Repositories.Models;
 using CampesinApp.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,11 +14,17 @@ namespace CampesinApp.Controllers
     {
         private readonly PerfilService _perfil;
         private readonly ILogService _log;
+        private readonly IEstimadosDiariosJob _estimadosJob;
 
-        public PerfilController(IUsuarioActualService usuarioActual, PerfilService perfil, ILogService log) : base(usuarioActual)
+        public PerfilController(
+            IUsuarioActualService usuarioActual,
+            PerfilService perfil,
+            ILogService log,
+            IEstimadosDiariosJob estimadosJob) : base(usuarioActual)
         {
             _perfil = perfil;
             _log = log;
+            _estimadosJob = estimadosJob;
         }
 
         [HttpGet]
@@ -43,8 +51,50 @@ namespace CampesinApp.Controllers
             catch (Exception ex)
             {
                 // FE-01-CU031: aviso durante 3 segundos y regreso a la pantalla principal.
-                await _log.RegistrarAsync(Repositories.Models.NivelesLog.Error, "CU-031 Perfil", $"{ex.GetType().Name}: {ex.Message}", idUsuario);
+                await _log.RegistrarAsync(NivelesLog.Error, "CU-031 Perfil", $"{ex.GetType().Name}: {ex.Message}", idUsuario);
                 return View("ErrorPerfil");
+            }
+        }
+
+        /// <summary>
+        /// Muestra la ventana modal de confirmación antes de ejecutar sp_CalcularEstimadosDiarios.
+        /// Solo accesible para el rol Administrador.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ConfirmarCalcularEstimados()
+        {
+            var usuario = await ObtenerUsuarioAsync();
+            if (usuario == null || usuario.Rol != RolUsuario.Administrador)
+            {
+                return SinPermiso(usuario, "Solo los administradores pueden ejecutar el cálculo de estimados diarios.");
+            }
+
+            return ModalSuperpuesto("_ConfirmarCalcularEstimados");
+        }
+
+        /// <summary>
+        /// Ejecuta manualmente el procedimiento almacenado sp_CalcularEstimadosDiarios.
+        /// Solo ejecutable por Administradores.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> EjecutarCalcularEstimados()
+        {
+            var usuario = await ObtenerUsuarioAsync();
+            if (usuario == null || usuario.Rol != RolUsuario.Administrador)
+            {
+                return SinPermiso(usuario, "Solo los administradores pueden ejecutar el cálculo de estimados diarios.");
+            }
+
+            try
+            {
+                await _estimadosJob.EjecutarSpAsync();
+                await _log.RegistrarAsync(NivelesLog.Info, "Estimados Diarios", "El Administrador ejecutó manualmente sp_CalcularEstimadosDiarios.", usuario.Id);
+                return ModalSuperpuesto("_ResultadoCalcularEstimados", ResultadoOperacion.Ok("El procedimiento almacenado sp_CalcularEstimadosDiarios se ejecutó correctamente y los precios sugeridos han sido actualizados."));
+            }
+            catch (Exception ex)
+            {
+                await _log.RegistrarAsync(NivelesLog.Error, "Estimados Diarios", $"Error al ejecutar sp_CalcularEstimadosDiarios: {ex.Message}", usuario.Id);
+                return ModalSuperpuesto("_ResultadoCalcularEstimados", ResultadoOperacion.Falla(TipoError.Interno, $"Ocurrió un error al ejecutar el procedimiento: {ex.Message}"));
             }
         }
 
@@ -79,7 +129,7 @@ namespace CampesinApp.Controllers
             }
             catch (Exception ex)
             {
-                await _log.RegistrarAsync(Repositories.Models.NivelesLog.Error, "CU-031 Consulta de perfil", $"{ex.GetType().Name}: {ex.Message}", HttpContext.Session.GetInt32("IdUsuario"));
+                await _log.RegistrarAsync(NivelesLog.Error, "CU-031 Consulta de perfil", $"{ex.GetType().Name}: {ex.Message}", HttpContext.Session.GetInt32("IdUsuario"));
                 return View("ErrorPerfil");
             }
         }

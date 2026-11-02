@@ -73,6 +73,54 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "Debe adjuntar una imagen del producto que va a ofertar.")]
         [Display(Name = "Imagen del producto")]
         public IFormFile? ImagenProducto { get; set; }
+
+        /// <summary>
+        /// Punto de acopio seleccionado donde el campesino dejará el producto para su recogida.
+        /// </summary>
+        [Required(ErrorMessage = "Debe seleccionar un punto de acopio donde entregará su producto.")]
+        [Display(Name = "Punto de Acopio de Entrega")]
+        public int? IdPuntoAcopio { get; set; }
+
+        // =========================================================================
+        // DATOS PARA SELECCIÓN DE PUNTOS DE ACOPIO Y MAPA
+        // =========================================================================
+
+        public string GoogleMapsApiKey { get; set; } = string.Empty;
+
+        public List<PuntoAcopioItemViewModel> PuntosAcopioDisponibles { get; set; } = new();
+
+        /// <summary>
+        /// Si el campesino ya aportó previamente a esta demanda, el punto de acopio queda fijado
+        /// al mismo del primer aporte para consolidar la logística de recogida.
+        /// </summary>
+        public int? IdPuntoAcopioFijo { get; set; }
+
+        public string? NombrePuntoAcopioFijo { get; set; }
+
+        public string? DetallePuntoAcopioFijo { get; set; }
+
+        public bool TienePuntoAcopioFijo => IdPuntoAcopioFijo.HasValue && IdPuntoAcopioFijo.Value > 0;
+    }
+
+    /// <summary>
+    /// Elemento simplificado para listar y mapear puntos de acopio en la vista de oferta.
+    /// </summary>
+    public class PuntoAcopioItemViewModel
+    {
+        public int IdPuntoAcopio { get; set; }
+        public string NombrePunto { get; set; } = string.Empty;
+        public string Direccion { get; set; } = string.Empty;
+        public string Municipio { get; set; } = string.Empty;
+        public string Departamento { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
+        public string HorarioAtencion { get; set; } = string.Empty;
+        public decimal Latitud { get; set; }
+        public decimal Longitud { get; set; }
+        public decimal Capacidad { get; set; }
+        public bool AccesoVehicular { get; set; }
+        public string? Descripcion { get; set; }
+        public bool TipoAcopio { get; set; }
+        public bool EsPropio { get; set; }
     }
 }
 

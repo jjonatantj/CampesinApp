@@ -41,9 +41,9 @@ namespace CampesinApp.Repositories
         Task<List<Municipio>> ObtenerTodosMunicipiosAsync();
 
         /// <summary>
-        /// Consulta los puntos de acopio activos aplicando filtros opcionales de Demanda y Municipio (CU-019).
+        /// Consulta los puntos de acopio activos aplicando filtros opcionales de Tipo (bit 0=Campesino, 1=Comprador), Departamento y Municipio (CU-019).
         /// </summary>
-        Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(int? idDemanda, int? idMunicipio);
+        Task<List<PuntoAcopio>> ObtenerPuntosAcopioFiltradosAsync(bool? tipoAcopio, int? idDepartamento, int? idMunicipio, int? idDemanda = null);
 
         /// <summary>
         /// Consulta las demandas activas para alimentar el filtro desplegable de CU-019.
@@ -51,4 +51,3 @@ namespace CampesinApp.Repositories
         Task<List<Demandum>> ObtenerDemandasParaFiltroAsync();
     }
 }
-

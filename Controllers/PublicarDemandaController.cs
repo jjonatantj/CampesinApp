@@ -69,7 +69,7 @@ namespace CampesinApp.Controllers
                 return Json(new { exito = false, precio = 0 });
             }
 
-            decimal precio = precioEst.PrecioEsti;
+            decimal precio = (decimal)Math.Round(precioEst.PrecioEstiComprador, 0);
             decimal min = precio * 0.9m; // -10%
             decimal max = precio * 1.1m; // +10%
 
@@ -136,5 +136,4 @@ namespace CampesinApp.Controllers
             });
         }
     }
-}
 }
