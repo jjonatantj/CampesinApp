@@ -23,12 +23,10 @@
                         }
                         else if (Model.Paso == 2)
                         {
-
                             <span>Método de Verificación</span>
                         }
                         else
                         {
-
                             <span>Verificación de Código</span>
                         }
                     </h2>
@@ -39,12 +37,10 @@
                         }
                         else if (Model.Paso == 2)
                         {
-
                             <span>Seleccione el medio para recibir el código de verificación</span>
                         }
                         else
                         {
-
                             <span>Ingrese el código de 6 dígitos recibido</span>
                         }
                     </p>
@@ -83,7 +79,7 @@
                     @if (Model.Paso == 1)
                     {
                         <div class="text-center mb-4">
-                            <label class="form-label fw-bold text-dark d-block mb-2">Foto de Perfil</label>
+                            <label class="form-label fw-bold text-dark d-block mb-2">Foto de Perfil <span class="text-danger">*</span></label>
                             <div class="d-flex flex-column align-items-center">
                                 <div class="rounded-circle shadow-sm border border-2 border-secondary overflow-hidden bg-white d-flex align-items-center justify-content-center mb-2" style="width: 110px; height: 110px;">
                                     <img id="previewFoto" src="#" alt="Vista previa" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
@@ -93,7 +89,7 @@
                                     Agregar foto
                                 </label>
                                 <input asp-for="FotoPerfil" type="file" id="fileInputFoto" class="d-none" accept="image/*" onchange="mostrarVistaPrevia(event)" />
-                                <span asp-validation-for="FotoPerfil" class="text-danger small mt-1"></span>
+                                <span asp-validation-for="FotoPerfil" class="text-danger small mt-1 d-block"></span>
                             </div>
                         </div>
 
@@ -248,10 +244,12 @@
                             <button type="submit" id="btnVerificar" class="btn btn-nav-register py-2 w-100 d-flex justify-content-center align-items-center" style="font-size: 1rem;">Finalizar Registro</button>
                         </div>
 
-                        <!-- REENVÍO CON LÍMITE DE 3 VECES Y TEMPORIZADOR DE COOLDOWN -->
+                        <!-- REENVÍO CON LÍMITE DE 3 VECES Y CONTROL DINÁMICO DE RESTANTES -->
                         <div class="text-center mt-3 small">
                             <span class="text-muted">¿No recibiste el código?</span>
-                            <a href="@Url.Action("ReenviarCodigoRegistro")" id="btnReenviar" class="text-success fw-bold text-decoration-none ms-1">Reenviar código (<span id="contadorReenvios">3</span> restantes)</a>
+                            <a href="@Url.Action("ReenviarCodigoRegistro")" id="btnReenviar" class="text-success fw-bold text-decoration-none ms-1">
+                                Reenviar código (<span id="contadorReenvios">@(ViewBag.ReenviosRestantes ?? 3)</span> restantes)
+                            </a>
                         </div>
                         <div id="cooldownText" class="text-center text-muted small mt-1" style="display: none;">
                             Podrá volver a solicitar el código en <span id="tiempoCooldown">60</span>s
@@ -275,6 +273,7 @@
 
     <script>
         const pasoActual = @Model.Paso;
+        const reenviosRestantes = @(ViewBag.ReenviosRestantes ?? 3);
 
         @if (ViewBag.RegistroExitoso != null && (bool)ViewBag.RegistroExitoso)
             {
@@ -309,7 +308,6 @@
         }
 
                 if (pasoActual === 3) {
-            // Temporizador de expiración de 5 minutos (300 segundos)
             let tiempoRestanteSegundos = 300;
             const elementoReloj = document.getElementById('tiempoRestante');
 
@@ -335,26 +333,34 @@
                 }
             }, 1000);
 
-            // Cooldown de reenvío (60 segundos)
             const btnReenviar = document.getElementById('btnReenviar');
             const cooldownText = document.getElementById('cooldownText');
             const tiempoCooldownSpan = document.getElementById('tiempoCooldown');
 
-            let cooldownSegundos = 60;
-            btnReenviar.style.pointerEvents = "none";
-            btnReenviar.classList.add("text-muted");
-            cooldownText.style.display = "block";
-
-            const timerCooldown = setInterval(() => {
-                cooldownSegundos--;
-                tiempoCooldownSpan.textContent = cooldownSegundos;
-                if (cooldownSegundos <= 0) {
-                    clearInterval(timerCooldown);
-                    btnReenviar.style.pointerEvents = "auto";
-                    btnReenviar.classList.remove("text-muted");
-                    cooldownText.style.display = "none";
+            if (reenviosRestantes <= 0) {
+                if (btnReenviar) {
+                    btnReenviar.style.pointerEvents = "none";
+                    btnReenviar.classList.add("text-muted", "disabled");
+                    btnReenviar.innerHTML = "Límite de reenvíos alcanzado (0 restantes)";
                 }
-            }, 1000);
+                if (cooldownText) cooldownText.style.display = "none";
+            } else {
+                let cooldownSegundos = 60;
+                btnReenviar.style.pointerEvents = "none";
+                btnReenviar.classList.add("text-muted");
+                cooldownText.style.display = "block";
+
+                const timerCooldown = setInterval(() => {
+                    cooldownSegundos--;
+                    if (tiempoCooldownSpan) tiempoCooldownSpan.textContent = cooldownSegundos;
+                    if (cooldownSegundos <= 0) {
+                        clearInterval(timerCooldown);
+                        btnReenviar.style.pointerEvents = "auto";
+                        btnReenviar.classList.remove("text-muted");
+                        cooldownText.style.display = "none";
+                    }
+                }, 1000);
+            }
         }
 
         function cargarMunicipios() {

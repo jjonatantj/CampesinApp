@@ -134,6 +134,44 @@ namespace CampesinApp.Services
             }
         }
 
+        // NUEVO MÉTODO PARA RECUPERACIÓN DE CONTRASEÑA
+        public static bool EnviarCodigoRecuperacionPassword(string correoDestino, string nombreUsuario, string codigoCorreo, IWebHostEnvironment? environment = null)
+        {
+            try
+            {
+                string contenidoHtml = $@"
+                    <h2 style='color: #2e7d32; text-align: center; margin-top: 0;'>Recuperación de Contraseña</h2>
+                    <p>Hola <strong>{nombreUsuario}</strong>,</p>
+                    <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>CampesinApp</strong>.</p>
+                    <p>Tu código de verificación para continuar es:</p>
+                    <div style='text-align: center; margin: 25px 0;'>
+                        <span style='background-color: #e8f5e9; color: #1b5e20; font-size: 32px; font-weight: bold; letter-spacing: 5px; padding: 10px 25px; border-radius: 8px; border: 1px dashed #2e7d32;'>{codigoCorreo}</span>
+                    </div>
+                    <p style='color: #d32f2f; font-weight: bold; font-size: 13px; text-align: center;'>⏰ Este código caduca estrictamente en 5 minutos.</p>
+                    <p style='font-size: 12px; color: #888; text-align: center; margin-top: 15px;'>
+                        Si no solicitaste este cambio, puedes ignorar este mensaje de forma segura.
+                    </p>";
+
+                var message = ConstruirMensajeConLogoFisico(correoDestino, nombreUsuario, "Código de Verificación - Recuperación de Contraseña CampesinApp", contenidoHtml, "#2e7d32", environment);
+
+                using (var client = new MailKit.Net.Smtp.SmtpClient())
+                {
+                    client.Connect(SmtpServer, SmtpPort, SecureSocketOptions.StartTls);
+                    client.Authenticate(EmailEmisor, PasswordEmisor);
+                    client.Send(message);
+                    client.Disconnect(true);
+                }
+
+                Debug.WriteLine($"---> [ÉXITO MAILKIT RECUPERACIÓN] Correo enviado a {correoDestino}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"---> [ERROR MAILKIT RECUPERACIÓN]: {ex.Message}");
+                return false;
+            }
+        }
+
         public static bool EnviarNotificacionAdmin(string correoDestino, string nombreUsuario, string cedula, string passwordTemporal, IWebHostEnvironment? environment = null)
         {
             try
