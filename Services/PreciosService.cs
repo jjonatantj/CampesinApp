@@ -10,9 +10,6 @@ namespace CampesinApp.Services
     /// </summary>
     public class PreciosService
     {
-        /// <summary>Margen sobre el precio estimado que paga el comprador; es el mismo que usa la pantalla principal (CU-009).</summary>
-        public const decimal MargenComprador = 1.07m;
-
         private readonly Campesinapp3Context _db;
 
         public PreciosService(Campesinapp3Context db)
@@ -40,7 +37,8 @@ namespace CampesinApp.Services
                 {
                     p.IdTipoProductoNavigation.Producto,
                     p.IdVariedadNavigation.VariedadProd,
-                    p.PrecioEsti,
+                    p.PrecioEstiCampesino,
+                    p.PrecioEstiComprador,
                     p.FechaPreci
                 })
                 .ToListAsync();
@@ -55,8 +53,8 @@ namespace CampesinApp.Services
                 {
                     Producto = p.Producto,
                     Variedad = p.VariedadProd,
-                    PrecioComprador = verComprador ? Math.Round(p.PrecioEsti * MargenComprador, 0) : null,
-                    PrecioCampesino = verCampesino ? p.PrecioEsti : null,
+                    PrecioComprador = verComprador ? (decimal)Math.Round(p.PrecioEstiComprador, 0) : null,
+                    PrecioCampesino = verCampesino ? (decimal)Math.Round(p.PrecioEstiCampesino, 0) : null,
                     FechaCalculo = p.FechaPreci.ToDateTime(TimeOnly.MinValue)
                 }).ToList()
             };

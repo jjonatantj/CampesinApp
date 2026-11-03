@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 
 <!-- Contenedor centrado para la vista del formulario -->
-<div class="container py-4 my-4" style="max-width: 800px;">
+<div class="container py-4 my-4" style="max-width: 1050px;">
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm bg-white">
 
         <!-- ============================================================== -->
@@ -48,9 +48,6 @@
             <!-- ENCABEZADO DE LA VISTA (CU-013)                                -->
             <!-- ============================================================== -->
             <div class="text-center mb-4 pb-2 border-bottom">
-                <span class="badge bg-success rounded-pill px-3 py-1 mb-2 fs-6" style="background-color: #2e7d32 !important;">
-                    Caso de Uso CU-013
-                </span>
                 <h1 class="brand-title mb-1 fs-2" style="color: #1b5e20;">Registro de Producto</h1>
                 <p class="text-muted fw-semibold mb-2">
                     Responde a la solicitud de compra ofertando tu producto agrícola.
@@ -230,6 +227,121 @@
                 </div>
 
                 <!-- ============================================================== -->
+                <!-- 3. SECCIÓN: PUNTO DE ACOPIO DE ENTREGA (CON MAPA Y TABLA)      -->
+                <!-- ============================================================== -->
+                <div class="mb-4" id="seccionPuntoAcopio">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                        <label class="form-label fw-bold text-dark mb-0">
+                            <i class="bi bi-geo-alt-fill me-1 text-success"></i> Punto de Acopio de Entrega *
+                        </label>
+                        <span class="text-muted small">Lugar donde dejará el producto para su recogida</span>
+                    </div>
+                    @if (Model.TienePuntoAcopioFijo)
+                    {
+                        <div class="alert alert-info border-info-subtle bg-light rounded-4 p-3 mb-3 d-flex align-items-center shadow-sm">
+                            <div class="p-2 rounded-circle bg-success text-white me-3">
+                                <i class="bi bi-lock-fill fs-5"></i>
+                            </div>
+                            <div class="small">
+                                <strong class="text-success d-block">Punto de Acopio Consolidado:</strong>
+                                <span>
+                                    Como ya registraste un aporte previo en esta demanda, tus entregas adicionales deben consolidarse en el mismo punto de acopio:
+                                    <strong>@Model.NombrePuntoAcopioFijo</strong> @Model.DetallePuntoAcopioFijo.
+                                </span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-3">
+                            Seleccione el punto de acopio donde entregará su cosecha (registrado por usted o por campesinos de la red):
+                        </p>
+                    }
+
+                    <!-- Botones de alternancia de filtros: Mis Puntos vs Puntos de Campesinos -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm" id="btnFiltroMisPuntos">
+                            <i class="bi bi-person-check-fill me-1"></i> Mis Puntos de Acopio (<span id="contadorMisPuntos">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-success rounded-pill px-4 py-2 fw-semibold shadow-sm" id="btnFiltroCampesinos">
+                            <i class="bi bi-people-fill me-1"></i> Puntos de Campesinos (<span id="contadorPuntosCampesinos">0</span>)
+                        </button>
+                    </div>
+
+                    <!-- Input oculto para enlazar con el modelo en el POST -->
+                    <input type="hidden" asp-for="IdPuntoAcopio" id="inputIdPuntoAcopio" />
+                    <div id="errorFrontendPunto" class="text-danger small fw-semibold mt-1 mb-2 d-none"></div>
+
+                    <!-- Tarjeta de Punto Seleccionado -->
+                    <div id="contenedorPuntoSeleccionado" class="alert alert-success border-success-subtle bg-light rounded-4 p-3 mb-3 d-none">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <span class="badge bg-success text-white rounded-pill px-3 py-1 small me-2">Punto Seleccionado</span>
+                                <strong id="textoPuntoSeleccionadoNombre" class="text-dark fs-6"></strong>
+                                <span id="textoPuntoSeleccionadoDetalle" class="text-muted small d-block mt-1"></span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1" id="btnVerEnMapaSeleccionado">
+                                <i class="bi bi-crosshair me-1"></i> Ver en Mapa
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Fila con Tabla de puntos y Mapa interactivo -->
+                    <div class="row g-3">
+                        <!-- Columna de Tabla -->
+                        <div class="col-lg-6">
+                            <div class="card border rounded-4 shadow-sm overflow-hidden h-100">
+                                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
+                                    <span class="small fw-bold text-dark" id="tituloTablaPuntos">
+                                        <i class="bi bi-list-ul text-success me-1"></i> Puntos Disponibles
+                                    </span>
+                                    <small class="text-muted">Haga clic en una fila para elegir</small>
+                                </div>
+                                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0 small" id="tablaPuntosAcopio">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 35px;" class="text-center"></th>
+                                                <th>Punto</th>
+                                                <th>Municipio</th>
+                                                <th class="text-center" style="width: 70px;">Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyPuntosAcopio">
+                                            <!-- Filas generadas por JS -->
+                                        </tbody>
+                                    </table>
+                                    <div id="mensajeSinPuntos" class="p-4 text-center text-muted d-none">
+                                        <i class="bi bi-geo-alt fs-2 text-secondary d-block mb-2"></i>
+                                        <span id="textoSinPuntos">No se encontraron puntos en este filtro.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Columna de Google Maps -->
+                        <div class="col-lg-6">
+                            <div class="card border rounded-4 shadow-sm overflow-hidden h-100">
+                                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
+                                    <span class="small fw-bold text-success">
+                                        <i class="bi bi-map-fill me-1"></i> Ubicación Geográfica
+                                    </span>
+                                    <span class="badge bg-light text-dark border small fw-normal py-1 px-2 rounded-pill">
+                                        Vista Satelital
+                                    </span>
+                                </div>
+                                <div id="mapaOferta" style="width: 100%; height: 380px; background-color: #f1f3f5;" class="position-relative">
+                                    <div id="mapaOfertaLoading" class="position-absolute top-50 start-50 translate-middle text-muted small text-center">
+                                        <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                                        <div>Cargando Google Maps...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================================== -->
                 <!-- BOTONES DE ACCIÓN (Estandarizados según requerimiento)          -->
                 <!-- Botón verde "Registrar" (inferior izquierda)                   -->
                 <!-- Botón gris "Volver" (inferior derecha)                         -->
@@ -286,8 +398,9 @@
                 <p id="modalTextoConfirmacion" class="fs-5 mb-1 text-dark fw-bold">
                     ¿Está seguro de ofertar [X] cantidades?
                 </p>
+                <div id="modalTextoPunto" class="text-success fw-semibold small mb-2"></div>
                 <p class="text-muted small mb-0">
-                    Al confirmar, tu aporte se registrará en el sistema y se descontará del faltante de la demanda.
+                    Al confirmar, tu aporte se registrará en el sistema asignado al punto de acopio seleccionado y se descontará del faltante de la demanda.
                 </p>
             </div>
 
@@ -309,6 +422,11 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
+    {
+        <script src="https://maps.googleapis.com/maps/api/js?key=@Model.GoogleMapsApiKey&callback=initMapOferta&loading=async" async defer></script>
+    }
 
     @if (ViewBag.RegistroExitoso == true)
     {
@@ -332,170 +450,484 @@
     {
         <script>
             // =========================================================================
-            // LÓGICA EN JAVASCRIPT PURO (FRONTEND VALIDATIONS & MODAL FLOW)
-            // Reglas de negocio: RN-01, RN-04, RN-05, RN-06
+            // DATOS Y VARIABLES GLOBALES DE PUNTOS DE ACOPIO Y MAPA
             // =========================================================================
+            let mapOferta = null;
+            let marcadoresOferta = [];
+            let infoWindowOferta = null;
 
+            // Catálogo de puntos recibido desde el servidor
+            const todosPuntos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PuntosAcopioDisponibles));
+            let puntoSeleccionadoId = @(Model.IdPuntoAcopio.HasValue ? Model.IdPuntoAcopio.Value.ToString() : "null");
+            const tienePuntoFijo = @(Model.TienePuntoAcopioFijo ? "true" : "false");
+            const idPuntoFijo = @(Model.IdPuntoAcopioFijo.HasValue ? Model.IdPuntoAcopioFijo.Value.ToString() : "null");
+
+            // Subconjuntos: Mis Puntos vs Puntos de Campesinos
+            const misPuntos = todosPuntos.filter(p => p.EsPropio);
+            const puntosCampesinos = todosPuntos.filter(p => !p.TipoAcopio);
+
+            // Filtro activo: si no tiene puntos propios, mostrar por defecto puntos de campesinos
+            let filtroActual = (misPuntos.length > 0) ? 'misPuntos' : 'campesinos';
+            if (tienePuntoFijo && idPuntoFijo) {
+                puntoSeleccionadoId = idPuntoFijo;
+                const esPropio = misPuntos.some(p => p.IdPuntoAcopio === idPuntoFijo);
+                filtroActual = esPropio ? 'misPuntos' : 'campesinos';
+            }
+
+            // =========================================================================
+            // INICIALIZACIÓN DE GOOGLE MAPS
+            // =========================================================================
+            function initMapOferta() {
+                const mapContainer = document.getElementById("mapaOferta");
+                const mapLoading = document.getElementById("mapaOfertaLoading");
+                if (mapLoading) mapLoading.style.display = "none";
+
+                infoWindowOferta = new google.maps.InfoWindow();
+
+                mapOferta = new google.maps.Map(mapContainer, {
+                    center: { lat: 4.570868, lng: -74.297333 }, // Colombia
+                    zoom: 6,
+                    mapTypeId: 'hybrid',
+                    streetViewControl: false,
+                    zoomControl: true,
+                    mapTypeControl: true
+                });
+
+                actualizarVistaPuntos();
+
+                // Si ya había un punto seleccionado previamente (ej. recarga por validación), enfocarlo
+                if (puntoSeleccionadoId) {
+                    seleccionarPunto(puntoSeleccionadoId, false);
+                }
+            }
+            window.initMapOferta = initMapOferta;
+
+            // =========================================================================
+            // RENDERIZADO DE TABLA Y MARCADORES EN EL MAPA
+            // =========================================================================
+            function actualizarVistaPuntos() {
+                const lista = (filtroActual === 'misPuntos') ? misPuntos : puntosCampesinos;
+                const tbody = document.getElementById("tbodyPuntosAcopio");
+                const tabla = document.getElementById("tablaPuntosAcopio");
+                const mensajeSinPuntos = document.getElementById("mensajeSinPuntos");
+                const textoSinPuntos = document.getElementById("textoSinPuntos");
+
+                // Actualizar estilos de botones de filtro
+                const btnMisPuntos = document.getElementById("btnFiltroMisPuntos");
+                const btnCampesinos = document.getElementById("btnFiltroCampesinos");
+
+                if (filtroActual === 'misPuntos') {
+                    btnMisPuntos.className = 'btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm';
+                    btnCampesinos.className = 'btn btn-outline-success rounded-pill px-4 py-2 fw-semibold shadow-sm';
+                } else {
+                    btnCampesinos.className = 'btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm';
+                    btnMisPuntos.className = 'btn btn-outline-success rounded-pill px-4 py-2 fw-semibold shadow-sm';
+                }
+
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                // Si la lista está vacía
+                if (lista.length === 0) {
+                    if (tabla) tabla.classList.add("d-none");
+                    if (mensajeSinPuntos) {
+                        mensajeSinPuntos.classList.remove("d-none");
+                        if (textoSinPuntos) {
+                            textoSinPuntos.textContent = (filtroActual === 'misPuntos')
+                                ? 'Aún no tienes puntos de acopio propios registrados. Puedes elegir uno de la lista de campesinos.'
+                                : 'No se encontraron puntos de campesinos registrados disponibles.';
+                        }
+                    }
+                } else {
+                    if (tabla) tabla.classList.remove("d-none");
+                    if (mensajeSinPuntos) mensajeSinPuntos.classList.add("d-none");
+
+                    lista.forEach((p, index) => {
+                        const esSeleccionado = (p.IdPuntoAcopio === puntoSeleccionadoId);
+                        const tr = document.createElement("tr");
+                        tr.className = `fila-punto ${esSeleccionado ? 'table-success' : ''}`;
+                        tr.style.cursor = 'pointer';
+                        tr.id = `fila-punto-${p.IdPuntoAcopio}`;
+                        tr.onclick = function () { seleccionarPunto(p.IdPuntoAcopio); };
+
+                        let botonAccion = '';
+                        if (tienePuntoFijo) {
+                            botonAccion = esSeleccionado
+                                ? '<span class="badge bg-success text-white rounded-pill px-2 py-1"><i class="bi bi-lock-fill me-1"></i>Asignado</span>'
+                                : '<span class="badge bg-light text-muted border rounded-pill px-2 py-1"><i class="bi bi-lock me-1"></i>Bloqueado</span>';
+                        } else {
+                            botonAccion = `<button type="button" class="btn btn-sm ${esSeleccionado ? 'btn-success text-white' : 'btn-outline-success'} rounded-pill px-2 py-1 small" onclick="event.stopPropagation(); seleccionarPunto(${p.IdPuntoAcopio});">
+                                ${esSeleccionado ? '<i class="bi bi-check-circle-fill me-1"></i>Elegido' : 'Elegir'}
+                            </button>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td class="text-center">
+                                <input type="radio" name="radioPuntoSeleccion" value="${p.IdPuntoAcopio}" ${esSeleccionado ? 'checked' : ''} ${tienePuntoFijo && !esSeleccionado ? 'disabled' : ''} onclick="event.stopPropagation(); seleccionarPunto(${p.IdPuntoAcopio});" />
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">${p.NombrePunto}</div>
+                                <small class="text-muted d-block"><i class="bi bi-geo-alt me-1"></i>${p.Direccion}</small>
+                                ${p.EsPropio ? '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill mt-1" style="font-size:0.7rem;">Mi Punto</span>' : ''}
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">${p.Municipio}</div>
+                                <small class="text-muted">${p.Departamento}</small>
+                            </td>
+                            <td class="text-center">
+                                ${botonAccion}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // Renderizar marcadores en Google Maps
+                renderizarMarcadoresMapa(lista);
+            }
+
+            function renderizarMarcadoresMapa(lista) {
+                if (!mapOferta) return;
+
+                // Limpiar marcadores previos
+                if (infoWindowOferta) infoWindowOferta.close();
+                marcadoresOferta.forEach(item => item.marker.setMap(null));
+                marcadoresOferta = [];
+
+                if (lista.length === 0) return;
+
+                const bounds = new google.maps.LatLngBounds();
+
+                lista.forEach(p => {
+                    const lat = parseFloat(p.Latitud);
+                    const lng = parseFloat(p.Longitud);
+                    if (isNaN(lat) || isNaN(lng) || lat === 0) return;
+
+                    const pos = { lat: lat, lng: lng };
+                    const esSeleccionado = (p.IdPuntoAcopio === puntoSeleccionadoId);
+
+                    const marker = new google.maps.Marker({
+                        position: pos,
+                        map: mapOferta,
+                        title: p.NombrePunto,
+                        animation: esSeleccionado ? google.maps.Animation.DROP : null
+                    });
+
+                    const contenidoHTML = `
+                        <div class="p-2" style="max-width: 270px;">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="p-1 rounded-circle bg-success text-white me-2" style="font-size: 0.8rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                </div>
+                                <h6 class="fw-bold text-success mb-0">${p.NombrePunto}</h6>
+                            </div>
+                            <div class="small text-muted mb-1">
+                                <i class="bi bi-geo-alt text-danger me-1"></i><strong>Ubicación:</strong> ${p.Direccion} (${p.Municipio}, ${p.Departamento})
+                            </div>
+                            ${p.Descripcion ? `<div class="small bg-light p-1 rounded mb-1 text-dark"><i class="bi bi-info-circle text-primary me-1"></i>${p.Descripcion}</div>` : ''}
+                            <div class="small text-muted mb-1"><i class="bi bi-clock text-primary me-1"></i>${p.HorarioAtencion}</div>
+                            <div class="small text-muted mb-1"><i class="bi bi-telephone text-success me-1"></i>${p.Telefono}</div>
+                            <div class="small text-muted mb-2"><i class="bi bi-box-seam text-secondary me-1"></i>Capacidad: ${Number(p.Capacidad).toLocaleString()} Kg</div>
+                            <div class="text-center pt-2 border-top">
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 text-white fw-bold shadow-sm" onclick="window.seleccionarPunto(${p.IdPuntoAcopio})">
+                                    <i class="bi bi-check2-circle me-1"></i> Seleccionar este punto
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    marker.addListener('click', function () {
+                        infoWindowOferta.setContent(contenidoHTML);
+                        infoWindowOferta.open(mapOferta, marker);
+                    });
+
+                    marcadoresOferta.push({ id: p.IdPuntoAcopio, marker: marker, punto: p, html: contenidoHTML });
+                    bounds.extend(pos);
+                });
+
+                if (lista.length === 1) {
+                    mapOferta.setCenter({ lat: parseFloat(lista[0].Latitud), lng: parseFloat(lista[0].Longitud) });
+                    mapOferta.setZoom(15);
+                } else if (lista.length > 1) {
+                    mapOferta.fitBounds(bounds);
+                }
+            }
+
+            // =========================================================================
+            // SELECCIÓN DE UN PUNTO DE ACOPIO (DESDE TABLA O MARCADOR)
+            // =========================================================================
+            window.seleccionarPunto = function (id, centrarEnMapa = true) {
+                if (tienePuntoFijo && idPuntoFijo && id !== idPuntoFijo) {
+                    return; // Regla de negocio: Si ya tiene aporte previo, debe usar el mismo punto
+                }
+                puntoSeleccionadoId = id;
+                const hiddenInput = document.getElementById("inputIdPuntoAcopio");
+                if (hiddenInput) hiddenInput.value = id;
+
+                // Ocultar error si existía
+                const errorPunto = document.getElementById("errorFrontendPunto");
+                if (errorPunto) errorPunto.classList.add("d-none");
+
+                // Buscar el punto en el catálogo
+                const p = todosPuntos.find(x => x.IdPuntoAcopio === id);
+                if (!p) return;
+
+                // Actualizar banner de punto seleccionado
+                const contenedor = document.getElementById("contenedorPuntoSeleccionado");
+                const textoNombre = document.getElementById("textoPuntoSeleccionadoNombre");
+                const textoDetalle = document.getElementById("textoPuntoSeleccionadoDetalle");
+
+                if (contenedor) contenedor.classList.remove("d-none");
+                if (textoNombre) textoNombre.textContent = p.NombrePunto;
+                if (textoDetalle) {
+                    textoDetalle.textContent = `${p.Direccion} - ${p.Municipio}, ${p.Departamento} (Tel: ${p.Telefono} | Horario: ${p.HorarioAtencion})`;
+                }
+
+                // Resaltar fila activa en la tabla
+                document.querySelectorAll(".fila-punto").forEach(fila => fila.classList.remove("table-success"));
+                const filaSeleccionada = document.getElementById(`fila-punto-${id}`);
+                if (filaSeleccionada) {
+                    filaSeleccionada.classList.add("table-success");
+                    const radio = filaSeleccionada.querySelector("input[type=radio]");
+                    if (radio) radio.checked = true;
+                }
+
+                // Enfocar marcador en Google Maps
+                if (centrarEnMapa && mapOferta) {
+                    const lat = parseFloat(p.Latitud);
+                    const lng = parseFloat(p.Longitud);
+                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
+                        const pos = { lat: lat, lng: lng };
+                        mapOferta.setCenter(pos);
+                        mapOferta.setZoom(16);
+
+                        const itemMarcador = marcadoresOferta.find(m => m.id === id);
+                        if (itemMarcador && infoWindowOferta) {
+                            infoWindowOferta.setContent(itemMarcador.html);
+                            infoWindowOferta.open(mapOferta, itemMarcador.marker);
+                            itemMarcador.marker.setAnimation(google.maps.Animation.BOUNCE);
+                            setTimeout(() => {
+                                if (itemMarcador.marker) itemMarcador.marker.setAnimation(null);
+                            }, 750);
+                        }
+                    }
+                }
+            };
+
+            // =========================================================================
+            // LÓGICA DE VALIDACIÓN DEL FORMULARIO Y MODAL DE CONFIRMACIÓN
+            // =========================================================================
             (function () {
-            // Valores de referencia provenientes del servidor
-            const cantidadTotal = @(Model?.CantidadTotal ?? 0);
-            const cantidadFaltante = @(Model?.CantidadFaltante ?? 0);
-            const minimoPermitido = @(Model?.MinimoPermitido ?? 1);
-            const topeDiezPorciento = @(Model?.TopeDiezPorciento ?? 0);
-            const aportePrevioCampesino = @(Model?.AportePrevioCampesino ?? 0);
-            const yaCumplioMinimo = @(Model?.YaCumplioMinimoDiez == true ? "true" : "false");
+                // Valores de referencia provenientes del servidor
+                const cantidadTotal = @(Model?.CantidadTotal ?? 0);
+                const cantidadFaltante = @(Model?.CantidadFaltante ?? 0);
+                const minimoPermitido = @(Model?.MinimoPermitido ?? 1);
+                const topeDiezPorciento = @(Model?.TopeDiezPorciento ?? 0);
+                const aportePrevioCampesino = @(Model?.AportePrevioCampesino ?? 0);
+                const yaCumplioMinimo = @(Model?.YaCumplioMinimoDiez == true ? "true" : "false");
 
-            // Elementos del DOM
-            const formOferta = document.getElementById("formOferta");
-            const inputCantidad = document.getElementById("inputCantidadAporte");
-            const inputImagen = document.getElementById("inputImagenProducto");
-            const btnAbrirModal = document.getElementById("btnAbrirModalConfirmacion");
-            const btnConfirmar = document.getElementById("btnConfirmarOferta");
-            const modalTexto = document.getElementById("modalTextoConfirmacion");
-            const errorCantidadDiv = document.getElementById("errorFrontendCantidad");
-            const errorImagenDiv = document.getElementById("errorFrontendImagen");
-            const alertaGeneral = document.getElementById("alertaErrorFrontend");
-            const mensajeGeneral = document.getElementById("mensajeErrorFrontend");
-            const vistaPreviaDiv = document.getElementById("contenedorVistaPrevia");
-            const imgVistaPrevia = document.getElementById("imgVistaPrevia");
+                // Elementos del DOM
+                const formOferta = document.getElementById("formOferta");
+                const inputCantidad = document.getElementById("inputCantidadAporte");
+                const inputImagen = document.getElementById("inputImagenProducto");
+                const btnAbrirModal = document.getElementById("btnAbrirModalConfirmacion");
+                const btnConfirmar = document.getElementById("btnConfirmarOferta");
+                const modalTexto = document.getElementById("modalTextoConfirmacion");
+                const modalTextoPunto = document.getElementById("modalTextoPunto");
+                const errorCantidadDiv = document.getElementById("errorFrontendCantidad");
+                const errorImagenDiv = document.getElementById("errorFrontendImagen");
+                const errorPuntoDiv = document.getElementById("errorFrontendPunto");
+                const alertaGeneral = document.getElementById("alertaErrorFrontend");
+                const mensajeGeneral = document.getElementById("mensajeErrorFrontend");
+                const vistaPreviaDiv = document.getElementById("contenedorVistaPrevia");
+                const imgVistaPrevia = document.getElementById("imgVistaPrevia");
 
-            if (!btnAbrirModal) return;
+                // Contadores en los botones de filtro
+                const contadorMis = document.getElementById("contadorMisPuntos");
+                const contadorCamp = document.getElementById("contadorPuntosCampesinos");
+                if (contadorMis) contadorMis.textContent = misPuntos.length;
+                if (contadorCamp) contadorCamp.textContent = puntosCampesinos.length;
 
-            // Instancia de modal de Bootstrap 5
-            const modalElement = document.getElementById("modalConfirmarOferta");
-            const modalBootstrap = new bootstrap.Modal(modalElement);
+                // Eventos de botones de alternancia de filtro
+                const btnMisPuntos = document.getElementById("btnFiltroMisPuntos");
+                const btnCampesinos = document.getElementById("btnFiltroCampesinos");
+                if (btnMisPuntos) {
+                    btnMisPuntos.addEventListener("click", function () {
+                        filtroActual = 'misPuntos';
+                        actualizarVistaPuntos();
+                    });
+                }
+                if (btnCampesinos) {
+                    btnCampesinos.addEventListener("click", function () {
+                        filtroActual = 'campesinos';
+                        actualizarVistaPuntos();
+                    });
+                }
 
-            // Vista previa de imagen seleccionada
-            if (inputImagen) {
-                inputImagen.addEventListener("change", function () {
-                    const archivo = this.files[0];
-                    if (archivo) {
-                        const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
-                        const permitidas = [".jpg", ".jpeg", ".png", ".webp"];
-                        if (permitidas.includes(extension)) {
-                            const lector = new FileReader();
-                            lector.onload = function (e) {
-                                imgVistaPrevia.src = e.target.result;
-                                vistaPreviaDiv.classList.remove("d-none");
-                            };
-                            lector.readAsDataURL(archivo);
+                const btnVerEnMapa = document.getElementById("btnVerEnMapaSeleccionado");
+                if (btnVerEnMapa) {
+                    btnVerEnMapa.addEventListener("click", function () {
+                        if (puntoSeleccionadoId) {
+                            seleccionarPunto(puntoSeleccionadoId, true);
+                        }
+                    });
+                }
+
+                // Inicializar tabla al cargar el DOM
+                actualizarVistaPuntos();
+                if (puntoSeleccionadoId) {
+                    seleccionarPunto(puntoSeleccionadoId, false);
+                }
+
+                if (!btnAbrirModal) return;
+
+                // Instancia de modal de Bootstrap 5
+                const modalElement = document.getElementById("modalConfirmarOferta");
+                const modalBootstrap = new bootstrap.Modal(modalElement);
+
+                // Vista previa de imagen seleccionada
+                if (inputImagen) {
+                    inputImagen.addEventListener("change", function () {
+                        const archivo = this.files[0];
+                        if (archivo) {
+                            const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
+                            const permitidas = [".jpg", ".jpeg", ".png", ".webp"];
+                            if (permitidas.includes(extension)) {
+                                const lector = new FileReader();
+                                lector.onload = function (e) {
+                                    imgVistaPrevia.src = e.target.result;
+                                    vistaPreviaDiv.classList.remove("d-none");
+                                };
+                                lector.readAsDataURL(archivo);
+                            } else {
+                                vistaPreviaDiv.classList.add("d-none");
+                            }
                         } else {
                             vistaPreviaDiv.classList.add("d-none");
                         }
+                    });
+                }
+
+                // Manejador del botón "Registrar"
+                btnAbrirModal.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    limpiarErrores();
+
+                    let esValido = true;
+                    const valorTexto = inputCantidad.value.trim();
+
+                    // 1. VALIDACIÓN RN-05-CU013 & FE05: Números enteros mayores a cero
+                    if (valorTexto === "") {
+                        mostrarErrorCantidad("Debe ingresar la cantidad que aportará.");
+                        esValido = false;
+                    } else if (!/^[0-9]+$/.test(valorTexto)) {
+                        mostrarErrorCantidad("Por favor ingrese solo números enteros en el campo de cantidad ofertada. Usted ingresó: " + valorTexto);
+                        esValido = false;
                     } else {
-                        vistaPreviaDiv.classList.add("d-none");
+                        const cantidadNum = parseInt(valorTexto, 10);
+
+                        if (cantidadNum <= 0) {
+                            mostrarErrorCantidad("Por favor ingrese un número entero mayor a cero.");
+                            esValido = false;
+                        } 
+                        // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo permitido (10% acumulativo)
+                        else if (cantidadNum < minimoPermitido) {
+                            if (yaCumplioMinimo) {
+                                mostrarErrorCantidad("Debes registrar al menos 1 unidad para tu oferta.");
+                            } else {
+                                mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades para alcanzar el 10% del total demandado.");
+                            }
+                            esValido = false;
+                        } 
+                        // 3. VALIDACIÓN RN-01-CU013 & FE01: No superar la cantidad faltante
+                        else if (cantidadNum > cantidadFaltante) {
+                            mostrarErrorCantidad("La cantidad ingresada supera lo solicitado. Solo puedes registrar hasta " + cantidadFaltante + " cantidades para esta compra.");
+                            esValido = false;
+                        }
+                    }
+
+                    // 4. VALIDACIÓN RN-06-CU013: Formatos JPG, JPEG, PNG y WebP
+                    if (!inputImagen.files || inputImagen.files.length === 0) {
+                        mostrarErrorImagen("Debe adjuntar una imagen del producto que va a ofertar.");
+                        esValido = false;
+                    } else {
+                        const archivo = inputImagen.files[0];
+                        const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
+                        const extensionesPermitidas = [".jpg", ".jpeg", ".png", ".webp"];
+
+                        if (!extensionesPermitidas.includes(extension)) {
+                            mostrarErrorImagen("Los únicos formatos permitidos para las imágenes del producto son JPG, JPEG, PNG y WebP.");
+                            esValido = false;
+                        } else if (archivo.size > 5 * 1024 * 1024) {
+                            mostrarErrorImagen("La imagen no debe superar los 5 MB de tamaño.");
+                            esValido = false;
+                        }
+                    }
+
+                    // 5. VALIDACIÓN DEL PUNTO DE ACOPIO OBLIGATORIO
+                    const hiddenPunto = document.getElementById("inputIdPuntoAcopio");
+                    const puntoIdVal = hiddenPunto ? hiddenPunto.value : "";
+                    if (!puntoIdVal || puntoIdVal === "" || puntoIdVal === "0") {
+                        mostrarErrorPunto("Debe seleccionar el punto de acopio donde entregará su producto.");
+                        esValido = false;
+                    }
+
+                    // 6. APERTURA DEL MODAL SI TODAS LAS REGLAS SE CUMPLEN
+                    if (esValido) {
+                        const cantidadIngresada = parseInt(valorTexto, 10);
+                        modalTexto.textContent = "¿Está seguro de ofertar " + cantidadIngresada + " cantidades?";
+
+                        const pSeleccionado = todosPuntos.find(x => x.IdPuntoAcopio == puntoIdVal);
+                        if (pSeleccionado && modalTextoPunto) {
+                            modalTextoPunto.innerHTML = `<i class="bi bi-geo-alt-fill me-1"></i><strong>Punto de entrega:</strong> ${pSeleccionado.NombrePunto} (${pSeleccionado.Municipio}, ${pSeleccionado.Departamento})`;
+                        }
+
+                        modalBootstrap.show();
                     }
                 });
-            }
 
-            // Manejador del botón "Registrar"
-            btnAbrirModal.addEventListener("click", function (e) {
-                e.preventDefault();
-                limpiarErrores();
+                // Acción del botón "Confirmar" dentro del modal
+                btnConfirmar.addEventListener("click", function () {
+                    btnConfirmar.disabled = true;
+                    btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registrando...';
+                    formOferta.submit();
+                });
 
-                let esValido = true;
-                const valorTexto = inputCantidad.value.trim();
+                // Funciones auxiliares para mostrar y limpiar mensajes
+                function mostrarErrorCantidad(mensaje) {
+                    inputCantidad.classList.add("is-invalid");
+                    errorCantidadDiv.textContent = mensaje;
+                    errorCantidadDiv.classList.remove("d-none");
+                }
 
-                // -------------------------------------------------------------
-                // 1. VALIDACIÓN RN-05-CU013 & FE05: Números enteros mayores a cero
-                // -------------------------------------------------------------
-                if (valorTexto === "") {
-                    mostrarErrorCantidad("Debe ingresar la cantidad que aportará.");
-                    esValido = false;
-                } else if (!/^[0-9]+$/.test(valorTexto)) {
-                    mostrarErrorCantidad("Por favor ingrese solo números enteros en el campo de cantidad ofertada. Usted ingresó: " + valorTexto);
-                    esValido = false;
-                } else {
-                    const cantidadNum = parseInt(valorTexto, 10);
+                function mostrarErrorImagen(mensaje) {
+                    inputImagen.classList.add("is-invalid");
+                    errorImagenDiv.textContent = mensaje;
+                    errorImagenDiv.classList.remove("d-none");
+                }
 
-                    if (cantidadNum <= 0) {
-                        mostrarErrorCantidad("Por favor ingrese un número entero mayor a cero.");
-                        esValido = false;
-                    } 
-                    // ---------------------------------------------------------
-                    // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo permitido (10% acumulativo)
-                    // ---------------------------------------------------------
-                    else if (cantidadNum < minimoPermitido) {
-                        if (yaCumplioMinimo) {
-                            mostrarErrorCantidad("Debes registrar al menos 1 unidad para tu oferta.");
-                        } else {
-                            mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades para alcanzar el 10% del total demandado.");
-                        }
-                        esValido = false;
-                    } 
-                    // ---------------------------------------------------------
-                    // 3. VALIDACIÓN RN-01-CU013 & FE01: No superar la cantidad faltante
-                    // ---------------------------------------------------------
-                    else if (cantidadNum > cantidadFaltante) {
-                        mostrarErrorCantidad("La cantidad ingresada supera lo solicitado. Solo puedes registrar hasta " + cantidadFaltante + " cantidades para esta compra.");
-                        esValido = false;
+                function mostrarErrorPunto(mensaje) {
+                    if (errorPuntoDiv) {
+                        errorPuntoDiv.textContent = mensaje;
+                        errorPuntoDiv.classList.remove("d-none");
                     }
+                    const seccion = document.getElementById("seccionPuntoAcopio");
+                    if (seccion) seccion.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
 
-                // -------------------------------------------------------------
-                // 4. VALIDACIÓN RN-06-CU013: Formatos JPG, JPEG, PNG y WebP
-                // -------------------------------------------------------------
-                if (!inputImagen.files || inputImagen.files.length === 0) {
-                    mostrarErrorImagen("Debe adjuntar una imagen del producto que va a ofertar.");
-                    esValido = false;
-                } else {
-                    const archivo = inputImagen.files[0];
-                    const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
-                    const extensionesPermitidas = [".jpg", ".jpeg", ".png", ".webp"];
-
-                    if (!extensionesPermitidas.includes(extension)) {
-                        mostrarErrorImagen("Los únicos formatos permitidos para las imágenes del producto son JPG, JPEG, PNG y WebP.");
-                        esValido = false;
-                    } else if (archivo.size > 5 * 1024 * 1024) {
-                        mostrarErrorImagen("La imagen no debe superar los 5 MB de tamaño.");
-                        esValido = false;
-                    }
+                function limpiarErrores() {
+                    inputCantidad.classList.remove("is-invalid");
+                    inputImagen.classList.remove("is-invalid");
+                    errorCantidadDiv.classList.add("d-none");
+                    errorImagenDiv.classList.add("d-none");
+                    if (errorPuntoDiv) errorPuntoDiv.classList.add("d-none");
+                    if (alertaGeneral) alertaGeneral.classList.add("d-none");
                 }
 
-                // -------------------------------------------------------------
-                // 5. APERTURA DEL MODAL SI TODAS LAS REGLAS SE CUMPLEN
-                // -------------------------------------------------------------
-                if (esValido) {
-                    const cantidadIngresada = parseInt(valorTexto, 10);
-                    // Mensaje estricto requerido por el caso de uso
-                    modalTexto.textContent = "¿Está seguro de ofertar " + cantidadIngresada + " cantidades?";
-                    modalBootstrap.show();
-                }
-            });
-
-            // Acción del botón "Confirmar" dentro del modal
-            btnConfirmar.addEventListener("click", function () {
-                btnConfirmar.disabled = true;
-                btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registrando...';
-                formOferta.submit();
-            });
-
-            // Funciones auxiliares para mostrar y limpiar mensajes
-            function mostrarErrorCantidad(mensaje) {
-                inputCantidad.classList.add("is-invalid");
-                errorCantidadDiv.textContent = mensaje;
-                errorCantidadDiv.classList.remove("d-none");
-            }
-
-            function mostrarErrorImagen(mensaje) {
-                inputImagen.classList.add("is-invalid");
-                errorImagenDiv.textContent = mensaje;
-                errorImagenDiv.classList.remove("d-none");
-            }
-
-            function limpiarErrores() {
-                inputCantidad.classList.remove("is-invalid");
-                inputImagen.classList.remove("is-invalid");
-                errorCantidadDiv.classList.add("d-none");
-                errorImagenDiv.classList.add("d-none");
-                if (alertaGeneral) alertaGeneral.classList.add("d-none");
-            }
-
-            window.cerrarAlertaFrontend = function () {
-                if (alertaGeneral) alertaGeneral.classList.add("d-none");
-            };
-        })();
-    </script>
+                window.cerrarAlertaFrontend = function () {
+                    if (alertaGeneral) alertaGeneral.classList.add("d-none");
+                };
+            })();
+        </script>
     }
 }
-

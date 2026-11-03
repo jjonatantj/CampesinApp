@@ -19,6 +19,103 @@ namespace CampesinApp.Repositories
         }
 
         /// <summary>
+        /// Obtiene las demandas aplicando los nuevos filtros jerárquicos:
+        /// 1. Tipo de Producto
+        /// 2. Variedad (dependiente del tipo de producto)
+        /// 3. Departamento
+        /// 4. Municipio (dependiente del departamento)
+        /// </summary>
+        public async Task<List<Demandum>> ObtenerDemandasFiltradasAsync(int? idTipoProducto, int? idVariedad, int? idDepartamento, int? idMunicipio)
+        {
+            var query = _context.Demanda
+                .Include(d => d.IdTipoProductoNavigation)
+                .Include(d => d.IdVariedadNavigation)
+                .Include(d => d.IdPuntoAcopioNavigation)
+                    .ThenInclude(p => p.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
+                .Include(d => d.IdUsuarioNavigation)
+                    .ThenInclude(u => u.IdMunicipioNavigation)
+                        .ThenInclude(m => m.IdDepartamentoNavigation)
+                .AsQueryable();
+
+            // 1. Filtro por Tipo de Producto
+            if (idTipoProducto.HasValue && idTipoProducto.Value > 0)
+            {
+                query = query.Where(d => d.IdTipoProducto == idTipoProducto.Value);
+            }
+
+            // 2. Filtro por Variedad
+            if (idVariedad.HasValue && idVariedad.Value > 0)
+            {
+                query = query.Where(d => d.IdVariedad == idVariedad.Value);
+            }
+
+            // 3. Filtro por Departamento
+            if (idDepartamento.HasValue && idDepartamento.Value > 0)
+            {
+                query = query.Where(d =>
+                    (d.IdPuntoAcopioNavigation != null && d.IdPuntoAcopioNavigation.IdMunicipioNavigation.IdDepartamento == idDepartamento.Value) ||
+                    (d.IdPuntoAcopioNavigation == null && d.IdUsuarioNavigation != null && d.IdUsuarioNavigation.IdMunicipioNavigation.IdDepartamento == idDepartamento.Value));
+            }
+
+            // 4. Filtro por Municipio
+            if (idMunicipio.HasValue && idMunicipio.Value > 0)
+            {
+                query = query.Where(d =>
+                    (d.IdPuntoAcopioNavigation != null && d.IdPuntoAcopioNavigation.IdMunicipio == idMunicipio.Value) ||
+                    (d.IdPuntoAcopioNavigation == null && d.IdUsuarioNavigation != null && d.IdUsuarioNavigation.IdMunicipio == idMunicipio.Value));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene los tipos de producto disponibles para el primer filtro.
+        /// </summary>
+        public async Task<List<TipoProducto>> ObtenerTiposProductoAsync()
+        {
+            return await _context.TipoProductos
+                .AsNoTracking()
+                .OrderBy(tp => tp.Producto)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene las variedades asociadas a un tipo de producto específico (cascada).
+        /// </summary>
+        public async Task<List<Variedad>> ObtenerVariedadesPorTipoProductoAsync(int idTipoProducto)
+        {
+            return await _context.Variedads
+                .AsNoTracking()
+                .Where(v => v.IdTipoProducto == idTipoProducto)
+                .OrderBy(v => v.VariedadProd)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene los departamentos de Colombia para el filtro geográfico.
+        /// </summary>
+        public async Task<List<Departamento>> ObtenerDepartamentosAsync()
+        {
+            return await _context.Departamentos
+                .AsNoTracking()
+                .OrderBy(d => d.Departamento1)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Obtiene los municipios asociados a un departamento específico (cascada).
+        /// </summary>
+        public async Task<List<Municipio>> ObtenerMunicipiosPorDepartamentoAsync(int idDepartamento)
+        {
+            return await _context.Municipios
+                .AsNoTracking()
+                .Where(m => m.IdDepartamento == idDepartamento)
+                .OrderBy(m => m.Municipio1)
+                .ToListAsync();
+        }
+
+        /// <summary>
         /// Obtiene las demandas con los 3 filtros opcionales del CU-011:
         /// Categoría (Variedad/Tipo), Producto y Región (Municipio/Departamento).
         /// </summary>

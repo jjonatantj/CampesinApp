@@ -93,73 +93,86 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- BARRA DE FILTROS: Categoría, Producto, Región y Consultar      -->
-        <!-- (Paso 2 y Paso 3 del CU-011)                                   -->
+        <!-- BARRA DE FILTROS: Tipo de Producto, Variedad, Depto y Municipio -->
         <!-- ============================================================== -->
         <div class="card rounded-4 border-0 shadow-sm p-4 mb-4 bg-white">
-            <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end">
+            <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end" id="formFiltrosCatalogo">
                 
-                <!-- 1. Desplegable Categoría -->
-                <div class="col-md-3">
-                    <label for="categoria" class="form-label fw-bold text-dark small">
-                        <i class="bi bi-tags me-1 text-success"></i> Categoría
+                <!-- 1. Desplegable Tipo de Producto -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectTipoProducto" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-basket me-1 text-success"></i> Tipo de Producto
                     </label>
-                    <select id="categoria" name="categoria" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
-                        <option value="">-- Todas las categorías --</option>
-                        @foreach (var cat in Model.CategoriasDisponibles)
-                        {
-                            <option value="@cat" selected="@(cat == Model.CategoriaSeleccionada)">
-                                @cat
-                            </option>
-                        }
-                    </select>
-                </div>
-
-                <!-- 2. Desplegable Producto -->
-                <div class="col-md-3">
-                    <label for="producto" class="form-label fw-bold text-dark small">
-                        <i class="bi bi-basket me-1 text-success"></i> Producto
-                    </label>
-                    <select id="producto" name="producto" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                    <select id="selectTipoProducto" name="idTipoProducto" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
                         <option value="">-- Todos los productos --</option>
-                        @foreach (var prod in Model.ProductosDisponibles)
+                        @foreach (var prod in Model.TiposProductoDisponibles)
                         {
-                            <option value="@prod" selected="@(prod == Model.ProductoSeleccionado)">
-                                @prod
+                            <option value="@prod.IdTipoProducto" selected="@(prod.IdTipoProducto == Model.IdTipoProductoSeleccionado)">
+                                @prod.Producto
                             </option>
                         }
                     </select>
                 </div>
 
-                <!-- 3. Desplegable Región -->
-                <div class="col-md-3">
-                    <label for="region" class="form-label fw-bold text-dark small">
-                        <i class="bi bi-geo-alt me-1 text-success"></i> Región
+                <!-- 2. Desplegable Variedad (Depende de Tipo de Producto) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectVariedad" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-tags me-1 text-success"></i> Variedad
                     </label>
-                    <select id="region" name="region" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
-                        <option value="">-- Todas las regiones --</option>
-                        @foreach (var reg in Model.RegionesDisponibles)
+                    <select id="selectVariedad" name="idVariedad" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">@(Model.VariedadesDisponibles.Any() ? "-- Todas las variedades --" : "-- Seleccione un producto --")</option>
+                        @foreach (var v in Model.VariedadesDisponibles)
                         {
-                            <option value="@reg" selected="@(reg == Model.RegionSeleccionada)">
-                                @reg
+                            <option value="@v.IdVariedad" selected="@(v.IdVariedad == Model.IdVariedadSeleccionada)">
+                                @v.VariedadProd
                             </option>
                         }
                     </select>
                 </div>
 
-                <!-- 4. Botón verde Consultar (Paso 2) y Limpiar Filtros -->
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-success rounded-pill fw-bold text-white px-4 shadow-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
-                        <i class="bi bi-search"></i> Consultar
-                    </button>
-                    @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) ||
-                         !string.IsNullOrEmpty(Model.ProductoSeleccionado) ||
-                         !string.IsNullOrEmpty(Model.RegionSeleccionada))
+                <!-- 3. Desplegable Departamento -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectDepartamento" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-map me-1 text-success"></i> Departamento
+                    </label>
+                    <select id="selectDepartamento" name="idDepartamento" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">-- Todos los departamentos --</option>
+                        @foreach (var depto in Model.DepartamentosDisponibles)
+                        {
+                            <option value="@depto.IdDepartamento" selected="@(depto.IdDepartamento == Model.IdDepartamentoSeleccionado)">
+                                @depto.Departamento1
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 4. Desplegable Municipio (Depende de Departamento) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectMunicipio" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-geo-alt me-1 text-success"></i> Municipio
+                    </label>
+                    <select id="selectMunicipio" name="idMunicipio" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">@(Model.MunicipiosDisponibles.Any() ? "-- Todos los municipios --" : "-- Seleccione un departamento --")</option>
+                        @foreach (var mun in Model.MunicipiosDisponibles)
+                        {
+                            <option value="@mun.IdMunicipio" selected="@(mun.IdMunicipio == Model.IdMunicipioSeleccionado)">
+                                @mun.Municipio1
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 5. Botones Consultar y Limpiar Filtros -->
+                <div class="col-12 d-flex justify-content-end align-items-center gap-2 pt-2 border-top mt-3">
+                    @if (Model.TieneFiltrosActivos)
                     {
-                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm d-flex align-items-center justify-content-center" title="Limpiar filtros">
-                            <i class="bi bi-x-lg"></i>
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold shadow-sm d-flex align-items-center gap-1" title="Limpiar todos los filtros">
+                            <i class="bi bi-arrow-counterclockwise"></i> Limpiar filtros
                         </a>
                     }
+                    <button type="submit" class="btn btn-success rounded-pill fw-bold text-white px-5 py-2 shadow-sm d-flex align-items-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        <i class="bi bi-search"></i> Consultar
+                    </button>
                 </div>
 
             </form>
@@ -175,6 +188,11 @@
                 {
                     var urlDetalle = Url.Action("Detalle", "catalogo", new { id = item.IdDemanda });
                     var nombreProducto = item.IdTipoProductoNavigation?.Producto ?? "Producto agrícola";
+                    var variedad = item.IdVariedadNavigation?.VariedadProd ?? "Estándar";
+                    var munDestino = item.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 
+                                     ?? item.IdUsuarioNavigation?.IdMunicipioNavigation?.Municipio1;
+                    var deptoDestino = item.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1
+                                       ?? item.IdUsuarioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1;
 
                     <div class="col">
                         <!-- Tarjeta de demanda interactiva con clases globales .product-card de site.css -->
@@ -200,10 +218,15 @@
 
                             <div class="product-body p-3 d-flex flex-column justify-content-between flex-grow-1">
                                 <div>
-                                    <!-- Nombre del producto -->
-                                    <h5 class="product-title text-success fw-bold mb-2">
-                                        @nombreProducto
-                                    </h5>
+                                    <!-- Nombre del producto y Variedad -->
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="product-title text-success fw-bold mb-0">
+                                            @nombreProducto
+                                        </h5>
+                                        <span class="badge bg-light text-success border border-success-subtle rounded-pill px-2 py-1 small" style="font-size: 0.75rem;">
+                                            @variedad
+                                        </span>
+                                    </div>
 
                                     <!-- Metadatos de la demanda -->
                                     <div class="demand-meta small text-muted mb-3">
@@ -211,11 +234,13 @@
                                             <span><i class="bi bi-box-seam me-1 text-success"></i> Demanda:</span>
                                             <span class="fw-bold text-dark">@item.CantidadDeman Kilos</span>
                                         </div>
-                                        @if (item.IdPuntoAcopioNavigation?.IdMunicipioNavigation != null)
+                                        @if (!string.IsNullOrEmpty(munDestino))
                                         {
                                             <div class="demand-meta-item d-flex justify-content-between align-items-center mb-1">
                                                 <span><i class="bi bi-geo-alt me-1 text-success"></i> Destino:</span>
-                                                <span class="fw-semibold text-secondary">@item.IdPuntoAcopioNavigation.IdMunicipioNavigation.Municipio1</span>
+                                                <span class="fw-semibold text-secondary text-end">
+                                                    @munDestino@(string.IsNullOrEmpty(deptoDestino) ? "" : $", {deptoDestino}")
+                                                </span>
                                             </div>
                                         }
                                     </div>
@@ -265,13 +290,83 @@
 
 @section Scripts {
     <script>
-        // Interactividad completa de la tarjeta de demanda (Paso 5 CU-011 y CU-012):
-        // Hacer clic en cualquier parte de la tarjeta redirige a la vista de detalle de la demanda
         document.addEventListener('DOMContentLoaded', function () {
+            // =========================================================================
+            // 1. CASCADA: TIPO DE PRODUCTO -> VARIEDADES (AJAX)
+            // =========================================================================
+            const selectProd = document.getElementById('selectTipoProducto');
+            const selectVar = document.getElementById('selectVariedad');
+
+            if (selectProd && selectVar) {
+                selectProd.addEventListener('change', function () {
+                    const idProducto = this.value;
+                    selectVar.innerHTML = '<option value="">Cargando variedades...</option>';
+
+                    if (!idProducto) {
+                        selectVar.innerHTML = '<option value="">-- Seleccione un producto --</option>';
+                        return;
+                    }
+
+                    fetch('@Url.Action("ObtenerVariedades", "catalogo")?idTipoProducto=' + idProducto)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectVar.innerHTML = '<option value="">-- Todas las variedades --</option>';
+                            if (data && data.length > 0) {
+                                data.forEach(v => {
+                                    const opt = document.createElement('option');
+                                    opt.value = v.id;
+                                    opt.textContent = v.nombre;
+                                    selectVar.appendChild(opt);
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            selectVar.innerHTML = '<option value="">Error al cargar variedades</option>';
+                        });
+                });
+            }
+
+            // =========================================================================
+            // 2. CASCADA: DEPARTAMENTO -> MUNICIPIOS (AJAX)
+            // =========================================================================
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+
+            if (selectDepto && selectMun) {
+                selectDepto.addEventListener('change', function () {
+                    const idDepto = this.value;
+                    selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
+
+                    if (!idDepto) {
+                        selectMun.innerHTML = '<option value="">-- Seleccione un departamento --</option>';
+                        return;
+                    }
+
+                    fetch('@Url.Action("ObtenerMunicipios", "catalogo")?idDepartamento=' + idDepto)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectMun.innerHTML = '<option value="">-- Todos los municipios --</option>';
+                            if (data && data.length > 0) {
+                                data.forEach(m => {
+                                    const opt = document.createElement('option');
+                                    opt.value = m.id;
+                                    opt.textContent = m.nombre;
+                                    selectMun.appendChild(opt);
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
+                        });
+                });
+            }
+
+            // =========================================================================
+            // 3. INTERACTIVIDAD DE TARJETAS DE DEMANDA
+            // =========================================================================
             const cards = document.querySelectorAll('.js-card-demanda');
             cards.forEach(card => {
                 card.addEventListener('click', function (e) {
-                    // Evitar navegación doble si el clic se originó directamente en un enlace o botón
                     if (!e.target.closest('a, button')) {
                         const url = this.getAttribute('data-url');
                         if (url) {

@@ -14,7 +14,7 @@ namespace CampesinApp.Controllers
     /// <summary>
     /// Controlador para la gestión de Puntos de Acopio:
     /// - CU-018: Registro de Puntos de Acopio (Formulario y Georreferenciación).
-    /// - CU-019: Revisar Puntos de Acopio (Mapas interactivos y filtros de demandas/municipios).
+    /// - CU-019: Revisar Puntos de Acopio (Mapas interactivos y filtros por Tipo [Campesino/Comprador], Departamento y Municipio).
     /// 
     /// REGLAS ARQUITECTÓNICAS:
     /// 1. NO accede directamente al DbContext. Utiliza exclusivamente IPuntoAcopioRepository.
@@ -39,7 +39,7 @@ namespace CampesinApp.Controllers
         [HttpGet]
         [Route("PuntoAcopio")]
         [Route("PuntoAcopio/Index")]
-        public async Task<IActionResult> Index(int? idDemanda, int? idMunicipio)
+        public async Task<IActionResult> Index(string? tipoAcopio, int? idDepartamento, int? idMunicipio, int? idDemanda)
         {
             // Verificación de Precondición: Usuario con sesión activa
             if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
@@ -47,11 +47,27 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
+            // Conversión segura del bit de Tipo de Acopio ("1" o "true" = Comprador, "0" o "false" = Campesino)
+            bool? filtroTipo = null;
+            if (!string.IsNullOrWhiteSpace(tipoAcopio))
+            {
+                if (tipoAcopio == "1" || tipoAcopio.Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    filtroTipo = true;
+                }
+                else if (tipoAcopio == "0" || tipoAcopio.Equals("false", StringComparison.OrdinalIgnoreCase))
+                {
+                    filtroTipo = false;
+                }
+            }
+
             var model = new RevisarPuntosAcopioViewModel
             {
                 GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty,
-                IdDemandaSeleccionada = idDemanda,
-                IdMunicipioSeleccionado = idMunicipio
+                TipoAcopioSeleccionado = filtroTipo,
+                IdDepartamentoSeleccionado = idDepartamento,
+                IdMunicipioSeleccionado = idMunicipio,
+                IdDemandaSeleccionada = idDemanda
             };
 
             try
@@ -72,16 +88,30 @@ namespace CampesinApp.Controllers
         // =========================================================================
         [HttpGet]
         [Route("PuntoAcopio/ObtenerPuntosMapaJson")]
-        public async Task<IActionResult> ObtenerPuntosMapaJson(int? idDemanda, int? idMunicipio)
+        public async Task<IActionResult> ObtenerPuntosMapaJson(string? tipoAcopio, int? idDepartamento, int? idMunicipio, int? idDemanda)
         {
             if (!EsUsuarioAutorizado(out int idUsuario, out string rol))
             {
                 return Unauthorized(new { mensaje = "Sesión no válida o expirada." });
             }
 
+            // Conversión tolerante del bit: "1"/"true" => Comprador, "0"/"false" => Campesino
+            bool? filtroTipo = null;
+            if (!string.IsNullOrWhiteSpace(tipoAcopio))
+            {
+                if (tipoAcopio == "1" || tipoAcopio.Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    filtroTipo = true;
+                }
+                else if (tipoAcopio == "0" || tipoAcopio.Equals("false", StringComparison.OrdinalIgnoreCase))
+                {
+                    filtroTipo = false;
+                }
+            }
+
             try
             {
-                var puntos = await _puntoAcopioRepo.ObtenerPuntosAcopioFiltradosAsync(idDemanda, idMunicipio);
+                var puntos = await _puntoAcopioRepo.ObtenerPuntosAcopioFiltradosAsync(filtroTipo, idDepartamento, idMunicipio, idDemanda);
 
                 var resultado = puntos.Select(p => new
                 {
@@ -94,6 +124,9 @@ namespace CampesinApp.Controllers
                     latitud = p.Latitud,
                     longitud = p.Longitud,
                     accesoVehicular = p.AccesoVehicular,
+                    tipoAcopio = p.TipoAcopio, // true = Comprador (1), false = Campesino (0)
+                    tipoTexto = p.TipoAcopio ? "Comprador" : "Campesino",
+                    descripcion = p.Descripcion ?? string.Empty,
                     municipio = p.IdMunicipioNavigation?.Municipio1 ?? "Municipio",
                     departamento = p.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia"
                 });
@@ -120,10 +153,14 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
+            bool esAdmin = rol.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
+
             var model = new PuntoAcopioViewModel
             {
                 // Obtenemos la Google Maps API Key desde appsettings.json
-                GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty
+                GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty,
+                EsAdministrador = esAdmin,
+                TipoAcopioManual = false
             };
 
             await CargarListasDesplegablesAsync(model);
@@ -145,6 +182,8 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
+            bool esAdmin = rol.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
+            model.EsAdministrador = esAdmin;
             model.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
             // 2. REGLA DE NEGOCIO RN-01-CU018: Ubicación geográfica obligatoria
@@ -191,6 +230,13 @@ namespace CampesinApp.Controllers
             // 6. FLUJO PRINCIPAL DE GUARDADO (Paso 4):
             try
             {
+                // Determinamos el tipo de acopio (1 = Comprador, 0 = Campesino):
+                // Si es Administrador: usa la selección manual del formulario.
+                // Si es otro rol: se determina según su rol autenticado.
+                bool tipoAcopioFinal = esAdmin
+                    ? model.TipoAcopioManual
+                    : rol.Equals("Comprador", StringComparison.OrdinalIgnoreCase);
+
                 var nuevoPuntoDto = new PuntoAcopioRegistroDto
                 {
                     IdUsuario = idUsuario,
@@ -203,7 +249,9 @@ namespace CampesinApp.Controllers
                     Latitud = model.Latitud.Value,
                     Longitud = model.Longitud.Value,
                     Capacidad = model.Capacidad,
-                    AccesoVehicular = model.AccesoVehicular
+                    AccesoVehicular = model.AccesoVehicular,
+                    TipoAcopio = tipoAcopioFinal,
+                    Descripcion = string.IsNullOrWhiteSpace(model.Descripcion) ? null : model.Descripcion.Trim()
                 };
 
                 int idPuntoGenerado = await _puntoAcopioRepo.GuardarPuntoAcopioAsync(nuevoPuntoDto);
@@ -224,12 +272,15 @@ namespace CampesinApp.Controllers
         }
 
         // =========================================================================
-        // ENDPOINT AJAX: Obtener municipios dinámicos por departamento (CU-018)
+        // ENDPOINT AJAX: Obtener municipios dinámicos por departamento (CU-018 y CU-019)
         // =========================================================================
         [HttpGet]
         public async Task<IActionResult> ObtenerMunicipios(int idDepartamento)
         {
-            var municipios = await _puntoAcopioRepo.ObtenerMunicipiosPorDepartamentoAsync(idDepartamento);
+            var municipios = idDepartamento > 0
+                ? await _puntoAcopioRepo.ObtenerMunicipiosPorDepartamentoAsync(idDepartamento)
+                : await _puntoAcopioRepo.ObtenerTodosMunicipiosAsync();
+
             var resultado = municipios.Select(m => new
             {
                 id = m.IdMunicipio,
@@ -253,22 +304,51 @@ namespace CampesinApp.Controllers
 
         private async Task CargarFiltrosMapaAsync(RevisarPuntosAcopioViewModel model)
         {
-            // Cargar Demandas
+            // 1. Cargar Tipos de Acopio (0: Campesino, 1: Comprador)
+            model.TiposDisponibles = new System.Collections.Generic.List<SelectListItem>
+            {
+                new SelectListItem { Value = "0", Text = "Campesino", Selected = model.TipoAcopioSeleccionado.HasValue && !model.TipoAcopioSeleccionado.Value },
+                new SelectListItem { Value = "1", Text = "Comprador", Selected = model.TipoAcopioSeleccionado.HasValue && model.TipoAcopioSeleccionado.Value }
+            };
+
+            // 2. Cargar Departamentos desde la base de datos
+            var departamentos = await _puntoAcopioRepo.ObtenerDepartamentosAsync();
+            model.DepartamentosDisponibles = departamentos.Select(d => new SelectListItem
+            {
+                Value = d.IdDepartamento.ToString(),
+                Text = d.Departamento1,
+                Selected = model.IdDepartamentoSeleccionado.HasValue && model.IdDepartamentoSeleccionado.Value == d.IdDepartamento
+            }).ToList();
+
+            // 3. Cargar Municipios (si hay departamento seleccionado se filtran por él, de lo contrario todos)
+            if (model.IdDepartamentoSeleccionado.HasValue && model.IdDepartamentoSeleccionado.Value > 0)
+            {
+                var municipios = await _puntoAcopioRepo.ObtenerMunicipiosPorDepartamentoAsync(model.IdDepartamentoSeleccionado.Value);
+                model.MunicipiosDisponibles = municipios.Select(m => new SelectListItem
+                {
+                    Value = m.IdMunicipio.ToString(),
+                    Text = m.Municipio1,
+                    Selected = model.IdMunicipioSeleccionado.HasValue && model.IdMunicipioSeleccionado.Value == m.IdMunicipio
+                }).ToList();
+            }
+            else
+            {
+                var municipios = await _puntoAcopioRepo.ObtenerTodosMunicipiosAsync();
+                model.MunicipiosDisponibles = municipios.Select(m => new SelectListItem
+                {
+                    Value = m.IdMunicipio.ToString(),
+                    Text = $"{m.Municipio1} ({m.IdDepartamentoNavigation?.Departamento1 ?? "CO"})",
+                    Selected = model.IdMunicipioSeleccionado.HasValue && model.IdMunicipioSeleccionado.Value == m.IdMunicipio
+                }).ToList();
+            }
+
+            // 4. Cargar Demandas (opcional por compatibilidad)
             var demandas = await _puntoAcopioRepo.ObtenerDemandasParaFiltroAsync();
             model.DemandasDisponibles = demandas.Select(d => new SelectListItem
             {
                 Value = d.IdDemanda.ToString(),
                 Text = $"Demanda #{d.IdDemanda} - {d.IdTipoProductoNavigation?.Producto ?? "Producto"} ({d.CantidadDeman:N0} Kg)",
                 Selected = model.IdDemandaSeleccionada.HasValue && model.IdDemandaSeleccionada.Value == d.IdDemanda
-            }).ToList();
-
-            // Cargar Municipios
-            var municipios = await _puntoAcopioRepo.ObtenerTodosMunicipiosAsync();
-            model.MunicipiosDisponibles = municipios.Select(m => new SelectListItem
-            {
-                Value = m.IdMunicipio.ToString(),
-                Text = $"{m.Municipio1} ({m.IdDepartamentoNavigation?.Departamento1 ?? "CO"})",
-                Selected = model.IdMunicipioSeleccionado.HasValue && model.IdMunicipioSeleccionado.Value == m.IdMunicipio
             }).ToList();
         }
 
@@ -299,4 +379,3 @@ namespace CampesinApp.Controllers
         }
     }
 }
-
