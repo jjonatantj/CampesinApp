@@ -151,6 +151,9 @@ public partial class Campesinapp3Context : DbContext
                 .HasMaxLength(8)
                 .IsUnicode(false)
                 .HasColumnName("placa_Cami");
+            entity.Property(e => e.Rendimiento).HasColumnName("rendimiento");
+            entity.Property(e => e.ValorSoat).HasColumnName("valor_soat");
+            entity.Property(e => e.ValorTecnomecanica).HasColumnName("valor_tecnomecanica");
 
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.Camions)
                 .HasForeignKey(d => d.IdUsuario)
@@ -543,9 +546,11 @@ public partial class Campesinapp3Context : DbContext
 
             entity.Property(e => e.IdPrecioEstimado).HasColumnName("id_Precio_Estimado");
             entity.Property(e => e.FechaPreci).HasColumnName("fecha_Preci");
+            entity.Property(e => e.FletePromedioAplicado).HasColumnName("flete_Promedio_Aplicado");
             entity.Property(e => e.IdTipoProducto).HasColumnName("id_Tipo_Producto");
             entity.Property(e => e.IdVariedad).HasColumnName("id_Variedad");
-            entity.Property(e => e.PrecioEsti).HasColumnName("precio_Esti");
+            entity.Property(e => e.PrecioEstiCampesino).HasColumnName("precio_Esti_Campesino");
+            entity.Property(e => e.PrecioEstiComprador).HasColumnName("precio_Esti_Comprador");
 
             entity.HasOne(d => d.IdTipoProductoNavigation).WithMany(p => p.PrecioEstimados)
                 .HasForeignKey(d => d.IdTipoProducto)
@@ -610,6 +615,10 @@ public partial class Campesinapp3Context : DbContext
             entity.Property(e => e.Capacidad)
                 .HasColumnType("decimal(10, 2)")
                 .HasColumnName("capacidad");
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("descripcion");
             entity.Property(e => e.Direccion)
                 .HasMaxLength(150)
                 .IsUnicode(false)
@@ -622,6 +631,7 @@ public partial class Campesinapp3Context : DbContext
                 .IsUnicode(false)
                 .HasColumnName("horario_Atencion");
             entity.Property(e => e.IdMunicipio).HasColumnName("id_Municipio");
+            entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario");
             entity.Property(e => e.Latitud)
                 .HasColumnType("decimal(10, 7)")
                 .HasColumnName("latitud");
@@ -636,11 +646,17 @@ public partial class Campesinapp3Context : DbContext
                 .HasMaxLength(15)
                 .IsUnicode(false)
                 .HasColumnName("telefono");
+            entity.Property(e => e.TipoAcopio).HasColumnName("tipo_acopio");
 
             entity.HasOne(d => d.IdMunicipioNavigation).WithMany(p => p.PuntoAcopios)
                 .HasForeignKey(d => d.IdMunicipio)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_punto_Acopio_municipio");
+
+            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.PuntoAcopios)
+                .HasForeignKey(d => d.IdUsuario)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_punto_Acopio_usuario_propietario");
         });
 
         modelBuilder.Entity<ReporteTransportador>(entity =>

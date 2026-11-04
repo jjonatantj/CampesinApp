@@ -25,43 +25,100 @@ namespace CampesinApp.Controllers
 
         /// <summary>
         /// Acción principal Index:
-        /// Recibe por parámetros GET los 3 filtros especificados en CU-011:
-        /// categoría, producto y región.
+        /// Recibe por parámetros GET los filtros jerárquicos:
+        /// 1. idTipoProducto (Tipo de Producto)
+        /// 2. idVariedad (Variedad dependiente)
+        /// 3. idDepartamento (Departamento)
+        /// 4. idMunicipio (Municipio dependiente)
         /// </summary>
-        public async Task<IActionResult> Index(string? categoria, string? producto, string? region)
+        public async Task<IActionResult> Index(int? idTipoProducto, int? idVariedad, int? idDepartamento, int? idMunicipio)
         {
             // 1. Obtener el rol del usuario desde la sesión HTTP (si existe)
             string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
 
             var modelo = new CatalogoDemandaViewModel
             {
-                CategoriaSeleccionada = categoria,
-                ProductoSeleccionado = producto,
-                RegionSeleccionada = region,
+                IdTipoProductoSeleccionado = idTipoProducto,
+                IdVariedadSeleccionada = idVariedad,
+                IdDepartamentoSeleccionado = idDepartamento,
+                IdMunicipioSeleccionado = idMunicipio,
                 RolUsuario = rolUsuario
             };
 
             try
             {
-                // 2. Consultar demandas aplicando los 3 filtros a través del repositorio
-                modelo.Demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(categoria, producto, region);
+                // 2. Consultar demandas aplicando los filtros jerárquicos a través del repositorio
+                modelo.Demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(
+                    idTipoProducto, idVariedad, idDepartamento, idMunicipio);
 
-                // 3. Obtener opciones para poblar los 3 desplegables
-                modelo.CategoriasDisponibles = await _demandaRepository.ObtenerNombresCategoriasAsync();
-                modelo.ProductosDisponibles = await _demandaRepository.ObtenerNombresProductosAsync();
-                modelo.RegionesDisponibles = await _demandaRepository.ObtenerNombresRegionesAsync();
+                // 3. Poblar desplegables principales
+                modelo.TiposProductoDisponibles = await _demandaRepository.ObtenerTiposProductoAsync();
+                modelo.DepartamentosDisponibles = await _demandaRepository.ObtenerDepartamentosAsync();
+
+                // 4. Si hay producto seleccionado, poblar sus variedades dependientes
+                if (idTipoProducto.HasValue && idTipoProducto.Value > 0)
+                {
+                    modelo.VariedadesDisponibles = await _demandaRepository.ObtenerVariedadesPorTipoProductoAsync(idTipoProducto.Value);
+                }
+
+                // 5. Si hay departamento seleccionado, poblar sus municipios dependientes
+                if (idDepartamento.HasValue && idDepartamento.Value > 0)
+                {
+                    modelo.MunicipiosDisponibles = await _demandaRepository.ObtenerMunicipiosPorDepartamentoAsync(idDepartamento.Value);
+                }
             }
             catch (Exception)
             {
                 // FE-01-CU011: Error en base de datos
-                // Si falla la conexión con el servidor de base de datos, el sistema muestra el mensaje de error
                 modelo.TieneErrorConexion = true;
                 modelo.MensajeError = "No fue posible cargar el catálogo de demanda. Intente más tarde";
                 modelo.Demandas = new List<Demandum>();
             }
 
-            // 4. Retornar la vista con el ViewModel completo
+            // 6. Retornar la vista con el ViewModel completo
             return View(modelo);
+        }
+
+        /// <summary>
+        /// Endpoint AJAX: Retorna en formato JSON las variedades asociadas al tipo de producto seleccionado (cascada).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ObtenerVariedades(int idTipoProducto)
+        {
+            if (idTipoProducto <= 0)
+            {
+                return Json(new List<object>());
+            }
+
+            var variedades = await _demandaRepository.ObtenerVariedadesPorTipoProductoAsync(idTipoProducto);
+            var resultado = variedades.Select(v => new
+            {
+                id = v.IdVariedad,
+                nombre = v.VariedadProd
+            });
+
+            return Json(resultado);
+        }
+
+        /// <summary>
+        /// Endpoint AJAX: Retorna en formato JSON los municipios asociados al departamento seleccionado (cascada).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> ObtenerMunicipios(int idDepartamento)
+        {
+            if (idDepartamento <= 0)
+            {
+                return Json(new List<object>());
+            }
+
+            var municipios = await _demandaRepository.ObtenerMunicipiosPorDepartamentoAsync(idDepartamento);
+            var resultado = municipios.Select(m => new
+            {
+                id = m.IdMunicipio,
+                nombre = m.Municipio1
+            });
+
+            return Json(resultado);
         }
 
         // =========================================================================

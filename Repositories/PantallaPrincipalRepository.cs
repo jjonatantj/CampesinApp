@@ -49,8 +49,8 @@ namespace CampesinApp.Repositories
                     Producto = p.IdTipoProductoNavigation.Producto + " (" + p.IdVariedadNavigation.VariedadProd + ")",
                     Categoria = p.IdTipoProductoNavigation.Producto,
                     UnidadMedida = "Kg",
-                    PrecioVenta = (decimal)p.PrecioEsti,
-                    PrecioCompra = (decimal)(p.PrecioEsti * 1.07), // Margen estimado del 7%
+                    PrecioVenta = (decimal)Math.Round(p.PrecioEstiCampesino, 0),
+                    PrecioCompra = (decimal)Math.Round(p.PrecioEstiComprador, 0),
                 })
                 .ToList();
 

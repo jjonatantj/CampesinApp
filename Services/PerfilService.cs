@@ -362,7 +362,8 @@ namespace CampesinApp.Services
                 new() { Texto = "Gestión de Envíos", Icono = "bi-signpost-split", UrlModal = "/Transporte/Asignar", Estilo = "principal" },
                 new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar" },
                 new() { Texto = "Registrar Punto de Acopio", Icono = "bi-pin-map", UrlPagina = "/PuntoAcopio/Registrar" },
-                new() { Texto = "Historial Global del Aplicativo", Icono = "bi-journal-text", UrlPagina = "/Historial/Global", Estilo = "principal" }
+                new() { Texto = "Historial Global del Aplicativo", Icono = "bi-journal-text", UrlPagina = "/Historial/Global", Estilo = "principal" },
+                new() { Texto = "Calcular Estimados Diarios", Icono = "bi-calculator", UrlModal = "/Perfil/ConfirmarCalcularEstimados", Estilo = "principal" }
             },
             _ => new List<OpcionPerfilDto>()
         };

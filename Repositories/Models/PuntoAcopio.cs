@@ -27,11 +27,19 @@ public partial class PuntoAcopio
 
     public DateTime FechaRegistro { get; set; }
 
+    public string? Descripcion { get; set; }
+
+    public bool TipoAcopio { get; set; }
+
+    public int IdUsuario { get; set; }
+
     public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
 
     public virtual ICollection<Demandum> Demanda { get; set; } = new List<Demandum>();
 
     public virtual Municipio IdMunicipioNavigation { get; set; } = null!;
+
+    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 
     public virtual ICollection<Usuario> IdUsuarios { get; set; } = new List<Usuario>();
 }

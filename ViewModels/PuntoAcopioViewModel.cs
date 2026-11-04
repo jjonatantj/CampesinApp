@@ -49,6 +49,22 @@ namespace CampesinApp.ViewModels
         [Display(Name = "¿Cuenta con acceso vehicular para camión?")]
         public bool AccesoVehicular { get; set; } = true;
 
+        [StringLength(255, ErrorMessage = "La descripción no puede superar los 255 caracteres.")]
+        [Display(Name = "Descripción o Detalles del Punto")]
+        public string? Descripcion { get; set; }
+
+        /// <summary>
+        /// Indica si el usuario conectado es Administrador para permitirle seleccionar manualmente el tipo de acopio.
+        /// </summary>
+        public bool EsAdministrador { get; set; }
+
+        /// <summary>
+        /// Selección manual del tipo de punto por parte del Administrador:
+        /// false (0) = Campesino, true (1) = Comprador
+        /// </summary>
+        [Display(Name = "Tipo de Punto de Acopio")]
+        public bool TipoAcopioManual { get; set; }
+
         // Regla RN-01-CU018: Latitud y Longitud geográficas (llenadas automáticamente por el mapa en campos ocultos)
         [Required(ErrorMessage = "Debe hacer clic en el mapa para marcar la ubicación geográfica (Latitud requerida).")]
         [Display(Name = "Latitud")]
@@ -66,4 +82,3 @@ namespace CampesinApp.ViewModels
         public string GoogleMapsApiKey { get; set; } = string.Empty;
     }
 }
-
