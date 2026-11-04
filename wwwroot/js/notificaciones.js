@@ -35,7 +35,10 @@
             // No se interrumpe a quien está llenando un formulario o leyendo una ventana.
             if (window.CampesinApp.estaAbierto('principal') || window.CampesinApp.estaAbierto('superpuesta')) return;
 
-            if (datos.reporteVencido) {
+            // En la pantalla del reporte ya está registrando el avance: la alerta no se repite encima.
+            const enPantallaReporte = window.location.pathname.toLowerCase().startsWith('/ubicacion/reportar');
+
+            if (datos.reporteVencido && !enPantallaReporte) {
                 await window.CampesinApp.abrir('/Ubicacion/AlertaVencida', 'superpuesta');
             } else if (datos.hayPopup) {
                 await window.CampesinApp.abrir('/Notificaciones/Popup', 'superpuesta');

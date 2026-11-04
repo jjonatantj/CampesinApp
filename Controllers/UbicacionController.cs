@@ -40,6 +40,9 @@ namespace CampesinApp.Controllers
             {
                 dto.IdViaje = dto.Viajes[0].IdViaje;
             }
+            // RN05: con un reporte vencido el transportador no puede salir de esta pantalla hasta registrarlo.
+            ViewData["ReporteObligatorio"] = usuario.Rol == RolUsuario.Transportador
+                && (await _ubicacion.ObtenerReportesVencidosAsync(usuario)).Count > 0;
             // Pantalla completa (el mapa necesita espacio); el formulario se vuelve a pintar en el panel al enviarlo.
             return View("ReportarPagina", dto);
         }

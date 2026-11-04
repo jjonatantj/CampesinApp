@@ -4,14 +4,86 @@
     ViewData["Title"] = "Reporte de Ubicación";
 }
 
+@{
+    var obligatorio = ViewData["ReporteObligatorio"] as bool? == true;
+}
 @* CU-021: pantalla completa del reporte de ubicación. El formulario (y luego la confirmación) se pinta dentro de #panelPagina. *@
 <div class="container pb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="brand-title fs-2 mb-0" style="color: #1b5e20;">Reporte de Ubicación</h1>
-        <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Regresar al perfil</a>
+        @if (!obligatorio)
+        {
+            <a asp-controller="Perfil" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Regresar al perfil</a>
+        }
     </div>
+
+    @if (obligatorio)
+    {
+        <div id="avisoReporteObligatorio" class="alert alert-warning" role="alert">
+            Es hora de su informe de avance: complete el reporte para poder continuar. No podrá salir de esta pantalla hasta registrarlo.
+        </div>
+    }
 
     <div id="panelPagina" class="modal-content">
         <partial name="_ReporteForm" model="Model" />
     </div>
 </div>
+
+@if (obligatorio)
+{
+    <script>
+        (function () {
+            'use strict';
+            const panel = document.getElementById('panelPagina');
+            const aviso = document.getElementById('avisoReporteObligatorio');
+            let bloqueado = true;
+
+            function recordar() {
+                aviso.classList.remove('alert-warning');
+                aviso.classList.add('alert-danger');
+                aviso.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Enlaces y cierre de sesión fuera del formulario: no se puede salir sin registrar el reporte.
+            document.addEventListener('click', function (evento) {
+                if (!bloqueado) return;
+                const destino = evento.target.closest('a[href], #botonCerrarSesion');
+                if (!destino || panel.contains(destino) || destino.closest('.modal')) return;
+                const href = destino.getAttribute('href') || '';
+                if (href.startsWith('#') || href.startsWith('javascript:')) return;
+                evento.preventDefault();
+                evento.stopImmediatePropagation();
+                recordar();
+            }, true);
+
+            // "Cancelar" saldría de la pantalla: se oculta (también cuando el formulario se vuelve a pintar con errores).
+            function ocultarCancelar() {
+                panel.querySelectorAll('[data-cancelar-reporte]').forEach(function (boton) { boton.classList.add('d-none'); });
+            }
+            ocultarCancelar();
+
+            // Cerrar la pestaña, recargar o volver atrás.
+            window.addEventListener('beforeunload', function (evento) {
+                if (!bloqueado) return;
+                evento.preventDefault();
+                evento.returnValue = '';
+            });
+            history.pushState(null, '', window.location.href);
+            window.addEventListener('popstate', function () {
+                if (!bloqueado) return;
+                history.pushState(null, '', window.location.href);
+                recordar();
+            });
+
+            // Al registrarse el reporte (aparece "REPORTE REALIZADO CON EXITO") se libera la pantalla.
+            new MutationObserver(function () {
+                if (panel.querySelector('.reporte-exitoso')) {
+                    bloqueado = false;
+                    aviso.classList.add('d-none');
+                } else {
+                    ocultarCancelar();
+                }
+            }).observe(panel, { childList: true, subtree: true });
+        })();
+    </script>
+}
