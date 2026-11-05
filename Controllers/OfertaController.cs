@@ -460,7 +460,7 @@ namespace CampesinApp.Controllers
                     }
                     else
                     {
-                        demanda.IdEstadoDeman = 2; // Id de estado 'Completada' según esquema de base de datos
+                        demanda.IdEstadoDeman = 4; // Id de estado 'Completada' (4) según la tabla estado_Demanda
                     }
 
                     // Notificar al comprador que su pedido fue completado al 100%

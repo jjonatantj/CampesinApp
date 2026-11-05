@@ -76,7 +76,7 @@
 
             @if (!ViewData.ModelState.IsValid)
             {
-                <div class="alert alert-danger shadow-sm border-0 rounded-4 mb-4">
+                <div class="alert alert-danger shadow-sm border-0 rounded-4 mb-4" id="resumenErroresServidor">
                     <h6 class="fw-bold mb-2"><i class="bi bi-x-circle-fill me-1"></i> Por favor verifique los siguientes campos:</h6>
                     <div asp-validation-summary="All" class="small mb-0"></div>
                 </div>
@@ -808,27 +808,37 @@
                     });
                 }
 
+                // Si la página se recargó con errores del servidor, desplazarse suavemente al resumen de error
+                const alertaServidor = document.getElementById("resumenErroresServidor");
+                if (alertaServidor) {
+                    alertaServidor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
                 // Manejador del botón "Registrar"
                 btnAbrirModal.addEventListener("click", function (e) {
                     e.preventDefault();
                     limpiarErrores();
 
                     let esValido = true;
+                    let primerElementoError = null;
                     const valorTexto = inputCantidad.value.trim();
 
                     // 1. VALIDACIÓN RN-05-CU013 & FE05: Números enteros mayores a cero
                     if (valorTexto === "") {
                         mostrarErrorCantidad("Debe ingresar la cantidad que aportará.");
                         esValido = false;
+                        if (!primerElementoError) primerElementoError = inputCantidad;
                     } else if (!/^[0-9]+$/.test(valorTexto)) {
                         mostrarErrorCantidad("Por favor ingrese solo números enteros en el campo de cantidad ofertada. Usted ingresó: " + valorTexto);
                         esValido = false;
+                        if (!primerElementoError) primerElementoError = inputCantidad;
                     } else {
                         const cantidadNum = parseInt(valorTexto, 10);
 
                         if (cantidadNum <= 0) {
                             mostrarErrorCantidad("Por favor ingrese un número entero mayor a cero.");
                             esValido = false;
+                            if (!primerElementoError) primerElementoError = inputCantidad;
                         } 
                         // 2. VALIDACIÓN RN-04-CU013 & FE03: Mínimo permitido (10% acumulativo)
                         else if (cantidadNum < minimoPermitido) {
@@ -838,11 +848,13 @@
                                 mostrarErrorCantidad("La cantidad ingresada es menor al mínimo permitido para esta oferta. Debes registrar al menos " + minimoPermitido + " unidades para alcanzar el 10% del total demandado.");
                             }
                             esValido = false;
+                            if (!primerElementoError) primerElementoError = inputCantidad;
                         } 
                         // 3. VALIDACIÓN RN-01-CU013 & FE01: No superar la cantidad faltante
                         else if (cantidadNum > cantidadFaltante) {
                             mostrarErrorCantidad("La cantidad ingresada supera lo solicitado. Solo puedes registrar hasta " + cantidadFaltante + " cantidades para esta compra.");
                             esValido = false;
+                            if (!primerElementoError) primerElementoError = inputCantidad;
                         }
                     }
 
@@ -850,6 +862,7 @@
                     if (!inputImagen.files || inputImagen.files.length === 0) {
                         mostrarErrorImagen("Debe adjuntar una imagen del producto que va a ofertar.");
                         esValido = false;
+                        if (!primerElementoError) primerElementoError = inputImagen;
                     } else {
                         const archivo = inputImagen.files[0];
                         const extension = archivo.name.substring(archivo.name.lastIndexOf(".")).toLowerCase();
@@ -858,9 +871,11 @@
                         if (!extensionesPermitidas.includes(extension)) {
                             mostrarErrorImagen("Los únicos formatos permitidos para las imágenes del producto son JPG, JPEG, PNG y WebP.");
                             esValido = false;
+                            if (!primerElementoError) primerElementoError = inputImagen;
                         } else if (archivo.size > 5 * 1024 * 1024) {
                             mostrarErrorImagen("La imagen no debe superar los 5 MB de tamaño.");
                             esValido = false;
+                            if (!primerElementoError) primerElementoError = inputImagen;
                         }
                     }
 
@@ -870,6 +885,7 @@
                     if (!puntoIdVal || puntoIdVal === "" || puntoIdVal === "0") {
                         mostrarErrorPunto("Debe seleccionar el punto de acopio donde entregará su producto.");
                         esValido = false;
+                        if (!primerElementoError) primerElementoError = document.getElementById("seccionPuntoAcopio");
                     }
 
                     // 6. APERTURA DEL MODAL SI TODAS LAS REGLAS SE CUMPLEN
@@ -883,6 +899,14 @@
                         }
 
                         modalBootstrap.show();
+                    } else {
+                        // SI HAY ERROR: Desplazar suavemente la pantalla hacia el primer campo con error
+                        if (primerElementoError) {
+                            primerElementoError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            if (typeof primerElementoError.focus === 'function') {
+                                primerElementoError.focus();
+                            }
+                        }
                     }
                 });
 
@@ -911,8 +935,6 @@
                         errorPuntoDiv.textContent = mensaje;
                         errorPuntoDiv.classList.remove("d-none");
                     }
-                    const seccion = document.getElementById("seccionPuntoAcopio");
-                    if (seccion) seccion.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
 
                 function limpiarErrores() {

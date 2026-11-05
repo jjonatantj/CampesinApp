@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
@@ -103,7 +103,7 @@ namespace CampesinApp.Controllers
 
             // Regla de negocio RN01-CU007: Validar demandas o transacciones activas
             bool tieneDemandasActivas = await _context.Demanda
-                .AnyAsync(d => d.IdUsuario == idUsuario.Value && (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2));
+                .AnyAsync(d => d.IdUsuario == idUsuario.Value && (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2 || d.IdEstadoDeman == 3));
 
             if (tieneDemandasActivas)
             {

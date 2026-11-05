@@ -179,11 +179,15 @@ namespace CampesinApp.Controllers
                 // 8. Confirmamos los cambios en MySQL
                 await _context.SaveChangesAsync();
 
-                // 9. Mensaje de éxito para el usuario (Paso 6 del CU-014: "Registro exitoso")
-                TempData["MensajeExito"] = "¡Registro exitoso! Su perfil de pago ha sido guardado correctamente.";
-
-                // 10. Redirigimos a la pantalla principal como estipula el flujo de éxito del CU-014
-                return RedirectToAction("Index", "PantallaPrincipal");
+                // 9. Mostramos la ventana emergente de proceso exitoso con temporizador de 4s
+                ViewBag.RegistroExitoso = true;
+                ViewBag.MensajeExito = "Perfil de pago registrado con éxito.";
+                await PoblarCatalogosAsync(model);
+                ViewBag.OpenpayMerchantId = _configuration["Openpay:MerchantId"] ?? "m9xxxxxxsandboxid";
+                ViewBag.OpenpayPublicKey = _configuration["Openpay:PublicApiKey"] ?? "pk_xxxxxxxxxxxxxxxxxxxxxxxx";
+                ViewBag.OpenpaySandbox = _configuration.GetValue<bool>("Openpay:SandboxMode", true);
+                ViewBag.OpenpayPais = _configuration["Openpay:Pais"] ?? "CO";
+                return View("Index", model);
             }
             catch (Exception ex)
             {

@@ -97,6 +97,8 @@
         <!-- ============================================================== -->
         <div class="card rounded-4 border-0 shadow-sm p-4 mb-4 bg-white">
             <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end" id="formFiltrosCatalogo">
+                <!-- Al enviar nuevos filtros siempre se reinicia a la página 1 -->
+                <input type="hidden" name="pagina" value="1" />
                 
                 <!-- 1. Desplegable Tipo de Producto -->
                 <div class="col-lg-3 col-md-6">
@@ -181,9 +183,9 @@
         <!-- ============================================================== -->
         <!-- REJILLA DE TARJETAS (Paso 4 del CU-011)                        -->
         <!-- ============================================================== -->
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-            @if (Model.Demandas != null && Model.Demandas.Any())
-            {
+        @if (Model.Demandas != null && Model.Demandas.Any())
+        {
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                 @foreach (var item in Model.Demandas)
                 {
                     var urlDetalle = Url.Action("Detalle", "catalogo", new { id = item.IdDemanda });
@@ -258,8 +260,8 @@
                                        class="btn btn-success rounded-pill w-100 fw-bold text-white shadow-sm py-2 d-flex align-items-center justify-content-center gap-2"
                                        style="background-color: #2e7d32; border-color: #2e7d32;"
                                        title="@textoBoton">
-                                        <span>@textoBoton</span>
-                                        <i class="bi bi-chevron-right"></i>
+                                       <span>@textoBoton</span>
+                                       <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -267,23 +269,102 @@
                         </div>
                     </div>
                 }
-            }
-            else
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- PAGINACIÓN DE CATÁLOGO (CUANDO HAY MÁS DE 8 PRODUCTOS)          -->
+            <!-- Muestra flechas anterior/siguiente y los números de página      -->
+            <!-- ============================================================== -->
+            @if (Model.TotalPaginas > 1)
             {
-                <!-- ============================================================== -->
-                <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)     -->
-                <!-- ============================================================== -->
-                <div class="col-12 text-center py-5">
-                    <div class="alert alert-warning shadow-sm d-inline-block px-5 py-4 rounded-4">
-                        <h5 class="fw-bold mb-2">No se encontraron ofertas para los criterios seleccionados</h5>
-                        <p class="text-muted mb-3">Intenta consultar con otros filtros o limpiar la búsqueda actual.</p>
-                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Limpiar filtros
+                <nav aria-label="Navegación de páginas del catálogo" class="mt-4 mb-3 d-flex flex-column align-items-center">
+                    <ul class="pagination pagination-md shadow-sm rounded-pill p-1 bg-white border align-items-center mb-2">
+                        <!-- Botón / Flecha Izquierda: Página Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link rounded-pill border-0 px-3 py-2 fw-semibold @(!Model.TienePaginaAnterior ? "text-muted" : "text-success")" 
+                               asp-controller="catalogo" 
+                               asp-action="Index" 
+                               asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                               asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                               asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                               asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                               asp-route-pagina="@(Model.PaginaActual - 1)"
+                               tabindex="@(!Model.TienePaginaAnterior ? "-1" : "0")"
+                               aria-disabled="@(!Model.TienePaginaAnterior ? "true" : "false")"
+                               title="Página anterior">
+                                <i class="bi bi-chevron-left me-1"></i> Anterior
+                            </a>
+                        </li>
+
+                        <!-- Números de Página -->
+                        @for (int p = 1; p <= Model.TotalPaginas; p++)
+                        {
+                            var esActiva = (p == Model.PaginaActual);
+                            <li class="page-item @(esActiva ? "active" : "")">
+                                <a class="page-link rounded-circle border-0 mx-1 text-center fw-bold @(esActiva ? "text-white" : "text-success")" 
+                                   style="@(esActiva ? "background-color: #2e7d32; border-color: #2e7d32; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" : "min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;")"
+                                   asp-controller="catalogo" 
+                                   asp-action="Index" 
+                                   asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                                   asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                                   asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                                   asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                                   asp-route-pagina="@p"
+                                   title="Página @p">
+                                    @p
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Botón / Flecha Derecha: Página Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link rounded-pill border-0 px-3 py-2 fw-semibold @(!Model.TienePaginaSiguiente ? "text-muted" : "text-success")" 
+                               asp-controller="catalogo" 
+                               asp-action="Index" 
+                               asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                               asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                               asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                               asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                               asp-route-pagina="@(Model.PaginaActual + 1)"
+                               tabindex="@(!Model.TienePaginaSiguiente ? "-1" : "0")"
+                               aria-disabled="@(!Model.TienePaginaSiguiente ? "true" : "false")"
+                               title="Página siguiente">
+                                Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <span class="text-muted small">
+                        Página @Model.PaginaActual de @Model.TotalPaginas (@Model.TotalDemandas ofertas en total)
+                    </span>
+                </nav>
+            }
+        }
+        else
+        {
+            <!-- ============================================================== -->
+            <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)     -->
+            <!-- ============================================================== -->
+            <div class="w-100 my-2">
+                <div class="alert alert-warning shadow-sm w-100 py-3 px-4 rounded-4 border-0 d-flex flex-wrap align-items-center justify-content-between gap-3" id="alertaSinResultados">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-search fs-3 text-warning"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">No se encontraron ofertas para los criterios seleccionados</h6>
+                            <small class="text-muted d-block">
+                                Intenta consultar con otros filtros o limpiar la búsqueda.
+                                <span class="ms-2"><i class="bi bi-clock me-1"></i>Restableciendo filtros en <strong id="contadorSegundosSinResultados">4</strong>s...</span>
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold text-white shadow-sm d-flex align-items-center gap-1" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="bi bi-arrow-clockwise"></i> Limpiar filtros
                         </a>
                     </div>
                 </div>
-            }
-        </div>
+            </div>
+        }
     }
 
 </div>
@@ -375,6 +456,25 @@
                     }
                 });
             });
+
+            // =========================================================================
+            // 4. TEMPORIZADOR DE 4 SEGUNDOS PARA LIMPIAR FILTROS CUANDO NO HAY RESULTADOS
+            // =========================================================================
+            const alertaSinResultados = document.getElementById('alertaSinResultados');
+            const contadorSegundos = document.getElementById('contadorSegundosSinResultados');
+            if (alertaSinResultados && contadorSegundos) {
+                let segundos = 4;
+                const timer = setInterval(function () {
+                    segundos--;
+                    if (contadorSegundos) {
+                        contadorSegundos.textContent = segundos;
+                    }
+                    if (segundos <= 0) {
+                        clearInterval(timer);
+                        window.location.href = '@Url.Action("Index", "catalogo")';
+                    }
+                }, 1000);
+            }
         });
     </script>
 }

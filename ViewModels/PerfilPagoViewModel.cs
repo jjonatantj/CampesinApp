@@ -39,12 +39,14 @@ namespace CampesinApp.ViewModels
         // Número de cuenta o tarjeta ingresado por el usuario
         [Required(ErrorMessage = "El número de cuenta o tarjeta es obligatorio.")]
         [StringLength(19, MinimumLength = 4, ErrorMessage = "El número de cuenta debe tener entre 4 y 19 dígitos.")]
+        [RegularExpression(@"^[0-9\s-]+$", ErrorMessage = "El número de cuenta o tarjeta debe contener únicamente dígitos numéricos.")]
         [Display(Name = "Número de Cuenta")]
         public string NumCuenta { get; set; } = string.Empty;
 
         // Código de seguridad CVC (ingresado en frontend para tokenización en Openpay)
         [Required(ErrorMessage = "El código CVC es obligatorio.")]
         [StringLength(4, MinimumLength = 3, ErrorMessage = "El CVC debe contener 3 o 4 dígitos.")]
+        [RegularExpression(@"^[0-9]{3,4}$|^[•*]{3,4}$", ErrorMessage = "El código CVC debe contener 3 o 4 dígitos numéricos.")]
         [Display(Name = "CVC")]
         public string Cvc { get; set; } = string.Empty;
 
