@@ -1,0 +1,63 @@
+@using CampesinApp.Dtos
+@model PaginaErrorDto
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Error @Model.Codigo - CampesinApp</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="preload" href="~/fonts/mulish-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/campesinapp-error.css" asp-append-version="true" />
+</head>
+<body class="err-body">
+    <main class="err-tarjeta" role="alert">
+        <img class="err-ondas" src="~/images/error/fondo-ondas.svg" alt="" aria-hidden="true" />
+        <img class="err-paisaje" src="~/images/error/paisaje.svg" alt="" aria-hidden="true" />
+
+        <div class="err-contenido">
+            <div class="err-logo"><img src="~/images/logo.jpeg" alt="Logo de CampesinApp" /></div>
+            <div class="err-marca">CampesinApp</div>
+
+            @* Portátil con el código del error en la pantalla y un triángulo de advertencia. *@
+            <svg class="err-ilustracion" viewBox="0 0 300 215" fill="none" role="img" aria-label="Error @Model.Codigo">
+                <rect x="58" y="12" width="184" height="126" rx="12" fill="#fff" stroke="#2b2f2c" stroke-width="9" />
+                <rect x="14" y="140" width="272" height="20" rx="8" fill="#4a4f4b" />
+                <rect x="104" y="140" width="92" height="9" rx="4" fill="#2b2f2c" />
+                <text x="150" y="104" text-anchor="middle" font-size="@(Model.Codigo.ToString().Length > 3 ? 54 : 70)" font-weight="900" fill="#0f3d12">@Model.Codigo</text>
+                <path d="M232 96 L288 190 L176 190 Z" fill="#43a047" stroke="#fff" stroke-width="8" stroke-linejoin="round" />
+                <rect x="226" y="124" width="12" height="34" rx="6" fill="#fff" />
+                <circle cx="232" cy="172" r="7.5" fill="#fff" />
+            </svg>
+
+            <h1 class="err-titulo">@Model.Titulo</h1>
+            <p class="err-mensaje">@Model.Mensaje</p>
+
+            <div class="err-consejo">
+                <img src="~/images/error/@(Model.EsDelServidor ? "icono-servidor.svg" : "icono-globo.svg")" alt="" />
+                <span class="linea" aria-hidden="true"></span>
+                <p>@Model.Consejo</p>
+            </div>
+
+            <button type="button" class="err-boton" onclick="window.location.reload()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4" />
+                    <path d="M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4" />
+                </svg>
+                Intentar de nuevo
+            </button>
+            <a class="err-enlace" href="~/">Ir al inicio</a>
+            <span class="err-detalle">@Model.Detalle</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.IdSeguimiento))
+        {
+            <p class="err-pie">Código de seguimiento: @Model.IdSeguimiento</p>
+        }
+    </main>
+</body>
+</html>

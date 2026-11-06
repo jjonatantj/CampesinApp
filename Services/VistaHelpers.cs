@@ -20,7 +20,18 @@ namespace CampesinApp.Services
 
         /// <summary>Viajes como JSON para que el formulario sepa si ya tienen origen y destino.</summary>
         public static string ViajesJson(IEnumerable<CampesinApp.Dtos.ViajeOpcionDto> viajes) =>
-            System.Text.Json.JsonSerializer.Serialize(viajes.Select(v => new { id = v.IdViaje, origen = v.Origen, destino = v.Destino, tieneReportes = v.TieneReportes }), OpcionesJson);
+            System.Text.Json.JsonSerializer.Serialize(viajes.Select(v => new
+            {
+                id = v.IdViaje,
+                origen = v.Origen,
+                destino = v.Destino,
+                tieneReportes = v.TieneReportes,
+                fechaInicial = Formato.Fecha(v.FechaInicio),
+                fechaFinal = Formato.Fecha(v.FechaFinal),
+                retrasado = v.Retrasado,
+                diasRetraso = v.DiasRetraso,
+                hoy = Formato.Fecha(DateTime.Today)
+            }), OpcionesJson);
 
         /// <summary>Municipios como JSON para el mapa del reporte (se geolocalizan en el navegador si no traen coordenadas).</summary>
         public static string MunicipiosJson(IEnumerable<CampesinApp.Dtos.MunicipioOpcionDto> municipios) =>
@@ -52,6 +63,19 @@ namespace CampesinApp.Services
             cantidad = Math.Clamp(cantidad, 0, 5);
             return new string('★', cantidad) + new string('☆', 5 - cantidad);
         }
+
+        /// <summary>Icono, color y título de cada tipo de notificación (campana y avisos flotantes).</summary>
+        public static (string Icono, string Clase, string Titulo) DatosNotificacion(string tipo) => tipo switch
+        {
+            TiposNotificacion.Ubicacion => ("bi-geo-alt-fill", "nt-verde", "Ubicación actualizada"),
+            TiposNotificacion.Llegada => ("bi-truck", "nt-azul", "Su pedido llegó"),
+            TiposNotificacion.EntregaCompletada => ("bi-check-circle-fill", "nt-verde", "Entrega completada"),
+            TiposNotificacion.Novedad => ("bi-exclamation-triangle-fill", "nt-amarillo", "Novedad en la entrega"),
+            TiposNotificacion.Asignacion => ("bi-signpost-split-fill", "nt-azul", "Transporte asignado"),
+            TiposNotificacion.EntregaPendiente => ("bi-hourglass-split", "nt-naranja", "Falta una confirmación"),
+            TiposNotificacion.Calificacion => ("bi-star-fill", "nt-amarillo", "Nueva calificación"),
+            _ => ("bi-bell-fill", "nt-verde", "Notificación")
+        };
 
         public static string ClaseEstado(string estado) => estado switch
         {

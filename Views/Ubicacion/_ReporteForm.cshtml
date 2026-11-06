@@ -4,7 +4,8 @@
     var errorNegocio = ViewData["ErrorNegocio"] as string;
     var errorBd = ViewData["ErrorBd"] as string;
     var accionPrevia = ViewData["AccionPrevia"] as string;
-    var mensajeFecha = VistaHelpers.MensajeError(ViewData, nameof(Model.FechaInicial));
+    // Fechas, origen y destino salen del viaje elegido; solo se muestran (no se escriben).
+    var viajeActual = Model.Viajes.FirstOrDefault(x => x.IdViaje == Model.IdViaje);
 }
 <form method="post" asp-controller="Ubicacion" asp-action="Reportar" data-ajax-form data-reporte-form novalidate>
     <div class="modal-header">
@@ -38,27 +39,37 @@
             }
         </div>
 
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mb-3" data-bloque-fechas>
             <div class="col-sm-6">
-                <label for="FechaInicial" class="form-label">Fecha Inicial</label>
-                <input type="date" id="FechaInicial" name="FechaInicial" value="@Model.FechaInicial?.ToString("yyyy-MM-dd")"
-                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.FechaInicial))" />
-                @if (!string.IsNullOrEmpty(mensajeFecha))
-                {
-                    <div class="mensaje-campo" role="alert">@mensajeFecha</div>
-                }
+                <label for="FechaInicialVista" class="form-label">Fecha Inicial</label>
+                <input type="text" id="FechaInicialVista" class="form-control campo-fijo" readonly tabindex="-1"
+                       value="@(viajeActual == null ? string.Empty : Formato.Fecha(viajeActual.FechaInicio))" placeholder="Elija el viaje" />
+                <div class="small text-muted mt-1">Día en que se le asignó el viaje.</div>
             </div>
             <div class="col-sm-6">
-                <label for="FechaFinal" class="form-label">Fecha Final</label>
-                <input type="date" id="FechaFinal" name="FechaFinal" value="@Model.FechaFinal?.ToString("yyyy-MM-dd")"
-                       class="form-control @VistaHelpers.ClaseError(ViewData, nameof(Model.FechaFinal))" />
+                <label for="FechaFinalVista" class="form-label">Fecha Final</label>
+                <input type="text" id="FechaFinalVista" class="form-control campo-fijo" readonly tabindex="-1"
+                       value="@(viajeActual == null ? string.Empty : Formato.Fecha(viajeActual.FechaFinal))" placeholder="Elija el viaje" />
+                <div class="small text-muted mt-1">Fecha de entrega propuesta al asignar el viaje.</div>
+            </div>
+            @* Solo aparece si hoy ya pasó la fecha final propuesta. *@
+            <div class="col-12 @(viajeActual is { Retrasado: true } ? string.Empty : "d-none")" id="bloqueRetraso">
+                <div class="aviso-retraso" role="status">
+                    <i class="bi bi-calendar-x"></i>
+                    <div>
+                        <label for="FechaActualVista" class="form-label mb-0">Fecha actual</label>
+                        <input type="text" id="FechaActualVista" class="form-control campo-fijo" readonly tabindex="-1" value="@Formato.Fecha(DateTime.Today)" />
+                        <div class="small mt-1" id="textoRetraso">@(viajeActual is { Retrasado: true } ? $"El viaje ya pasó la fecha final propuesta ({viajeActual.DiasRetraso} {(viajeActual.DiasRetraso == 1 ? "día" : "días")} de retraso)." : string.Empty)</div>
+                    </div>
+                </div>
             </div>
         </div>
 
         @{
             var departamentoActual = Model.Municipios.FirstOrDefault(m => m.Nombre == Model.Region)?.Departamento ?? string.Empty;
         }
-        <div class="row g-3 mb-3">
+        @* El municipio se toma del punto de acopio donde se encuentra el transportador: no se pide. Se deja oculto porque el mapa lo usa. *@
+        <div class="row g-3 mb-3 d-none" aria-hidden="true">
             <div class="col-sm-6">
                 <label for="DepartamentoFiltro" class="form-label">Departamento</label>
                 <select id="DepartamentoFiltro" class="form-select" data-filtro-municipios="#Region">
@@ -83,7 +94,7 @@
 
         <div class="row g-3 mb-3">
             <div class="col-sm-6">
-                <label for="PuntoOrigen" class="form-label">Punto de Origen</label>
+                <label for="PuntoOrigen" class="form-label">Punto de Origen <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
                 <select id="PuntoOrigen" name="PuntoOrigen" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoOrigen))">
                     <option value="">Seleccione el punto de origen…</option>
                     @foreach (var punto in Model.Puntos)
@@ -93,7 +104,7 @@
                 </select>
             </div>
             <div class="col-sm-6">
-                <label for="PuntoDestino" class="form-label">Punto de Destino</label>
+                <label for="PuntoDestino" class="form-label">Punto de Destino <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
                 <select id="PuntoDestino" name="PuntoDestino" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoDestino))">
                     <option value="">Seleccione el punto de destino…</option>
                     @foreach (var punto in Model.Puntos)
@@ -104,8 +115,10 @@
             </div>
         </div>
 
+        <p class="small text-muted mt-n2 mb-3" data-aviso-origen><i class="bi bi-info-circle me-1"></i>El origen y el destino se llenan solos según el viaje que elija.</p>
+
         <hr />
-        <p class="small text-muted mb-2">La fecha y la hora del reporte se registran automáticamente al enviarlo.</p>
+        <p class="small text-muted mb-2">La fecha y la hora del reporte se registran automáticamente al enviarlo. Usted solo indica dónde se encuentra: elija el punto en la lista o toque un punto en el mapa.</p>
 
         <div class="row g-3">
             <div class="col-sm-7">
@@ -120,7 +133,7 @@
                 </select>
                 <input type="hidden" id="Latitud" name="Latitud" value="@Model.Latitud" />
                 <input type="hidden" id="Longitud" name="Longitud" value="@Model.Longitud" />
-                <div class="small text-muted mt-1" data-aviso-carretera>"En carretera" solo está disponible en el reporte de avance cada 2 horas; el aplicativo toma sus coordenadas.</div>
+                <div class="small text-muted mt-1" data-aviso-carretera>Si va "En carretera", el aplicativo toma su ubicación o puede tocar el mapa para marcar dónde va.</div>
                 @if (Model.Puntos.Count == 0)
                 {
                     <div class="mensaje-campo">No hay puntos de acopio registrados.</div>

@@ -70,11 +70,16 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 
 // Configurar el pipeline de solicitudes HTTP
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+// Pantalla "Servicio no disponible" (503) de CampesinApp cuando falla la base de datos (CU-021 a CU-032 y demás pantallas).
+// Cualquier otro error pasa de largo y lo atiende el manejo de errores de arriba, como antes. Ver ErrorController.
+app.UseExceptionHandler("/Error/Excepcion");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

@@ -98,12 +98,9 @@ namespace CampesinApp.Controllers
 
             void Falta(string campo) => ModelState.AddModelError(campo, "Campo obligatorio");
 
+            // Las fechas, el municipio, el origen y el destino los define el viaje (UbicacionService); aquí solo se exige lo que el
+            // transportador elige: el viaje, el lugar donde se encuentra y el tipo de reporte.
             if (dto.IdViaje == null) Falta(nameof(dto.IdViaje));
-            if (dto.FechaInicial == null) Falta(nameof(dto.FechaInicial));
-            if (dto.FechaFinal == null) Falta(nameof(dto.FechaFinal));
-            if (string.IsNullOrWhiteSpace(dto.Region)) Falta(nameof(dto.Region));
-            if (string.IsNullOrWhiteSpace(dto.PuntoOrigen)) Falta(nameof(dto.PuntoOrigen));
-            if (string.IsNullOrWhiteSpace(dto.PuntoDestino)) Falta(nameof(dto.PuntoDestino));
             if (string.IsNullOrWhiteSpace(dto.Lugar)) Falta(nameof(dto.Lugar));
             if (!llegada && string.IsNullOrWhiteSpace(dto.Hito)) Falta(nameof(dto.Hito));
 
@@ -113,19 +110,10 @@ namespace CampesinApp.Controllers
                 return false;
             }
 
-            if (dto.PuntoOrigen!.Length > 100 || dto.PuntoDestino!.Length > 100 || dto.Lugar!.Length > 100)
+            if (dto.Lugar!.Length > 100)
             {
                 ModelState.AddModelError(nameof(dto.Lugar), "Máximo 100 caracteres");
                 ViewData["ErrorNegocio"] = "Los textos del reporte no pueden superar los 100 caracteres.";
-                return false;
-            }
-
-            // FE-02-CU021 / RN03-CU021
-            if (dto.FechaInicial!.Value.Date > dto.FechaFinal!.Value.Date)
-            {
-                ModelState.AddModelError(nameof(dto.FechaInicial), MensajeRangoFechas);
-                ModelState.AddModelError(nameof(dto.FechaFinal), string.Empty);
-                ViewData["RangoInvalido"] = true;
                 return false;
             }
 

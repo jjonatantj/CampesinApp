@@ -77,6 +77,17 @@ namespace CampesinApp.Dtos
     }
 
     /// <summary>Fila de la pantalla "Mis Viajes" del transportador.</summary>
+    /// <summary>Una página de "Mis Viajes".</summary>
+    public class ListaViajesDto
+    {
+        public List<ViajeTransportadorDto> Viajes { get; set; } = new();
+
+        /// <summary>Código del viaje en curso, para explicar por qué los demás esperan.</summary>
+        public string? CodigoViajeEnCurso { get; set; }
+
+        public PaginacionDto Paginacion { get; set; } = new();
+    }
+
     public class ViajeTransportadorDto
     {
         public int IdViaje { get; set; }
@@ -93,7 +104,11 @@ namespace CampesinApp.Dtos
 
         public string EstadoEnvio { get; set; } = string.Empty;
 
+        /// <summary>Es el viaje en curso del transportador (solo puede haber uno).</summary>
         public bool Activo { get; set; }
+
+        /// <summary>Viaje asignado que espera a que termine el viaje en curso.</summary>
+        public bool EnEspera { get; set; }
 
         public bool LlegadaNotificada { get; set; }
     }

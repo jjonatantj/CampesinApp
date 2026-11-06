@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Sin conexión - CampesinApp</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/css/campesinapp-error.css" />
+    <!--MOTIVO-->
+</head>
+<!--
+    Pantalla que muestra el service worker (wwwroot/sw.js) cuando el navegador no puede llegar a CampesinApp:
+    sin internet, servidor apagado o conexión demasiado lenta. Es un archivo estático y autónomo, guardado en el
+    caché del navegador, para que se pueda mostrar aunque no haya red.
+-->
+<body class="err-body">
+    <main class="err-tarjeta" role="alert">
+        <img class="err-ondas" src="/images/error/fondo-ondas.svg" alt="" aria-hidden="true" />
+        <img class="err-paisaje" src="/images/error/paisaje.svg" alt="" aria-hidden="true" />
+
+        <div class="err-contenido">
+            <div class="err-logo"><img src="/images/logo.jpeg" alt="Logo de CampesinApp" /></div>
+            <div class="err-marca">CampesinApp</div>
+
+            <img class="err-ilustracion" src="/images/error/ilustracion-wifi.svg" alt="Sin conexión" />
+
+            <h1 class="err-titulo" id="titulo">Sin conexión a internet</h1>
+            <p class="err-mensaje" id="mensaje">Parece que tu conexión a internet no está disponible o es muy débil.</p>
+
+            <div class="err-consejo">
+                <img src="/images/error/icono-globo.svg" alt="" />
+                <span class="linea" aria-hidden="true"></span>
+                <p id="consejo">Verifica tu red o intenta de nuevo más tarde.</p>
+            </div>
+
+            <button type="button" class="err-boton" id="reintentar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4" />
+                    <path d="M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4" />
+                </svg>
+                Intentar de nuevo
+            </button>
+            <a class="err-enlace" href="/">Ir al inicio</a>
+            <span class="err-detalle" id="detalle">ERR_INTERNET_DISCONNECTED</span>
+            <p class="err-estado" id="estado" aria-live="polite">Esperando a que vuelva la conexión…</p>
+        </div>
+    </main>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var textos = {
+                lenta: ['La conexión es muy lenta', 'CampesinApp tardó demasiado en responder. Tu conexión a internet es mala o está saturada.', 'Espera unos segundos e intenta de nuevo.', 'ERR_TIMED_OUT'],
+                servidor: ['No se pudo conectar', 'Tienes internet, pero CampesinApp no está respondiendo en este momento.', 'Por favor, inténtalo de nuevo más tarde.', 'ERR_CONNECTION_REFUSED']
+            };
+
+            var motivo = window.__motivo || (navigator.onLine === false ? 'sin-internet' : 'servidor');
+            if (textos[motivo]) {
+                document.getElementById('titulo').textContent = textos[motivo][0];
+                document.getElementById('mensaje').textContent = textos[motivo][1];
+                document.getElementById('consejo').textContent = textos[motivo][2];
+                document.getElementById('detalle').textContent = textos[motivo][3];
+            }
+
+            function recargar() { window.location.reload(); }
+
+            document.getElementById('reintentar').addEventListener('click', function () {
+                document.getElementById('estado').textContent = 'Intentando conectar…';
+                recargar();
+            });
+            window.addEventListener('online', recargar);
+
+            // Cada pocos segundos comprueba si el servidor ya responde y, si es así, vuelve a cargar la pantalla.
+            setInterval(function () {
+                fetch('/favicon.ico', { cache: 'no-store' }).then(function (r) {
+                    if (r.ok) recargar();
+                }).catch(function () { /* sigue sin conexión */ });
+            }, 5000);
+        })();
+    </script>
+</body>
+</html>

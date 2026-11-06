@@ -30,12 +30,12 @@ namespace CampesinApp.Controllers
 
         [HttpGet]
         [RolesPermitidos(RolUsuario.Campesino, RolUsuario.Comprador, RolUsuario.Administrador)]
-        public async Task<IActionResult> Transacciones(string? busqueda)
+        public async Task<IActionResult> Transacciones(string? busqueda, int? pagina)
         {
             var usuario = (await ObtenerUsuarioAsync())!;
             try
             {
-                var modelo = await _historial.ListarAsync(usuario, busqueda);
+                var modelo = await _historial.ListarAsync(usuario, busqueda, pagina);
                 // Pantalla completa; la búsqueda actualiza solo el panel.
                 return EsPeticionAjax() ? PanelPagina("_HistorialTransacciones", modelo) : View("TransaccionesPagina", modelo);
             }

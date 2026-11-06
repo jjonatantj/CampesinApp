@@ -9,6 +9,10 @@ namespace CampesinApp.Services
     {
         private const int MaximoFilas = 200;
 
+        public const int TransaccionesPorPagina = 5;
+        public const int VentasPorPagina = 10;
+        public const int LogsPorPagina = 12;
+
         private readonly Campesinapp3Context _db;
         private readonly PedidoService _pedidos;
 
@@ -22,7 +26,7 @@ namespace CampesinApp.Services
         /// Pedidos finalizados del usuario, del más reciente al más antiguo (RN-02-CU027). Cada rol ve lo suyo
         /// (RN-01-CU027). Si se indica búsqueda, filtra por código o ID del pedido (FA-01-CU027).
         /// </summary>
-        public async Task<HistorialTransaccionesDto> ListarAsync(UsuarioActual usuario, string? busqueda)
+        public async Task<HistorialTransaccionesDto> ListarAsync(UsuarioActual usuario, string? busqueda, int? pagina = null)
         {
             var consulta = FinalizadosDe(_pedidos.PedidosVisibles(usuario));
 
@@ -35,12 +39,23 @@ namespace CampesinApp.Services
                 consulta = consulta.Where(x => x.Pedido.IdDemanda == idBuscado);
             }
 
-            var transacciones = await ProyectarAsync(consulta.OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion).Take(MaximoFilas), usuario);
+            var total = await consulta.CountAsync();
+            var paginacion = PaginacionDto.Crear(pagina, total, TransaccionesPorPagina, "transacciones",
+                $"/Historial/Transacciones?busqueda={Uri.EscapeDataString(busqueda ?? string.Empty)}&pagina={{p}}", "pagina");
+
+            var transacciones = await ProyectarAsync(
+                consulta
+                    .OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion)
+                    .ThenByDescending(x => x.Pedido.IdDemanda)
+                    .Skip((paginacion.Pagina - 1) * TransaccionesPorPagina)
+                    .Take(TransaccionesPorPagina),
+                usuario);
             return new HistorialTransaccionesDto
             {
                 Busqueda = busqueda,
                 EsCompra = usuario.Rol == RolUsuario.Comprador,
-                Transacciones = transacciones
+                Transacciones = transacciones,
+                Paginacion = paginacion
             };
         }
 
@@ -97,7 +112,11 @@ namespace CampesinApp.Services
         }
 
         /// <summary>Pestaña "Historial de Ventas General" y "Logs del Sistema" del historial global (CU-030).</summary>
-        public async Task<HistorialGlobalDto> ObtenerGlobalAsync(FiltroHistorialGlobalDto filtro, int limite = MaximoFilas)
+        /// <summary>
+        /// Sin <paramref name="limite"/> devuelve una página (<c>filtro.Pagina</c>) para la pantalla; con límite devuelve las
+        /// primeras filas sin paginar (lo usa el PDF).
+        /// </summary>
+        public async Task<HistorialGlobalDto> ObtenerGlobalAsync(FiltroHistorialGlobalDto filtro, int? limite = null)
         {
             var resultado = new HistorialGlobalDto { Filtro = filtro };
             var desde = filtro.Desde?.Date;
@@ -110,11 +129,18 @@ namespace CampesinApp.Services
                 if (desde != null) logs = logs.Where(l => l.Fecha >= desde);
                 if (hasta != null) logs = logs.Where(l => l.Fecha < hasta);
 
-                var filas = await logs
-                    .OrderByDescending(l => l.Fecha)
-                    .ThenByDescending(l => l.IdLog)
-                    .Take(limite)
-                    .ToListAsync();
+                var ordenados = logs.OrderByDescending(l => l.Fecha).ThenByDescending(l => l.IdLog);
+                List<LogSistema> filas;
+                if (limite != null)
+                {
+                    filas = await ordenados.Take(limite.Value).ToListAsync();
+                }
+                else
+                {
+                    var totalLogs = await logs.CountAsync();
+                    resultado.Paginacion = PaginacionDto.Crear(filtro.Pagina, totalLogs, LogsPorPagina, "eventos", UrlPagina(filtro, "{p}"), "pagina");
+                    filas = await ordenados.Skip((resultado.Paginacion.Pagina - 1) * LogsPorPagina).Take(LogsPorPagina).ToListAsync();
+                }
 
                 var idsUsuario = filas.Where(l => l.IdUsuario != null).Select(l => l.IdUsuario!.Value).Distinct().ToList();
                 var nombres = await _db.Usuarios
@@ -153,11 +179,27 @@ namespace CampesinApp.Services
             if (hasta != null) ventas = ventas.Where(x => (x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion) < hasta);
 
             var admin = new UsuarioActual(0, string.Empty, string.Empty, RolUsuario.Administrador);
-            resultado.Ventas = await ProyectarAsync(
-                ventas.OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion).Take(limite),
-                admin);
+            var ordenadas = ventas
+                .OrderByDescending(x => x.Viaje.FechaEntrega ?? x.Viaje.FechaLlegada ?? x.Viaje.FechaAsignacion)
+                .ThenByDescending(x => x.Pedido.IdDemanda);
+            if (limite != null)
+            {
+                resultado.Ventas = await ProyectarAsync(ordenadas.Take(limite.Value), admin);
+            }
+            else
+            {
+                var totalVentas = await ventas.CountAsync();
+                resultado.Paginacion = PaginacionDto.Crear(filtro.Pagina, totalVentas, VentasPorPagina, "ventas", UrlPagina(filtro, "{p}"), "pagina");
+                resultado.Ventas = await ProyectarAsync(ordenadas.Skip((resultado.Paginacion.Pagina - 1) * VentasPorPagina).Take(VentasPorPagina), admin);
+            }
+
             return resultado;
         }
+
+        /// <summary>Dirección de una página del historial global conservando la pestaña y los filtros.</summary>
+        private static string UrlPagina(FiltroHistorialGlobalDto filtro, string pagina) =>
+            $"/Historial/Global?pestana={filtro.Pestana}&IdUsuario={filtro.IdUsuario}&Rol={Uri.EscapeDataString(filtro.Rol ?? string.Empty)}" +
+            $"&Desde={filtro.Desde:yyyy-MM-dd}&Hasta={filtro.Hasta:yyyy-MM-dd}&Pagina={pagina}";
 
         private IQueryable<PedidoViaje> FinalizadosDe(IQueryable<Demandum> pedidos)
         {

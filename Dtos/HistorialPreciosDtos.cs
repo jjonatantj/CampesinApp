@@ -31,6 +31,8 @@ namespace CampesinApp.Dtos
         public bool EsCompra { get; set; }
 
         public List<TransaccionDto> Transacciones { get; set; } = new();
+
+        public PaginacionDto Paginacion { get; set; } = new();
     }
 
     public class DetalleTransaccionDto
@@ -67,6 +69,9 @@ namespace CampesinApp.Dtos
         public DateTime? Desde { get; set; }
 
         public DateTime? Hasta { get; set; }
+
+        /// <summary>Página que se muestra en pantalla (no se usa en el PDF).</summary>
+        public int? Pagina { get; set; }
     }
 
     public class LogVistaDto
@@ -89,6 +94,8 @@ namespace CampesinApp.Dtos
         public List<TransaccionDto> Ventas { get; set; } = new();
 
         public List<LogVistaDto> Logs { get; set; } = new();
+
+        public PaginacionDto Paginacion { get; set; } = new();
     }
 
     /// <summary>Fila de "Precios Sugeridos" (CU-028); los valores se segmentan por rol (RN-01-CU029).</summary>
@@ -110,6 +117,8 @@ namespace CampesinApp.Dtos
         public UsuarioActual Usuario { get; set; } = null!;
 
         public List<PrecioVistaDto> Precios { get; set; } = new();
+
+        public PaginacionDto Paginacion { get; set; } = new();
     }
 
     public class NotificacionDto
@@ -125,11 +134,27 @@ namespace CampesinApp.Dtos
         public bool Leida { get; set; }
     }
 
-    /// <summary>Respuesta JSON del sondeo periódico: contador de la campana y avisos emergentes pendientes.</summary>
+    /// <summary>Respuesta del sondeo periódico: contador de la campana, ventanas pendientes y avisos nuevos para mostrar como tarjeta.</summary>
     public class ResumenNotificacionesDto
     {
         public int NoLeidas { get; set; }
 
         public List<NotificacionDto> Popups { get; set; } = new();
+
+        /// <summary>Notificaciones posteriores a la última que ya vio el navegador (se muestran como aviso flotante).</summary>
+        public List<NotificacionDto> Nuevas { get; set; } = new();
+
+        /// <summary>Id de la notificación más reciente del usuario; el navegador lo guarda para no repetir avisos.</summary>
+        public int UltimoId { get; set; }
+    }
+
+    /// <summary>Una página de la lista de la campana.</summary>
+    public class ListaNotificacionesDto
+    {
+        public List<NotificacionDto> Notificaciones { get; set; } = new();
+
+        public int NoLeidas { get; set; }
+
+        public PaginacionDto Paginacion { get; set; } = new();
     }
 }

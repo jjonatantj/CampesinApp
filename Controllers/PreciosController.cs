@@ -19,7 +19,7 @@ namespace CampesinApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? pagina)
         {
             var usuario = await ObtenerUsuarioAsync();
             if (usuario == null)
@@ -34,7 +34,7 @@ namespace CampesinApp.Controllers
 
             try
             {
-                return View(await _precios.ListarAsync(usuario));
+                return View(await _precios.ListarAsync(usuario, pagina));
             }
             catch (Exception ex)
             {
