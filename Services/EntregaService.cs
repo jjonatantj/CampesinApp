@@ -136,7 +136,7 @@ namespace CampesinApp.Services
 
             await _db.SaveChangesAsync();
 
-            var resultado = await EvaluarAsync(dto.IdDemanda, conNovedad ? obs.ObserComprador : null);
+            var resultado = await EvaluarAsync(dto.IdDemanda, conNovedad ? obs.ObserComprador : null, RolUsuario.Comprador);
             await _log.RegistrarAsync(
                 conNovedad ? NivelesLog.Advertencia : NivelesLog.Info,
                 "CU-025 Recepción",
@@ -171,7 +171,7 @@ namespace CampesinApp.Services
             obs.HoraObser = DateTime.Now;
             await _db.SaveChangesAsync();
 
-            var resultado = await EvaluarAsync(viaje.IdDemanda, null);
+            var resultado = await EvaluarAsync(viaje.IdDemanda, null, RolUsuario.Transportador);
             await _log.RegistrarAsync(NivelesLog.Info, "CU-024 Entrega realizada",
                 $"Transportador marcó la entrega del pedido {CodigoPedido.Formatear(viaje.IdDemanda)}. Estado: {resultado.EstadoEnvio}.", transportador.Id);
             return ResultadoOperacion<ResultadoEntregaDto>.Ok(resultado);
@@ -194,7 +194,7 @@ namespace CampesinApp.Services
         /// Cruza las confirmaciones del transportador y del comprador (RN-01-CU025, RN-02-CU025) a partir de lo ya guardado
         /// y genera las notificaciones. El estado del envío se calcula en la consulta de viajes.
         /// </summary>
-        private async Task<ResultadoEntregaDto> EvaluarAsync(int idDemanda, string? observacionNovedad)
+        private async Task<ResultadoEntregaDto> EvaluarAsync(int idDemanda, string? observacionNovedad, RolUsuario quienConfirmo)
         {
             var codigo = CodigoPedido.Formatear(idDemanda);
             var viaje = await _db.Viajes().AsNoTracking().FirstAsync(v => v.IdDemanda == idDemanda);
@@ -207,8 +207,16 @@ namespace CampesinApp.Services
                 if (observacionNovedad != null)
                 {
                     var admins = await _notificaciones.ObtenerIdsAdministradoresAsync();
+                    var novedad = CalificacionService.ParsearComprador(observacionNovedad).Novedad;
                     _notificaciones.Agregar(admins, TiposNotificacion.Novedad,
-                        $"Novedad en la entrega del pedido {codigo}: {CalificacionService.ParsearComprador(observacionNovedad).Novedad}", idDemanda);
+                        $"Novedad en la entrega del pedido {codigo}: {novedad}", idDemanda);
+
+                    // El transportador y los campesinos del pedido también deben enterarse.
+                    var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { idDemanda }))[idDemanda];
+                    _notificaciones.Agregar(
+                        participantes.Where(p => p.Rol is RolUsuario.Transportador or RolUsuario.Campesino).Select(p => p.IdUsuario),
+                        TiposNotificacion.Novedad,
+                        $"El comprador reportó una novedad en la entrega del pedido {codigo}: {novedad}", idDemanda);
                 }
             }
             else if (viaje.CompradorConfirma && viaje.TransportadorConfirma)
@@ -217,6 +225,19 @@ namespace CampesinApp.Services
                 var comprador = await _db.Demanda.Where(d => d.IdDemanda == idDemanda).Select(d => d.IdUsuario).FirstAsync();
                 _notificaciones.Agregar(new[] { comprador, viaje.IdUsuarioTransportador }, TiposNotificacion.EntregaCompletada,
                     "¡Entrega completada con éxito y sin novedades!", idDemanda);
+            }
+            else if (quienConfirmo == RolUsuario.Transportador && !viaje.CompradorConfirma)
+            {
+                // El transportador ya entregó: el comprador debe revisar la mercancía y confirmar.
+                var comprador = await _db.Demanda.Where(d => d.IdDemanda == idDemanda).Select(d => d.IdUsuario).FirstAsync();
+                _notificaciones.Agregar(new[] { comprador }, TiposNotificacion.EntregaPendiente,
+                    $"El transportador confirmó la entrega del pedido {codigo}. Revise la mercancía y valide la recepción en «Mis Pedidos».", idDemanda);
+            }
+            else if (quienConfirmo == RolUsuario.Comprador && viaje.CompradorConfirma && !viaje.TransportadorConfirma)
+            {
+                // El comprador ya recibió: falta que el transportador marque «Entrega realizada».
+                _notificaciones.Agregar(new[] { viaje.IdUsuarioTransportador }, TiposNotificacion.EntregaPendiente,
+                    $"El comprador confirmó la recepción del pedido {codigo}. Marque «Entrega realizada» en «Mis Viajes» para cerrar el pedido.", idDemanda);
             }
 
             await _db.SaveChangesAsync();

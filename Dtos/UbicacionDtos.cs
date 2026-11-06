@@ -8,12 +8,26 @@ namespace CampesinApp.Dtos
 
         public string Texto { get; set; } = string.Empty;
 
-        /// <summary>Origen y destino del primer reporte del viaje: se piden una sola vez y después se reutilizan.</summary>
+        /// <summary>
+        /// Punto de origen y de destino del viaje. Salen del propio viaje (puntos de acopio del pedido o del primer reporte);
+        /// el transportador no los elige. Null solo si el pedido no los tiene definidos.
+        /// </summary>
         public string? Origen { get; set; }
 
         public string? Destino { get; set; }
 
         public bool TieneReportes { get; set; }
+
+        /// <summary>Día en que se le asignó el viaje al transportador.</summary>
+        public DateTime FechaInicio { get; set; }
+
+        /// <summary>Fecha de entrega propuesta al asignar el viaje.</summary>
+        public DateTime FechaFinal { get; set; }
+
+        /// <summary>true si hoy ya pasó la fecha final propuesta: entonces el formulario muestra además la fecha actual.</summary>
+        public bool Retrasado { get; set; }
+
+        public int DiasRetraso { get; set; }
     }
 
     /// <summary>Formulario "Filtros del Reporte" de CU-021.</summary>

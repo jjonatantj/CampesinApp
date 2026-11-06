@@ -4,7 +4,7 @@
 @{
     var usuario = await UsuarioActual.ObtenerAsync();
 }
-<div id="cu-contexto" class="d-none" data-autenticado="@(usuario != null ? "1" : "0")" data-rol="@usuario?.Rol" data-inactividad-minutos="@SesionOpciones.MinutosInactividad"></div>
+<div id="cu-contexto" class="d-none" data-autenticado="@(usuario != null ? "1" : "0")" data-rol="@usuario?.Rol" data-usuario="@usuario?.Id" data-inactividad-minutos="@SesionOpciones.MinutosInactividad"></div>
 
 <div class="modal fade" id="modalPrincipal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">

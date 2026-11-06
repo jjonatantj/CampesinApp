@@ -272,6 +272,17 @@
         const ventana = new google.maps.InfoWindow();
         const porNombre = new Map(puntos.map((p) => [p.titulo, p]));
 
+        // Por carretera: tocar el mapa marca dónde va el camión (el navegador a veces no entrega la ubicación).
+        mapa.addListener('click', (evento) => {
+            if (listas.lugar?.value !== 'En carretera' || !evento.latLng) return;
+            const lat = formulario.querySelector('#Latitud');
+            const lng = formulario.querySelector('#Longitud');
+            if (!lat || !lng) return;
+            lat.value = evento.latLng.lat().toFixed(6);
+            lng.value = evento.latLng.lng().toFixed(6);
+            listas.lugar.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
         // Marcadores de fondo: todos los puntos de acopio registrados.
         puntos.forEach((p) => {
             const marcador = new google.maps.Marker({ map: mapa, position: { lat: p.lat, lng: p.lng }, title: p.titulo, icon: icono('#9e9e9e', 6), zIndex: 1 });
@@ -348,7 +359,9 @@
                 marcador.addListener('click', () => {
                     const html = document.createElement('div');
                     const negrita = document.createElement('strong');
-                    negrita.textContent = info.nombre + ': ' + listas[clave].value;
+                    negrita.textContent = clave === 'lugar' && listas.lugar.value === 'En carretera'
+                        ? 'Va por carretera' + (listas.destino?.value ? ' rumbo a ' + listas.destino.value : '')
+                        : info.nombre + ': ' + listas[clave].value;
                     const coords = document.createElement('div');
                     coords.textContent = pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6);
                     html.append(negrita, coords);
@@ -358,7 +371,10 @@
                 marcadores[clave] = marcador;
                 limites.extend(pos);
                 hayPuntos = true;
-                lineas.push(info.nombre + ': ' + listas[clave].value + ' (' + pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6) + ')');
+                const enCarretera = clave === 'lugar' && listas.lugar.value === 'En carretera';
+                lineas.push(enCarretera
+                    ? 'Va por carretera (' + pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6) + ')' + (listas.destino?.value ? ' rumbo a ' + listas.destino.value : '')
+                    : info.nombre + ': ' + listas[clave].value + ' (' + pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6) + ')');
             });
 
             // Ruta prevista: origen → ubicación actual → destino.
@@ -425,9 +441,9 @@
 
     /**
      * Reglas del formulario "Reporte de Ubicación" que no dependen de Google Maps:
-     *  - origen y destino se piden solo en el primer reporte del viaje; después se cargan solos y quedan bloqueados;
-     *  - el primer reporte es siempre la salida;
-     *  - "En carretera" solo existe en el reporte de avance cada 2 horas y toma las coordenadas del navegador.
+     *  - las fechas, el origen y el destino salen del viaje elegido y no se escriben (origen y destino quedan bloqueados);
+     *  - todo lo demás se elige libremente: el lugar (lista o mapa), el tipo de reporte y "En carretera";
+     *  - "En carretera" toma las coordenadas del navegador o las que se marquen tocando el mapa.
      */
     function configurarFormularioReporte(formulario) {
         if (formulario.dataset.reporteListo) return;
@@ -445,7 +461,6 @@
         const textoAviso = aviso ? aviso.textContent : '';
         const CARRETERA = 'En carretera';
         const SALIDA = 'Salida';
-        const AVANCE = 'Avance 2 horas';
 
         let viajes = [];
         try { viajes = JSON.parse(viaje?.dataset.viajes || '[]'); } catch (e) { viajes = []; }
@@ -474,46 +489,62 @@
 
         function cambiar(lista) { lista?.dispatchEvent(new Event('change', { bubbles: true })); }
 
+        // Garantiza que el valor exista como opción (el destino puede ser una dirección y no un punto de acopio) y lo bloquea.
+        function fijar(lista, valor) {
+            if (!lista) return;
+            if (valor && !Array.from(lista.options).some((o) => o.value === valor)) {
+                lista.add(new Option(valor, valor));
+            }
+            bloquear(lista, valor || null);
+        }
+
+        const fechaInicial = campo('FechaInicialVista');
+        const fechaFinal = campo('FechaFinalVista');
+        const bloqueRetraso = campo('bloqueRetraso');
+        const textoRetraso = campo('textoRetraso');
+        const fechaActual = campo('FechaActualVista');
+
+        // Fechas del viaje: la inicial es el día en que se asignó; la final, la propuesta al asignarlo.
+        // Si ya se pasó de la final, aparece además la fecha actual.
+        function mostrarFechas(actual) {
+            if (fechaInicial) fechaInicial.value = actual ? actual.fechaInicial : '';
+            if (fechaFinal) fechaFinal.value = actual ? actual.fechaFinal : '';
+            const retrasado = !!(actual && actual.retrasado);
+            bloqueRetraso?.classList.toggle('d-none', !retrasado);
+            if (retrasado) {
+                if (fechaActual) fechaActual.value = actual.hoy;
+                if (textoRetraso) {
+                    const dias = actual.diasRetraso;
+                    textoRetraso.textContent = 'El viaje ya pasó la fecha final propuesta (' + dias + (dias === 1 ? ' día' : ' días') + ' de retraso).';
+                }
+            }
+        }
+
         function aplicarViaje() {
             const actual = viajes.find((v) => String(v.id) === viaje?.value);
             const tiene = !!(actual && actual.tieneReportes);
-            if (tiene && actual.origen && actual.destino) {
-                bloquear(origen, actual.origen);
-                bloquear(destino, actual.destino);
+            mostrarFechas(actual);
+            // Origen y destino salen siempre del viaje; solo quedan libres si el pedido no los tiene definidos.
+            if (actual) {
+                fijar(origen, actual.origen);
+                fijar(destino, actual.destino);
             } else {
-                bloquear(origen, null);
-                bloquear(destino, null);
-            }
-            if (tipo) {
-                Array.from(tipo.options).forEach((o) => {
-                    if (!o.value) return;
-                    // Primer reporte: solo la salida. Después: ya no hay otra salida.
-                    o.disabled = !!actual && (tiene ? o.value === SALIDA : o.value !== SALIDA);
+                // Sin viaje elegido no hay origen ni destino que mostrar.
+                [origen, destino].forEach((lista) => {
+                    if (!lista) return;
+                    bloquear(lista, null);
+                    lista.value = '';
+                    lista.disabled = true;
                 });
-                if (actual && !tiene) tipo.value = SALIDA;
-                else if (tipo.selectedOptions[0]?.disabled) tipo.value = '';
             }
-            aplicarTipo();
+            // Todos los tipos de reporte se pueden elegir; si el viaje aún no tiene reportes se sugiere "Salida".
+            if (tipo && actual && !tiene && !tipo.value) tipo.value = SALIDA;
             cambiar(origen);
-        }
-
-        function aplicarTipo() {
-            const opcion = lugar ? Array.from(lugar.options).find((o) => o.value === CARRETERA) : null;
-            if (!opcion) return;
-            const permitido = tipo?.value === AVANCE;
-            opcion.disabled = !permitido;
-            if (!permitido && lugar.value === CARRETERA) {
-                lugar.value = '';
-                latitud.value = '';
-                longitud.value = '';
-                cambiar(lugar);
-            }
         }
 
         function ubicar() {
             if (!navigator.geolocation) {
-                avisar('Su navegador no permite obtener la ubicación actual.');
-                lugar.value = '';
+                avisar('Su navegador no permite obtener la ubicación actual. Toque en el mapa el lugar de la carretera donde va.');
                 cambiar(lugar);
                 return;
             }
@@ -526,17 +557,14 @@
                     cambiar(lugar);
                 },
                 () => {
-                    avisar('No se pudo obtener su ubicación. Permita el acceso a la ubicación en el navegador o elija un punto de acopio.');
-                    lugar.value = '';
-                    latitud.value = '';
-                    longitud.value = '';
+                    // Sin GPS no se pierde la opción: se marca dónde va tocando el mapa.
+                    avisar('No se pudo obtener su ubicación automática. Toque en el mapa el lugar de la carretera donde va.');
                     cambiar(lugar);
                 },
                 { enableHighAccuracy: true, timeout: 15000 });
         }
 
         viaje?.addEventListener('change', aplicarViaje);
-        tipo?.addEventListener('change', aplicarTipo);
         lugar?.addEventListener('change', () => {
             if (lugar.value === CARRETERA) {
                 if (!latitud.value) ubicar();
@@ -549,7 +577,7 @@
 
         const filtro = formulario.querySelector('[data-filtro-municipios]');
         if (filtro) filtrarMunicipios(filtro);
-        if (viaje?.value) aplicarViaje(); else aplicarTipo();
+        aplicarViaje();
     }
 
     // ------------------------------------------------------------------------------------------ activación

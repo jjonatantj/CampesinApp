@@ -22,7 +22,7 @@ namespace CampesinApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Sondeo()
+        public async Task<IActionResult> Sondeo(int? ultimo)
         {
             var usuario = await ObtenerUsuarioAsync();
             if (usuario == null)
@@ -30,13 +30,23 @@ namespace CampesinApp.Controllers
                 return Unauthorized();
             }
 
-            var resumen = await _notificaciones.ObtenerResumenAsync(usuario.Id);
+            var resumen = await _notificaciones.ObtenerResumenAsync(usuario.Id, ultimo);
             var vencidos = await _ubicacion.ObtenerReportesVencidosAsync(usuario);
             return Json(new
             {
+                idUsuario = usuario.Id,
                 noLeidas = resumen.NoLeidas,
                 hayPopup = resumen.Popups.Count > 0,
-                reporteVencido = vencidos.Count > 0
+                reporteVencido = vencidos.Count > 0,
+                ultimoId = resumen.UltimoId,
+                // Avisos nuevos para mostrar como tarjeta flotante (el navegador los muestra una sola vez).
+                nuevas = resumen.Nuevas.Select(n => new
+                {
+                    id = n.IdNotificacion,
+                    tipo = n.Tipo,
+                    mensaje = n.Mensaje,
+                    cuando = Formato.Relativo(n.Fecha)
+                })
             });
         }
 
@@ -69,7 +79,7 @@ namespace CampesinApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(int? pagina)
         {
             var usuario = await ObtenerUsuarioAsync();
             if (usuario == null)
@@ -77,11 +87,25 @@ namespace CampesinApp.Controllers
                 return SinPermiso(null);
             }
 
-            return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id));
+            return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id, pagina));
+        }
+
+        /// <summary>Marca una notificación como leída (el botón de cada aviso) y vuelve a pintar la misma página.</summary>
+        [HttpPost]
+        public async Task<IActionResult> Leer(int id, int? pagina)
+        {
+            var usuario = await ObtenerUsuarioAsync();
+            if (usuario == null)
+            {
+                return SinPermiso(null);
+            }
+
+            await _notificaciones.MarcarLeidaAsync(usuario.Id, id);
+            return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id, pagina));
         }
 
         [HttpPost]
-        public async Task<IActionResult> MarcarLeidas()
+        public async Task<IActionResult> MarcarLeidas(int? pagina)
         {
             var usuario = await ObtenerUsuarioAsync();
             if (usuario == null)
@@ -90,7 +114,7 @@ namespace CampesinApp.Controllers
             }
 
             await _notificaciones.MarcarTodasLeidasAsync(usuario.Id);
-            return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id));
+            return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id, pagina));
         }
     }
 }

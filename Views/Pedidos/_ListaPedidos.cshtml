@@ -3,11 +3,11 @@
     var puedeVerUbicacion = Model.Usuario.Rol is RolUsuario.Campesino or RolUsuario.Comprador or RolUsuario.Administrador;
 }
 <div class="modal-header">
-    <h5 class="modal-title">Lista de Pedidos</h5>
+    <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Lista de Pedidos</h5>
     <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
 </div>
 <div class="modal-body">
-    <form method="get" asp-controller="Pedidos" asp-action="Lista" data-ajax-form class="d-flex gap-2 mb-3">
+    <form method="get" asp-controller="Pedidos" asp-action="Lista" data-ajax-form class="barra-filtro mb-3">
         <label for="filtroEstado" class="visually-hidden">Estado del envío</label>
         <select id="filtroEstado" name="estado" class="form-select form-select-sm">
             <option value="">Todos los estados</option>
@@ -16,26 +16,34 @@
                 <option value="@estado" selected="@(Model.EstadoFiltro == estado)">@estado</option>
             }
         </select>
-        <button type="submit" class="btn btn-sm btn-outline-dark">Filtrar</button>
+        <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-funnel me-1"></i>Filtrar</button>
     </form>
 
     @if (Model.Pedidos.Count == 0)
     {
-        <p class="text-center my-4">No hay pedidos para mostrar@(string.IsNullOrEmpty(Model.EstadoFiltro) ? "." : " con ese estado.")</p>
+        <div class="vacio-cp">
+            <i class="bi bi-inbox"></i>
+            <p>No hay pedidos para mostrar@(string.IsNullOrEmpty(Model.EstadoFiltro) ? "." : " con ese estado.")</p>
+        </div>
     }
 
     @foreach (var pedido in Model.Pedidos)
     {
         <div class="bloque-pedido">
-            <div class="d-flex justify-content-between flex-wrap gap-1">
-                <strong>@pedido.Codigo · @pedido.Producto</strong>
+            <div class="pedido-cabecera">
+                <div class="pedido-titulo">
+                    <span class="pedido-codigo">@pedido.Codigo</span>
+                    <strong>@pedido.Producto</strong>
+                </div>
                 <span class="badge @VistaHelpers.ClaseEstado(pedido.EstadoEnvio)">@pedido.EstadoEnvio</span>
             </div>
-            <div class="small text-muted">
-                Cantidad: @pedido.Cantidad · Precio: @Formato.Moneda(pedido.PrecioUnitario) · Entrega: @Formato.Fecha(pedido.FechaEntrega)
-                · Comprador: @pedido.NombreComprador
+            <div class="pedido-datos">
+                <span><i class="bi bi-box-seam"></i>Cantidad: @pedido.Cantidad</span>
+                <span><i class="bi bi-cash-coin"></i>Precio: @Formato.Moneda(pedido.PrecioUnitario)</span>
+                <span><i class="bi bi-calendar-event"></i>Entrega: @Formato.Fecha(pedido.FechaEntrega)</span>
+                <span><i class="bi bi-person"></i>Comprador: @pedido.NombreComprador</span>
             </div>
-            <div class="small text-muted">Destino: @pedido.DireccionFinal</div>
+            <div class="pedido-destino"><i class="bi bi-geo-alt-fill"></i>Destino: @pedido.DireccionFinal</div>
 
             <div class="acciones">
                 @if (puedeVerUbicacion)
@@ -59,6 +67,8 @@
             </div>
         </div>
     }
+
+    <partial name="_Paginacion" model="Model.Paginacion" />
 </div>
 <div class="modal-footer justify-content-center">
     <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>

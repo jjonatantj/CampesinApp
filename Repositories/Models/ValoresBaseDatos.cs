@@ -101,6 +101,9 @@ namespace CampesinApp.Repositories.Models
         public const string Llegada = "Llegada";
         public const string EntregaCompletada = "EntregaCompletada";
         public const string Novedad = "Novedad";
+        public const string Asignacion = "Asignacion";
+        public const string EntregaPendiente = "EntregaPendiente";
+        public const string Calificacion = "Calificacion";
 
         /// <summary>Tipos que además de la campana muestran una ventana emergente al destinatario (CU-025).</summary>
         public static readonly string[] ConPopup = { Llegada, EntregaCompletada };

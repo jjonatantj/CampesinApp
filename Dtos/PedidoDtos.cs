@@ -41,6 +41,8 @@ namespace CampesinApp.Dtos
         public string? EstadoFiltro { get; set; }
 
         public List<PedidoResumenDto> Pedidos { get; set; } = new();
+
+        public PaginacionDto Paginacion { get; set; } = new();
     }
 
     /// <summary>Un participante de un pedido: comprador, campesino o transportador.</summary>
