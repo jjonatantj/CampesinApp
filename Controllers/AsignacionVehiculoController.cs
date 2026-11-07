@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories;
+using CampesinApp.Services;
 using CampesinApp.ViewModels;
 
 namespace CampesinApp.Controllers
@@ -19,10 +20,12 @@ namespace CampesinApp.Controllers
     public class AsignacionVehiculoController : Controller
     {
         private readonly IAsignacionVehiculoRepository _repository;
+        private readonly TransporteService _transporte;
 
-        public AsignacionVehiculoController(IAsignacionVehiculoRepository repository)
+        public AsignacionVehiculoController(IAsignacionVehiculoRepository repository, TransporteService transporte)
         {
             _repository = repository;
+            _transporte = transporte;
         }
 
         // =========================================================================
@@ -225,6 +228,16 @@ namespace CampesinApp.Controllers
                 {
                     TempData["MensajeError"] = "No fue posible guardar la asignación en la base de datos.";
                     return RedirectToAction(nameof(Detalle), new { id = idDemanda });
+                }
+
+                // Avisa al transportador, al comprador y a los campesinos del pedido (campana de notificaciones).
+                try
+                {
+                    await _transporte.NotificarAsignacionAsync(idDemanda);
+                }
+                catch (Exception)
+                {
+                    // Un fallo al notificar no deshace la asignación que ya quedó guardada.
                 }
 
                 // Flujo básico Paso 8: Mensaje emergente durante 4 segundos "Asignación completa"

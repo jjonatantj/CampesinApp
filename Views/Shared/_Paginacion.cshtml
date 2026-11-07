@@ -1,0 +1,57 @@
+@* Barra de paginación de las listas y tablas de los casos de uso 21-32.
+   Los botones piden la página por AJAX (data-modal-url) y la pintan en la ventana principal o en el panel de la pantalla;
+   con Destino "enlace" son enlaces normales. *@
+@model PaginacionDto
+@if (Model.TotalRegistros > 0 && Model.TotalPaginas > 1)
+{
+    string Atributos(int pagina) => Model.Destino == "enlace"
+        ? $"href=\"{System.Net.WebUtility.HtmlEncode(Model.Url(pagina))}\""
+        : $"data-modal-url=\"{System.Net.WebUtility.HtmlEncode(Model.Url(pagina))}\" data-modal-destino=\"{Model.Destino}\"";
+    var etiquetaTag = Model.Destino == "enlace" ? "a" : "button";
+    var tipo = Model.Destino == "enlace" ? string.Empty : " type=\"button\"";
+
+    <div class="pg-contenedor">
+        <nav class="pg-nav" aria-label="Paginación">
+            @if (Model.Pagina > 1)
+            {
+                @Html.Raw($"<{etiquetaTag}{tipo} class=\"pg-lado\" {Atributos(Model.Pagina - 1)}><i class=\"bi bi-chevron-left\"></i> Anterior</{etiquetaTag}>")
+            }
+            else
+            {
+                <span class="pg-lado pg-lado-inactivo"><i class="bi bi-chevron-left"></i> Anterior</span>
+            }
+
+            @foreach (var numero in Model.Ventana())
+            {
+                if (numero == null)
+                {
+                    <span class="pg-puntos">…</span>
+                }
+                else if (numero == Model.Pagina)
+                {
+                    <span class="pg-numero pg-activa" aria-current="page">@numero</span>
+                }
+                else
+                {
+                    @Html.Raw($"<{etiquetaTag}{tipo} class=\"pg-numero\" {Atributos(numero.Value)} aria-label=\"Página {numero}\">{numero}</{etiquetaTag}>")
+                }
+            }
+
+            @if (Model.Pagina < Model.TotalPaginas)
+            {
+                @Html.Raw($"<{etiquetaTag}{tipo} class=\"pg-lado pg-siguiente\" {Atributos(Model.Pagina + 1)}>Siguiente <i class=\"bi bi-chevron-right\"></i></{etiquetaTag}>")
+            }
+            else
+            {
+                <span class="pg-lado pg-siguiente pg-lado-inactivo">Siguiente <i class="bi bi-chevron-right"></i></span>
+            }
+        </nav>
+        <div class="pg-info">Página @Model.Pagina de @Model.TotalPaginas (@Formato.Entero(Model.TotalRegistros) @Model.Etiqueta en total)</div>
+    </div>
+}
+else if (Model.TotalRegistros > 0)
+{
+    <div class="pg-contenedor">
+        <div class="pg-info">@Formato.Entero(Model.TotalRegistros) @Model.Etiqueta en total</div>
+    </div>
+}

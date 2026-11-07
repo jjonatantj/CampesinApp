@@ -76,7 +76,7 @@ namespace CampesinApp.Services
         }
 
         /// <summary>Lista "Mis Pedidos" (CU-022), con filtro opcional por estado del envío (FA-02-CU023).</summary>
-        public async Task<List<PedidoResumenDto>> ListarAsync(UsuarioActual usuario, string? estadoEnvio)
+        public async Task<(List<PedidoResumenDto> Pedidos, int Total)> ListarAsync(UsuarioActual usuario, string? estadoEnvio, int pagina, int tamano)
         {
             var filas = await PedidosVisibles(usuario)
                 .AsNoTracking()
@@ -121,8 +121,11 @@ namespace CampesinApp.Services
                 pedidos = pedidos.Where(p => p.EstadoEnvio == estadoEnvio).ToList();
             }
 
-            await MarcarObservacionesAsync(usuario, pedidos);
-            return pedidos;
+            // Solo se completan las acciones (calificar, ver observaciones) de los pedidos de la página pedida.
+            var total = pedidos.Count;
+            var visibles = pedidos.Skip((pagina - 1) * tamano).Take(tamano).ToList();
+            await MarcarObservacionesAsync(usuario, visibles);
+            return (visibles, total);
         }
 
         /// <summary>

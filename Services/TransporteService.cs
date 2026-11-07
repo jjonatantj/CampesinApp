@@ -15,13 +15,53 @@ namespace CampesinApp.Services
         private readonly PedidoService _pedidos;
         private readonly CalificacionService _calificaciones;
         private readonly ILogService _log;
+        private readonly NotificacionService _notificaciones;
 
-        public TransporteService(Campesinapp3Context db, PedidoService pedidos, CalificacionService calificaciones, ILogService log)
+        public TransporteService(Campesinapp3Context db, PedidoService pedidos, CalificacionService calificaciones, ILogService log, NotificacionService notificaciones)
         {
             _db = db;
             _pedidos = pedidos;
             _calificaciones = calificaciones;
             _log = log;
+            _notificaciones = notificaciones;
+        }
+
+        /// <summary>
+        /// Avisa que el pedido ya tiene transporte: al transportador dueño del camión (para que prepare el viaje) y al comprador
+        /// y a los campesinos del pedido. Lo usan la asignación de este módulo y la de "Asignación de vehículo".
+        /// </summary>
+        public async Task NotificarAsignacionAsync(int idDemanda)
+        {
+            var pedido = await _db.Demanda
+                .AsNoTracking()
+                .Where(d => d.IdDemanda == idDemanda)
+                .Select(d => new
+                {
+                    Producto = d.IdTipoProductoNavigation.Producto + " " + d.IdVariedadNavigation.VariedadProd,
+                    d.CantidadDeman,
+                    d.IdCamion
+                })
+                .FirstOrDefaultAsync();
+            if (pedido == null) return;
+
+            var placa = pedido.IdCamion == null
+                ? null
+                : await _db.Camions.AsNoTracking().Where(c => c.IdCamion == pedido.IdCamion).Select(c => c.PlacaCami).FirstOrDefaultAsync();
+
+            var codigo = CodigoPedido.Formatear(idDemanda);
+            var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { idDemanda }))[idDemanda];
+
+            _notificaciones.Agregar(
+                participantes.Where(p => p.Rol == RolUsuario.Transportador).Select(p => p.IdUsuario),
+                TiposNotificacion.Asignacion,
+                $"Se le asignó el pedido {codigo} ({pedido.Producto}, {pedido.CantidadDeman} kg). Revise «Mis Viajes» y reporte su salida.",
+                idDemanda);
+            _notificaciones.Agregar(
+                participantes.Where(p => p.Rol is RolUsuario.Comprador or RolUsuario.Campesino).Select(p => p.IdUsuario),
+                TiposNotificacion.Asignacion,
+                $"Su pedido {codigo} ya tiene transporte asignado{(placa == null ? string.Empty : $" (camión {placa})")}.",
+                idDemanda);
+            await _db.SaveChangesAsync();
         }
 
         /// <summary>"Detalle Logístico del Transporte" (CU-023). RN01: solo participantes del pedido o administrador.</summary>
@@ -187,6 +227,7 @@ namespace CampesinApp.Services
                 return ResultadoOperacion.Falla(TipoError.Conflicto, "Este pedido ya tiene datos de transporte asignados.");
             }
 
+            await NotificarAsignacionAsync(pedido.IdDemanda);
             await _log.RegistrarAsync(NivelesLog.Info, "CU-024 Asignación transporte",
                 $"Pedido {CodigoPedido.Formatear(pedido.IdDemanda)} asignado al camión {camion.PlacaCami}.", admin.Id);
             return ResultadoOperacion.Ok("Datos de transporte guardados con éxito");
@@ -195,6 +236,7 @@ namespace CampesinApp.Services
         /// <summary>"Mis Viajes" del transportador. Los viajes entregados dejan de aparecer (RN-03-CU024).</summary>
         public async Task<List<ViajeTransportadorDto>> ListarMisViajesAsync(UsuarioActual transportador)
         {
+            var enCurso = await _db.ViajeEnCursoAsync(transportador.Id);
             var filas = await (
                     from v in _db.Viajes()
                     join d in _db.Demanda on v.IdDemanda equals d.IdDemanda
@@ -213,18 +255,24 @@ namespace CampesinApp.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            return filas.Select(f => new ViajeTransportadorDto
-            {
-                IdViaje = f.IdViaje,
-                IdDemanda = f.IdDemanda,
-                CodigoPedido = CodigoPedido.Formatear(f.IdDemanda),
-                Producto = f.Producto,
-                Cantidad = f.CantidadDeman,
-                DireccionFinal = f.DireccionFinal,
-                EstadoEnvio = f.EstadoEnvio,
-                Activo = !EstadosEnvio.Finalizados.Contains(f.EstadoEnvio),
-                LlegadaNotificada = f.LlegadaNotificada
-            }).ToList();
+            // El viaje en curso va primero; los demás pendientes esperan su turno.
+            return filas
+                .Select(f => new ViajeTransportadorDto
+                {
+                    IdViaje = f.IdViaje,
+                    IdDemanda = f.IdDemanda,
+                    CodigoPedido = CodigoPedido.Formatear(f.IdDemanda),
+                    Producto = f.Producto,
+                    Cantidad = f.CantidadDeman,
+                    DireccionFinal = f.DireccionFinal,
+                    EstadoEnvio = f.EstadoEnvio,
+                    Activo = f.IdViaje == enCurso,
+                    EnEspera = f.IdViaje != enCurso && !EstadosEnvio.Finalizados.Contains(f.EstadoEnvio),
+                    LlegadaNotificada = f.LlegadaNotificada
+                })
+                .OrderByDescending(v => v.Activo)
+                .ThenBy(v => v.IdViaje)
+                .ToList();
         }
 
         public static string NormalizarPlaca(string placa) =>

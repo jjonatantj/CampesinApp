@@ -8,6 +8,8 @@ namespace CampesinApp.Controllers
     /// <summary>Consulta de datos del transportador (CU-023) y registro de datos logísticos / mis viajes (CU-024).</summary>
     public class TransporteController : AppController
     {
+        private const int ViajesPorPagina = 4;
+
         private readonly TransporteService _transporte;
 
         public TransporteController(IUsuarioActualService usuarioActual, TransporteService transporte) : base(usuarioActual)
@@ -117,10 +119,17 @@ namespace CampesinApp.Controllers
 
         [HttpGet]
         [RolesPermitidos(RolUsuario.Transportador)]
-        public async Task<IActionResult> MisViajes()
+        public async Task<IActionResult> MisViajes(int? pagina)
         {
             var usuario = (await ObtenerUsuarioAsync())!;
-            return ModalPrincipal("_MisViajes", await _transporte.ListarMisViajesAsync(usuario));
+            var viajes = await _transporte.ListarMisViajesAsync(usuario);
+            var paginacion = PaginacionDto.Crear(pagina, viajes.Count, ViajesPorPagina, "viajes", "/Transporte/MisViajes?pagina={p}", "principal");
+            return ModalPrincipal("_MisViajes", new ListaViajesDto
+            {
+                CodigoViajeEnCurso = viajes.FirstOrDefault(v => v.Activo)?.CodigoPedido,
+                Paginacion = paginacion,
+                Viajes = viajes.Skip((paginacion.Pagina - 1) * ViajesPorPagina).Take(ViajesPorPagina).ToList()
+            });
         }
     }
 }

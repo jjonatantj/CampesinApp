@@ -18,13 +18,15 @@ namespace CampesinApp.Services
         private readonly PedidoService _pedidos;
         private readonly ILogService _log;
         private readonly SoporteOptions _soporte;
+        private readonly NotificacionService _notificaciones;
 
-        public CalificacionService(Campesinapp3Context db, PedidoService pedidos, ILogService log, IOptions<SoporteOptions> soporte)
+        public CalificacionService(Campesinapp3Context db, PedidoService pedidos, ILogService log, IOptions<SoporteOptions> soporte, NotificacionService notificaciones)
         {
             _db = db;
             _pedidos = pedidos;
             _log = log;
             _soporte = soporte.Value;
+            _notificaciones = notificaciones;
         }
 
         /// <summary>
@@ -112,12 +114,33 @@ namespace CampesinApp.Services
                 return ResultadoOperacion.Falla(TipoError.Conflicto, "No se pudo guardar la calificación. Intenta de nuevo.");
             }
 
+            await NotificarCalificacionAsync(usuario, dto, requiereEstrellas);
+
             await _log.RegistrarAsync(NivelesLog.Info, "CU-026 Calificación",
                 requiereEstrellas
                     ? $"Calificación de {dto.Estrellas} estrellas del pedido {CodigoPedido.Formatear(dto.IdDemanda)}."
                     : $"Observación del transportador sobre el pedido {CodigoPedido.Formatear(dto.IdDemanda)}.",
                 usuario.Id);
             return ResultadoOperacion.Ok("¡Gracias por tu opinión! Calificación guardada con éxito");
+        }
+
+        /// <summary>Avisa a los demás participantes del pedido que recibieron una calificación u observación.</summary>
+        private async Task NotificarCalificacionAsync(UsuarioActual usuario, FormularioCalificacionDto dto, bool esComprador)
+        {
+            try
+            {
+                var codigo = CodigoPedido.Formatear(dto.IdDemanda);
+                var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { dto.IdDemanda }))[dto.IdDemanda];
+                var destinatarios = participantes.Where(p => p.IdUsuario != usuario.Id).Select(p => p.IdUsuario);
+                var mensaje = esComprador
+                    ? $"El comprador calificó el pedido {codigo} con {dto.Estrellas} {(dto.Estrellas == 1 ? "estrella" : "estrellas")}. Puede consultarlo en «Ver Observaciones»."
+                    : $"El transportador dejó una observación sobre el pedido {codigo}. Puede consultarla en «Ver Observaciones».";
+                await _notificaciones.EnviarAsync(destinatarios, TiposNotificacion.Calificacion, mensaje, dto.IdDemanda);
+            }
+            catch (DbUpdateException)
+            {
+                // La calificación ya quedó guardada; un fallo al avisar no debe deshacerla.
+            }
         }
 
         /// <summary>"Ver Observaciones": consulta de la calificación y los comentarios de un pedido finalizado.</summary>

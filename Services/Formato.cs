@@ -20,5 +20,16 @@ namespace CampesinApp.Services
         public static string Hora(DateTime fecha) => fecha.ToString("hh:mm tt", Colombia);
 
         public static string FechaHora(DateTime fecha) => fecha.ToString("dd/MM/yyyy hh:mm tt", Colombia);
+
+        /// <summary>"ahora", "hace 5 min", "hace 2 h", "ayer" o la fecha, para las listas de avisos.</summary>
+        public static string Relativo(DateTime fecha)
+        {
+            var pasado = DateTime.Now - fecha;
+            if (pasado.TotalSeconds < 45) return "ahora";
+            if (pasado.TotalMinutes < 60) return $"hace {Math.Max(1, (int)pasado.TotalMinutes)} min";
+            if (pasado.TotalHours < 24) return $"hace {(int)pasado.TotalHours} h";
+            if (pasado.TotalHours < 48) return "ayer";
+            return FechaHora(fecha);
+        }
     }
 }
