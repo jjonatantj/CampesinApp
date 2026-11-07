@@ -3,7 +3,6 @@
 @{
     ViewData["Title"] = "Actualizar Perfil - CampesinApp";
     Layout = "_LayoutCasosUso";
-
 }
 
 <div class="container py-5">
@@ -73,7 +72,7 @@
                         </div>
                     </div>
 
-                    <!-- CONTRASEÑA CON EL OJITO EXACTO DEL LOGIN -->
+                    <!-- CONTRASEÑA -->
                     <div class="mb-4">
                         <label asp-for="NuevaContrasena" class="form-label fw-bold text-dark small">Nueva Contraseña (Opcional)</label>
                         <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
@@ -103,24 +102,38 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
     <script src="~/js/MostrarContraseña.js" asp-append-version="true"></script>
     <script>
-        // Alerta de éxito con redirección automática al perfil al hacer clic en OK
+        // Alerta de éxito con temporizador de 5 segundos, botón OK y redirección automática
         @if (TempData["MensajeActualizacion"] != null)
             {
                 <text>
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Actualización exitosa!',
-                        text: '@TempData["MensajeActualizacion"]',
-                        confirmButtonColor: '#198754',
-                        background: '#f8f9fa',
-                        customClass: { popup: 'rounded-4 shadow-lg' }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.location.href = '@Url.Action("Index", "Perfil")';
-                        }
-                    });
+                    let timerInterval;
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Actualización Exitosa!',
+                    html: 'Tus datos se han actualizado correctamente.<br><br>Serás redirigido en <b>5</b> segundos.',
+                    timer: 5000,
+                    timerProgressBar: true,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#198754',
+                    background: '#f8f9fa',
+                    customClass: { popup: 'rounded-4 shadow-lg' },
+                    didOpen: () => {
+                        const b = Swal.getHtmlContainer().querySelector('b');
+                        timerInterval = setInterval(() => {
+                            b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
+                        }, 100);
+                    },
+                    willClose: () => {
+                        clearInterval(timerInterval);
+                    }
+                }).then((result) => {
+                    window.location.href = '@Url.Action("Index", "Perfil")';
+                });
             </text>
         }
 

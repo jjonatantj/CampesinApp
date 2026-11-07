@@ -67,12 +67,12 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
-            // Reasignar campos bloqueados (solo lectura) para que no se pierdan si se recarga la vista
+            // Reasignar campos bloqueados (solo lectura) para que no se pierdan
             model.Nombres = usuario.NombreCom;
             model.Apellidos = usuario.ApellidoCom;
             model.Cedula = usuario.CedulaUsu.ToString();
 
-            // Validar que el correo no esté registrado por otro usuario (RN01-CU006)
+            // Validar que el correo no esté registrado por otro usuario
             if (await _context.Usuarios.AnyAsync(u => u.CorreoUsu == model.Correo && u.IdUsuario != idUsuario.Value))
             {
                 ModelState.AddModelError("Correo", "El correo electrónico ya se encuentra registrado por otro usuario.");
@@ -85,9 +85,13 @@ namespace CampesinApp.Controllers
                 {
                     usuario.TelelfonoUsu = telLong;
                 }
-                usuario.IdMunicipio = model.IdMunicipio;
 
-                // Si ingresa una nueva contraseña, la encriptamos con AES-256
+                if (model.IdMunicipio.HasValue)
+                {
+                    usuario.IdMunicipio = model.IdMunicipio.Value;
+                }
+
+                // Si ingresa una nueva contraseña, la encriptamos
                 if (!string.IsNullOrEmpty(model.NuevaContrasena))
                 {
                     usuario.ContrasenaUsu = EncriptacionService.Encriptar(model.NuevaContrasena);
