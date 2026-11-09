@@ -1,22 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 
 namespace CampesinApp.ViewModels
 {
     public class DetalleCrucePrecioViewModel
     {
         public string Producto { get; set; } = string.Empty;
-        public string Variedad { get; set; } = string.Empty; // <-- Aquí estaba el error (tenía un punto)
-        public decimal PrecioDane { get; set; }
-        public decimal PrecioCorabastos { get; set; }
+        public string Variedad { get; set; } = string.Empty;
+        public decimal? PrecioDane { get; set; }
+        public decimal? PrecioCorabastos { get; set; }
     }
 
     public class ImportarDatosViewModel
     {
-        [Required(ErrorMessage = "Debe adjuntar el archivo oficial del DANE.")]
+        [Required(ErrorMessage = "Debe adjuntar el archivo oficial del DANE (.xlsx, .xls o .csv).")]
         public IFormFile? ArchivoDane { get; set; }
 
-        [Required(ErrorMessage = "Debe adjuntar el archivo oficial de Corabastos.")]
+        [Required(ErrorMessage = "Debe adjuntar el boletín oficial de Corabastos en formato PDF.")]
         public IFormFile? ArchivoCorabastos { get; set; }
 
         public bool EsVistaPrevia { get; set; } = false;

@@ -72,8 +72,6 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
-
         modelBuilder.Entity<AlertaGuardadum>(entity =>
         {
             entity.HasKey(e => e.IdAlertaGuardada);
