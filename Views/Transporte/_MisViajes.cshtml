@@ -1,39 +1,69 @@
-@model List<ViajeTransportadorDto>
+@model ListaViajesDto
 <div class="modal-header">
-    <h5 class="modal-title">Mis Viajes</h5>
+    <h5 class="modal-title"><i class="bi bi-truck me-2"></i>Mis Viajes</h5>
     <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
 </div>
 <div class="modal-body">
-    @if (Model.Count == 0)
+    @if (Model.Viajes.Count == 0)
     {
-        <p class="text-center my-4">No hay viajes registrados o asignados actualmente.</p>
+        <div class="vacio-cp">
+            <i class="bi bi-truck"></i>
+            <p>No hay viajes registrados o asignados actualmente.</p>
+        </div>
     }
 
-    @foreach (var viaje in Model)
+    @if (Model.Viajes.Any(v => v.EnEspera))
+    {
+        <div class="aviso-retraso mb-3" role="note">
+            <i class="bi bi-signpost-split"></i>
+            <div class="small">Solo puede tener <strong>un viaje en curso</strong> a la vez. Los demás pedidos asignados esperan su turno y se activan cuando termine el actual.</div>
+        </div>
+    }
+
+    @foreach (var viaje in Model.Viajes)
     {
         <div class="bloque-pedido">
-            <div class="d-flex justify-content-between flex-wrap gap-1">
-                <strong>@viaje.CodigoPedido · @viaje.Producto (@viaje.Cantidad)</strong>
-                <span>
-                    <span class="badge @(viaje.Activo ? "bg-success" : "bg-secondary")">@(viaje.Activo ? "Activo" : "Inactivo")</span>
-                    <span class="badge @VistaHelpers.ClaseEstado(viaje.EstadoEnvio)">@viaje.EstadoEnvio</span>
+            <div class="pedido-cabecera">
+                <div class="pedido-titulo">
+                    <span class="pedido-codigo">@viaje.CodigoPedido</span>
+                    <strong>@viaje.Producto (@viaje.Cantidad)</strong>
+                </div>
+                <span class="d-flex gap-1 flex-wrap">
+                    @if (viaje.Activo)
+                    {
+                        <span class="badge bg-success">En curso</span>
+                        <span class="badge @VistaHelpers.ClaseEstado(viaje.EstadoEnvio)">@viaje.EstadoEnvio</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary"><i class="bi bi-hourglass-split me-1"></i>En espera</span>
+                    }
                 </span>
             </div>
-            <div class="small text-muted">Destino: @viaje.DireccionFinal</div>
+            <div class="pedido-destino"><i class="bi bi-geo-alt-fill"></i>Destino: @viaje.DireccionFinal</div>
             <div class="acciones">
-                <a class="btn btn-sm btn-outline-dark" href="/Ubicacion/Reportar?idViaje=@viaje.IdViaje">Reportar Ubicación</a>
-                @if (viaje.LlegadaNotificada)
+                @if (viaje.Activo)
                 {
-                    <button type="button" class="btn btn-sm btn-success" data-confirmar="¿Confirma que entregó el pedido @viaje.CodigoPedido en el punto de destino?"
-                            data-modal-post="/Entrega/EntregaRealizada?idViaje=@viaje.IdViaje">Entrega realizada</button>
+                    <a class="btn btn-sm btn-outline-dark" href="/Ubicacion/Reportar?idViaje=@viaje.IdViaje"><i class="bi bi-geo-alt me-1"></i>Reportar Ubicación</a>
+                    @if (viaje.LlegadaNotificada)
+                    {
+                        <button type="button" class="btn btn-sm btn-success" data-confirmar="¿Confirma que entregó el pedido @viaje.CodigoPedido en el punto de destino?"
+                                data-modal-post="/Entrega/EntregaRealizada?idViaje=@viaje.IdViaje"><i class="bi bi-check2-circle me-1"></i>Entrega realizada</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-success" disabled title="Disponible cuando notifique la llegada al destino"><i class="bi bi-check2-circle me-1"></i>Entrega realizada</button>
+                    }
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-success" disabled title="Disponible cuando notifique la llegada al destino">Entrega realizada</button>
+                    <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Comenzará cuando termine el viaje en curso@(string.IsNullOrEmpty(Model.CodigoViajeEnCurso) ? string.Empty : $" ({Model.CodigoViajeEnCurso})").</span>
                 }
             </div>
         </div>
     }
+
+    <partial name="_Paginacion" model="Model.Paginacion" />
 </div>
 <div class="modal-footer justify-content-center">
     <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>

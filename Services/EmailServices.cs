@@ -1,19 +1,28 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using MailKit.Security;
 using MimeKit;
-using Microsoft.AspNetCore.Hosting;
 
 namespace CampesinApp.Services
 {
     public static class EmailService
     {
+        private static IConfiguration? _configuration;
+
+        /// <summary>
+        /// Inicializa la configuración para leer los secretos de forma segura.
+        /// Se debe llamar desde Program.cs al arrancar la aplicación.
+        /// </summary>
+        public static void Initialize(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         private static readonly string SmtpServer = "smtp.gmail.com";
         private static readonly int SmtpPort = 587;
 
-        private static readonly string EmailEmisor = "soporte.campesinapp@gmail.com";
-        private static readonly string PasswordEmisor = "qeen efki bnes incx";
+        // Credenciales obtenidas de forma segura (Secretos de usuario o Variables de entorno)
+        private static string EmailEmisor => _configuration?["EmailSettings:Email"] ?? string.Empty;
+        private static string PasswordEmisor => _configuration?["EmailSettings:Password"] ?? string.Empty;
 
         // Datos de contacto y redes configurables
         private static readonly string NumeroWhatsApp = "+57 300 000 0000";
@@ -39,7 +48,6 @@ namespace CampesinApp.Services
 
             if (environment != null && !string.IsNullOrEmpty(environment.WebRootPath))
             {
-                // Buscamos las extensiones comunes en la carpeta wwwroot/images/
                 string rutaLogoJpg = Path.Combine(environment.WebRootPath, "images", "logo.jpeg");
                 string rutaLogoPng = Path.Combine(environment.WebRootPath, "images", "logo.png");
                 string rutaLogoMayus = Path.Combine(environment.WebRootPath, "images", "logo.JPG");
@@ -52,14 +60,12 @@ namespace CampesinApp.Services
 
                 if (!string.IsNullOrEmpty(rutaFinal))
                 {
-                    // Añadimos la imagen como un recurso vinculado (LinkedResource) para que MimeKit la incruste
                     var recursoImagen = builder.LinkedResources.Add(rutaFinal);
                     recursoImagen.ContentId = cidLogo;
                     imagenAgregadaExitosamente = true;
                 }
             }
 
-            // HTML Estructurado apuntando obligatoriamente a cid:logoCampesinAppUnico
             string tagImgLogo = imagenAgregadaExitosamente
                 ? $"<img src='cid:{cidLogo}' alt='CampesinApp Logo' width='80' height='80' style='display: block; margin: 0 auto; border-radius: 50%; border: 2px solid {colorBorde}; object-fit: cover;' />"
                 : $"<h2 style='color: {colorBorde}; margin: 0;'>CampesinApp</h2>";
@@ -68,27 +74,23 @@ namespace CampesinApp.Services
                 <div style='font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8;'>
                     <div style='max-width: 520px; margin: auto; background: white; padding: 30px; border-radius: 10px; border-top: 5px solid {colorBorde}; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                         
-                        <!-- LOGOTIPO OBLIGATORIO -->
                         <div style='text-align: center; margin-bottom: 20px;'>
                             {tagImgLogo}
                         </div>
 
                         {contenidoHtmlCore}
                         
-                        <!-- SECCIÓN DE CONTACTO Y SOPORTE -->
                         <div style='background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 25px 0; font-size: 12px; color: #555; text-align: center;'>
                             <p style='margin: 0 0 8px 0; color: {colorBorde}; font-weight: bold;'>⚠️ Buzón automático (no respondas a este correo).</p>
                             <p style='margin: 0 0 5px 0;'>¿Dudas o inconvenientes? Escríbenos al WhatsApp: <strong>{NumeroWhatsApp}</strong></p>
                             <p style='margin: 0;'><strong>Horario de atención:</strong> {HorarioAtencion}</p>
                         </div>
 
-                        <!-- REDES SOCIALES -->
                         <div style='text-align: center; margin-bottom: 20px;'>
                             <a href='{EnlaceFacebook}' target='_blank' style='color: {colorBorde}; text-decoration: none; margin: 0 10px; font-size: 12px; font-weight: bold;'>Facebook</a> | 
                             <a href='{EnlaceInstagram}' target='_blank' style='color: {colorBorde}; text-decoration: none; margin: 0 10px; font-size: 12px; font-weight: bold;'>Instagram</a>
                         </div>
 
-                        <!-- TÉRMINOS Y CONDICIONES EN TEXTO Y PIE DE PÁGINA -->
                         <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0 15px 0;' />
                         <p style='font-size: 11px; color: #888; text-align: center; line-height: 1.4; margin: 0;'>
                             CampesinApp - Plataforma de Comercialización Agrícola Directa.<br>
@@ -130,6 +132,43 @@ namespace CampesinApp.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"---> [ERROR MAILKIT]: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static bool EnviarCodigoRecuperacionPassword(string correoDestino, string nombreUsuario, string codigoCorreo, IWebHostEnvironment? environment = null)
+        {
+            try
+            {
+                string contenidoHtml = $@"
+                    <h2 style='color: #2e7d32; text-align: center; margin-top: 0;'>Recuperación de Contraseña</h2>
+                    <p>Hola <strong>{nombreUsuario}</strong>,</p>
+                    <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>CampesinApp</strong>.</p>
+                    <p>Tu código de verificación para continuar es:</p>
+                    <div style='text-align: center; margin: 25px 0;'>
+                        <span style='background-color: #e8f5e9; color: #1b5e20; font-size: 32px; font-weight: bold; letter-spacing: 5px; padding: 10px 25px; border-radius: 8px; border: 1px dashed #2e7d32;'>{codigoCorreo}</span>
+                    </div>
+                    <p style='color: #d32f2f; font-weight: bold; font-size: 13px; text-align: center;'>⏰ Este código caduca estrictamente en 5 minutos.</p>
+                    <p style='font-size: 12px; color: #888; text-align: center; margin-top: 15px;'>
+                        Si no solicitaste este cambio, puedes ignorar este mensaje de forma segura.
+                    </p>";
+
+                var message = ConstruirMensajeConLogoFisico(correoDestino, nombreUsuario, "Código de Verificación - Recuperación de Contraseña CampesinApp", contenidoHtml, "#2e7d32", environment);
+
+                using (var client = new MailKit.Net.Smtp.SmtpClient())
+                {
+                    client.Connect(SmtpServer, SmtpPort, SecureSocketOptions.StartTls);
+                    client.Authenticate(EmailEmisor, PasswordEmisor);
+                    client.Send(message);
+                    client.Disconnect(true);
+                }
+
+                Debug.WriteLine($"---> [ÉXITO MAILKIT RECUPERACIÓN] Correo enviado a {correoDestino}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"---> [ERROR MAILKIT RECUPERACIÓN]: {ex.Message}");
                 return false;
             }
         }

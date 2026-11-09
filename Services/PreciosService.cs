@@ -21,7 +21,9 @@ namespace CampesinApp.Services
         /// Segmentación por rol (RN-01-CU029): el comprador ve el valor de compra, el campesino el valor de venta
         /// y el administrador ambos. No se exponen fórmulas ni valores intermedios (RN-02-CU028).
         /// </summary>
-        public async Task<ListaPreciosDto> ListarAsync(UsuarioActual usuario)
+        public const int PreciosPorPagina = 8;
+
+        public async Task<ListaPreciosDto> ListarAsync(UsuarioActual usuario, int? pagina = null)
         {
             var ultimos = await _db.PrecioEstimados
                 .AsNoTracking()
@@ -46,10 +48,13 @@ namespace CampesinApp.Services
             var verComprador = usuario.Rol is RolUsuario.Comprador or RolUsuario.Administrador;
             var verCampesino = usuario.Rol is RolUsuario.Campesino or RolUsuario.Administrador;
 
+            var paginacion = PaginacionDto.Crear(pagina, ultimos.Count, PreciosPorPagina, "productos", "/Precios/Index?pagina={p}", "enlace");
+
             return new ListaPreciosDto
             {
                 Usuario = usuario,
-                Precios = ultimos.Select(p => new PrecioVistaDto
+                Paginacion = paginacion,
+                Precios = ultimos.Skip((paginacion.Pagina - 1) * PreciosPorPagina).Take(PreciosPorPagina).Select(p => new PrecioVistaDto
                 {
                     Producto = p.Producto,
                     Variedad = p.VariedadProd,

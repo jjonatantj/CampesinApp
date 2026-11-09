@@ -21,9 +21,16 @@
                     <p class="text-muted" style="font-weight: 500;">Confirme su identidad para proceder con la desactivación de su cuenta.</p>
                 </div>
 
+                @if (TempData["ErrorEliminar"] != null)
+                {
+                    <div class="alert alert-danger rounded-pill text-center py-2 mb-3 small fw-semibold">
+                        @TempData["ErrorEliminar"]
+                    </div>
+                }
+
                 @if (!Model.CodigoEnviado)
                 {
-                    <!-- PASO 1: CORREO (READONLY) Y CONTRASEÑA -->
+                    <!-- PASO 1: CORREO Y CONTRASEÑA -->
                     <form asp-action="SolicitarCodigo" method="post">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -32,15 +39,14 @@
                             <input asp-for="Correo" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
                         </div>
 
-                        <!-- CONTRASEÑA CON SVG EN NEGRO IGUAL A INICIO DE SESIÓN -->
                         <div class="mb-4">
                             <label asp-for="Contrasena" class="form-label fw-bold text-dark"></label>
                             <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
                                 <input asp-for="Contrasena" type="password" id="txtContrasena" class="form-control border-0 shadow-none px-3 py-2 bg-transparent text-dark" style="appearance: none; -webkit-appearance: none;" placeholder="Ingrese su contraseña" />
                                 <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtContrasena', 'iconPass')">
                                     <svg id="iconPass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#212529" viewBox="0 0 16 16">
-                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                                     </svg>
                                 </button>
                             </div>
@@ -48,7 +54,7 @@
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" onclick="abrirModalCancelarEliminar()">Cancelar</button>
+                            <a href="@Url.Action("CancelarProceso", "EliminarUsuario")" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
                             <button type="submit" class="btn btn-nav-register px-4 py-2 fw-semibold">Continuar</button>
                         </div>
                     </form>
@@ -56,35 +62,52 @@
                 else
                 {
                     <!-- PASO 2: INGRESO DEL CÓDIGO DE VERIFICACIÓN -->
-                    <div class="alert alert-success text-center rounded-pill mb-4" role="alert" style="background-color: #e8f5e9; border-color: #c3e6cb; color: #155724;">
+                    <div class="alert alert-success text-center rounded-pill mb-3 py-2 small" role="alert" style="background-color: #e8f5e9; border-color: #c3e6cb; color: #155724;">
                         <i class="bi bi-envelope-check me-2"></i> @ViewBag.MensajeCodigoEnviado
                     </div>
 
-                    <form asp-action="ConfirmarEliminacion" method="post" id="formConfirmarEliminar">
-                        <input type="hidden" asp-for="Correo" />
-                        <input type="hidden" asp-for="Contrasena" />
-                        <input type="hidden" asp-for="CodigoEnviado" />
+                    <!-- TEMPORIZADOR DE 5 MINUTOS -->
+                    <div id="temporizadorContainer" class="mt-2 mb-3 text-center">
+                        <span class="fw-bold" style="color: #1d4ed8; font-size: 0.90rem;">
+                            El código expira en <span id="tiempoRestante">05:00</span>
+                        </span>
+                    </div>
 
-                        <div class="mb-4">
-                            <label asp-for="CodigoVerificacion" class="form-label fw-bold text-dark"></label>
-                            <input asp-for="CodigoVerificacion" id="txtCodigoVerificacion" class="form-control rounded-pill px-3 py-2 text-center fs-4 letter-spacing-2" placeholder="######" maxlength="6" />
+                    <form asp-action="ConfirmarEliminacion" method="post" id="formConfirmarEliminar">
+                        <div class="mb-3 text-start">
+                            <label asp-for="CodigoVerificacion" class="form-label fw-bold text-dark small">Código de Verificación</label>
+                            <input asp-for="CodigoVerificacion" id="txtCodigoVerificacion" class="form-control rounded-pill px-3 py-2 text-center fs-4 tracking-widest" placeholder="000000" maxlength="6" autocomplete="off" />
                             <span asp-validation-for="CodigoVerificacion" class="text-danger small d-block text-center mt-1"></span>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" onclick="abrirModalCancelarEliminar()">Cancelar</button>
-                            <button type="button" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold" onclick="abrirModalConfirmarEliminar()">Eliminar cuenta</button>
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="button" class="btn btn-danger rounded-pill py-2 w-100 fw-semibold" onclick="abrirModalConfirmarEliminar()">Eliminar cuenta</button>
                         </div>
                     </form>
+
+                    <!-- REENVÍO CON LÍMITE DE 3 VECES -->
+                    <form asp-action="ReenviarCodigo" method="post" id="formReenviar">
+                        <div class="text-center mt-3 small">
+                            <span class="text-muted">¿No recibiste el código?</span>
+                            <button type="submit" id="btnReenviar" class="btn btn-link text-success fw-bold text-decoration-none p-0 ms-1 border-0 bg-transparent">
+                                Reenviar código (<span id="contadorReenvios">@(ViewBag.ReenviosRestantes ?? 3)</span> restantes)
+                            </button>
+                        </div>
+                        <div id="cooldownText" class="text-center text-muted small mt-1" style="display: none;">
+                            Podrá volver a solicitar el código en <span id="tiempoCooldown">60</span>s
+                        </div>
+                    </form>
+
+                    <div class="d-flex justify-content-end mt-4 pt-2 border-top">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" onclick="abrirModalCancelarEliminar()">Cancelar</button>
+                    </div>
                 }
             </div>
         </div>
     </div>
 </div>
 
-<!-- ==================== MODALES INDEPENDIENTES (FUERA DE LOS FORMULARIOS) ==================== -->
-
-<!-- MODAL CONFIRMACIÓN DE ELIMINACIÓN DE CUENTA -->
+<!-- ==================== MODALES INDEPENDIENTES ==================== -->
 <div class="modal fade" id="modalConfirmarEliminacion" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4 rounded-4 shadow border-0">
@@ -95,7 +118,7 @@
                 <h4 class="fw-bold mb-3 text-dark">¿Está seguro de eliminar su cuenta?</h4>
                 <p class="text-muted small">Al realizar esta acción, su usuario cambiará a estado inactivo, se cerrará su sesión y perderá el acceso a las funcionalidades del aplicativo.</p>
                 <div class="d-flex justify-content-center gap-3 mt-4">
-                    <a href="@Url.Action("Index", "Perfil")" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">NO</a>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">NO</button>
                     <button type="button" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold" onclick="document.getElementById('formConfirmarEliminar').submit();">SÍ</button>
                 </div>
             </div>
@@ -103,7 +126,6 @@
     </div>
 </div>
 
-<!-- MODAL CANCELACIÓN DEL PROCESO -->
 <div class="modal fade" id="modalCancelarEliminar" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4 rounded-4 shadow border-0">
@@ -114,14 +136,13 @@
                 <h4 class="fw-bold mb-3" style="color: #2e7d32;">¿Deseas cancelar el proceso?</h4>
                 <div class="d-flex justify-content-center gap-3 mt-4">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold" data-bs-dismiss="modal">NO</button>
-                    <a href="@Url.Action("Index", "Perfil")" class="btn btn-success rounded-pill px-4 py-2 fw-semibold">SÍ</a>
+                    <a href="@Url.Action("CancelarProceso", "EliminarUsuario")" class="btn btn-success rounded-pill px-4 py-2 fw-semibold">SÍ</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL BLOQUEO RN01-CU007 (SI TIENE DEMANDAS O PAGOS PENDIENTES) -->
 <div class="modal fade" id="modalBloqueoDemandas" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4 rounded-4 shadow border-0">
@@ -131,27 +152,127 @@
                 </div>
                 <h4 class="fw-bold mb-3 text-dark">No es posible eliminar la cuenta</h4>
                 <p class="text-muted mb-4">@ViewBag.BloqueoEliminacion</p>
-                <button type="button" class="btn btn-success rounded-pill px-5 py-2 fw-semibold" onclick="redirigirPerfil('@Url.Action("Index", "Perfil")')">Aceptar</button>
+                <a href="@Url.Action("CancelarProceso", "EliminarUsuario")" class="btn btn-success rounded-pill px-5 py-2 fw-semibold">Aceptar</a>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script src="~/js/MostrarContraseña.js" asp-append-version="true"></script>
     <script src="~/js/EliminarUsuario.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    @if (ViewBag.BloqueoEliminacion != null)
-    {
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                var modalBloqueoElement = document.getElementById('modalBloqueoDemandas');
-                if (modalBloqueoElement) {
-                    var modalBloqueo = new bootstrap.Modal(modalBloqueoElement);
-                    modalBloqueo.show();
+    <script>
+        // Alerta de éxito con temporizador de 5 segundos idéntica a Actualizar Perfil
+        @if (TempData["MensajeEliminacion"] as bool? == true || TempData["MensajeEliminacion"] != null)
+            {
+                <text>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        let timerInterval;
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Cuenta Desactivada!',
+                            html: '@TempData["MensajeEliminacion"]<br><br>Serás redirigido en <b>5</b> segundos.',
+                            timer: 5000,
+                            timerProgressBar: true,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#198754',
+                            background: '#f8f9fa',
+                            customClass: { popup: 'rounded-4 shadow-lg' },
+                            didOpen: () => {
+                                const b = Swal.getHtmlContainer().querySelector('b');
+                                timerInterval = setInterval(() => {
+                                    b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
+                                }, 1000);
+                            },
+                            willClose: () => {
+                                clearInterval(timerInterval);
+                            }
+                        }).then((result) => {
+                            window.location.href = '@Url.Action("Bienvenida", "PaginaBienvenida")';
+                        });
+                    });
+            </text>
+        }
+
+                const codigoEnviado = @(Model.CodigoEnviado ? "true" : "false");
+        const reenviosRestantes = @(ViewBag.ReenviosRestantes ?? 3);
+        let tiempoRestanteSegundos = @(ViewBag.SegundosRestantes ?? 300);
+
+        if (codigoEnviado && @((TempData["MensajeEliminacion"] != null).ToString().ToLower()) === false) {
+            const elementoReloj = document.getElementById('tiempoRestante');
+
+            const cuentaRegresiva = setInterval(() => {
+                if (tiempoRestanteSegundos <= 0) {
+                    clearInterval(cuentaRegresiva);
+                    if (elementoReloj) {
+                        elementoReloj.textContent = "00:00 (Caducado)";
+                        elementoReloj.classList.add("text-danger");
+                    }
+                } else {
+                    let minutos = Math.floor(tiempoRestanteSegundos / 60);
+                    let segundos = tiempoRestanteSegundos % 60;
+
+                    minutos = minutos < 10 ? '0' + minutos : minutos;
+                    segundos = segundos < 10 ? '0' + segundos : segundos;
+
+                    if (elementoReloj) {
+                        elementoReloj.textContent = minutos + ':' + segundos;
+                    }
+                    tiempoRestanteSegundos--;
                 }
-            });
-        </script>
-    }
+            }, 1000);
+
+            const btnReenviar = document.getElementById('btnReenviar');
+            const cooldownText = document.getElementById('cooldownText');
+            const tiempoCooldownSpan = document.getElementById('tiempoCooldown');
+
+            if (reenviosRestantes <= 0) {
+                if (btnReenviar) {
+                    btnReenviar.style.pointerEvents = "none";
+                    btnReenviar.classList.add("text-muted", "disabled");
+                    btnReenviar.innerHTML = "Límite de reenvíos alcanzado (0 restantes)";
+                }
+                if (cooldownText) cooldownText.style.display = "none";
+            } else {
+                let cooldownSegundos = 60;
+                if (btnReenviar) {
+                    btnReenviar.style.pointerEvents = "none";
+                    btnReenviar.classList.add("text-muted");
+                }
+                if (cooldownText) cooldownText.style.display = "block";
+
+                const timerCooldown = setInterval(() => {
+                    cooldownSegundos--;
+                    if (tiempoCooldownSpan) tiempoCooldownSpan.textContent = cooldownSegundos;
+                    if (cooldownSegundos <= 0) {
+                        clearInterval(timerCooldown);
+                        if (btnReenviar) {
+                            btnReenviar.style.pointerEvents = "auto";
+                            btnReenviar.classList.remove("text-muted");
+                        }
+                        if (cooldownText) cooldownText.style.display = "none";
+                    }
+                }, 1000);
+            }
+        }
+
+        @if (ViewBag.BloqueoEliminacion != null)
+            {
+                <text>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        var modalBloqueoElement = document.getElementById('modalBloqueoDemandas');
+                        if (modalBloqueoElement) {
+                            var modalBloqueo = new bootstrap.Modal(modalBloqueoElement);
+                            modalBloqueo.show();
+                        }
+                    });
+            </text>
+        }
+    </script>
 }

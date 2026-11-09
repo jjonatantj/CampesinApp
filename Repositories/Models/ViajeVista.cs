@@ -57,6 +57,24 @@ public class ViajeVista
 
 public static class ConsultasTransporte
 {
+    /// <summary>
+    /// Un transportador solo puede tener UN viaje en curso a la vez: el que ya va en tránsito o, si ninguno ha salido,
+    /// el asignado primero. Los demás viajes asignados quedan en espera hasta que termine el actual.
+    /// Devuelve el id del viaje en curso, o null si no tiene ninguno pendiente.
+    /// </summary>
+    public static async Task<int?> ViajeEnCursoAsync(this Campesinapp3Context db, int idTransportador)
+    {
+        return await db.Viajes()
+            .AsNoTracking()
+            .Where(v => v.IdUsuarioTransportador == idTransportador
+                        && v.VisibleTransportador
+                        && !EstadosEnvio.Finalizados.Contains(v.EstadoEnvio))
+            .OrderByDescending(v => v.EstadoEnvio == EstadosEnvio.EnTransito)
+            .ThenBy(v => v.IdViaje)
+            .Select(v => (int?)v.IdViaje)
+            .FirstOrDefaultAsync();
+    }
+
     /// <summary>Pedidos con camión asignado, con su estado de envío derivado de reportes y confirmaciones.</summary>
     public static IQueryable<ViajeVista> Viajes(this Campesinapp3Context db)
     {
