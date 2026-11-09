@@ -51,7 +51,7 @@
             <!-- Acciones de perfil y sesión activa -->
             <div class="nav-auth-buttons">
                 <span class="badge bg-success text-white px-3 py-2 rounded-pill small">Rol: @Model.RolUsuario</span>
-                
+
                 <!-- CU-021/CU-025: campana de notificaciones · CU-032: menú de usuario con "Cerrar Sesión" -->
                 <partial name="_AccionesNavPrivada" />
             </div>
@@ -104,7 +104,7 @@
             <div class="col-lg-7">
                 <form method="get" asp-controller="PantallaPrincipal" asp-action="Index" class="card p-2 border-0 shadow-sm rounded-4 bg-white">
                     <div class="row g-2 align-items-center">
-                        
+
                         <!-- FILTRO POR CATEGORÍA DESDE LA BD -->
                         <div class="col-md-4">
                             <div class="input-group">
@@ -159,7 +159,7 @@
 
     <!-- 3. TABLA DE PRECIOS SUGERIDOS DE LA BASE DE DATOS (RN-01-CU009) -->
     <div class="main-container p-4 mb-5 shadow-lg border-0" style="background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border-radius: 20px;">
-        
+
         @if (!string.IsNullOrEmpty(Model.MensajeExcepcionPrecios))
         {
             <div class="p-4 text-center rounded-4" style="background-color: #fff9e6; border: 1.5px dashed #ffe082;">
@@ -272,36 +272,39 @@
     {
         <div class="row g-4 mb-5">
 
-            <!-- BLOQUE 1: CAMIONES / LOGÍSTICA DE LA BD -->
-            <div class="col-lg-6">
-                <div class="feature-card">
-                    <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-truck me-2"></i>Fletes y Camiones</h5>
-                    <div class="row g-3 mt-1">
-                        @foreach (var camion in Model.Camiones)
-                        {
-                            <div class="col-12">
-                                <div class="step-card d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="fw-bold mb-1 text-dark">Capacidad: @camion.Capacidad</h6>
-                                        <p class="small text-muted mb-0">Comprador: @camion.NombreComprador</p>
-                                        <p class="small text-muted mb-0">Ruta: <strong>@camion.RutaProyectada</strong></p>
+            <!-- BLOQUE 1: CAMIONES / LOGÍSTICA DE LA BD (Oculto para Transportador) -->
+            @if (Model.RolUsuario != "Transportador")
+            {
+                <div class="col-lg-6">
+                    <div class="feature-card">
+                        <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-truck me-2"></i>Fletes y Camiones</h5>
+                        <div class="row g-3 mt-1">
+                            @foreach (var camion in Model.Camiones)
+                            {
+                                <div class="col-12">
+                                    <div class="step-card d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-dark">Capacidad: @camion.Capacidad</h6>
+                                            <p class="small text-muted mb-0">Comprador: @camion.NombreComprador</p>
+                                            <p class="small text-muted mb-0">Ruta: <strong>@camion.RutaProyectada</strong></p>
+                                        </div>
+                                        <a href="@Url.Action("ConsultaDatosTransporte", "Transporte", new { id = camion.Id })" class="btn btn-nav-register btn-sm">Ver detalles del flete</a>
                                     </div>
-                                    <a href="@Url.Action("ConsultaDatosTransporte", "Transporte", new { id = camion.Id })" class="btn btn-nav-register btn-sm">Ver detalles del flete</a>
                                 </div>
-                            </div>
-                        }
+                            }
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
 
-            <!-- BLOQUE 2: CAMPESINOS DESTACADOS DE LA BD -->
-            <div class="col-lg-6">
+            <!-- BLOQUE 2: CAMPESINOS DESTACADOS DE LA BD (Ancho dinámico si es Transportador) -->
+            <div class="@(Model.RolUsuario == "Transportador" ? "col-lg-12" : "col-lg-6")">
                 <div class="feature-card">
                     <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-person-badge me-2"></i>Campesinos Destacados</h5>
                     <div class="row g-3 mt-1">
                         @foreach (var camp in Model.CampesinosDestacados)
                         {
-                            <div class="col-12">
+                            <div class="@(Model.RolUsuario == "Transportador" ? "col-md-6" : "col-12")">
                                 <div class="step-card d-flex align-items-center justify-content-between">
                                     <div class="d-flex align-items-center">
                                         <div class="step-badge me-3">C</div>
@@ -318,14 +321,14 @@
                 </div>
             </div>
 
-            <!-- BLOQUE 3: COMPRADORES MAYORISTAS DE LA BD -->
-            <div class="col-lg-6">
+            <!-- BLOQUE 3: COMPRADORES MAYORISTAS DE LA BD (Ancho dinámico si es Transportador) -->
+            <div class="@(Model.RolUsuario == "Transportador" ? "col-lg-12" : "col-lg-6")">
                 <div class="feature-card">
                     <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-building me-2"></i>Compradores Mayoristas</h5>
                     <div class="row g-3 mt-1">
                         @foreach (var comp in Model.CompradoresMayoristas)
                         {
-                            <div class="col-12">
+                            <div class="@(Model.RolUsuario == "Transportador" ? "col-md-6" : "col-12")">
                                 <div class="step-card d-flex align-items-center justify-content-between">
                                     <div class="d-flex align-items-center">
                                         <div class="feature-icon-box mb-0 me-3" style="width: 42px; height: 42px; font-size: 1.2rem;">
@@ -344,18 +347,19 @@
                 </div>
             </div>
 
-            <!-- BLOQUE 4: CATÁLOGO DE PRODUCTOS DE LA BD -->
-            <div class="col-lg-6">
+            <!-- BLOQUE 4: CATÁLOGO DE PRODUCTOS DE LA BD (Ancho dinámico si es Transportador) -->
+            <div class="@(Model.RolUsuario == "Transportador" ? "col-lg-12" : "col-lg-6")">
                 <div class="feature-card">
                     <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-basket me-2"></i>Catálogo de Productos</h5>
                     <div class="row g-3 mt-1">
                         @foreach (var prod in Model.CatalogoProductos)
                         {
-                            <div class="col-6">
+                            <div class="@(Model.RolUsuario == "Transportador" ? "col-md-4" : "col-6")">
                                 <div class="product-card text-center p-2">
                                     <h6 class="product-title fs-6 mb-1">@prod.NombreProducto</h6>
                                     <p class="small text-muted mb-2">@prod.UbicacionCultivo</p>
-                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = prod.IdUsuario, rol = "Campesino" })" class="btn btn-nav-register btn-sm w-100">Ver detalle del producto</a>
+                                    <!-- Se agregaron d-flex align-items-center justify-content-center para centrar el texto -->
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = prod.IdUsuario, rol = "Campesino" })" class="btn btn-nav-register btn-sm w-100 d-flex align-items-center justify-content-center">Ver detalle del producto</a>
                                 </div>
                             </div>
                         }

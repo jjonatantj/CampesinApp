@@ -11,10 +11,12 @@ namespace CampesinApp.Controllers
     public class PublicarDemandaController : Controller
     {
         private readonly Campesinapp3Context _context;
+        private readonly IConfiguration _configuration;
 
-        public PublicarDemandaController(Campesinapp3Context context)
+        public PublicarDemandaController(Campesinapp3Context context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -32,15 +34,23 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
+            // Validar Puntos de Acopio del usuario (tabla punto_Acopio filtrada por id_Usuario)[cite: 30]
+            var puntosAcopio = await _context.PuntoAcopios
+                .Where(pa => pa.IdUsuario == idUsuario.Value)
+                .Select(pa => new SelectListItem { Value = pa.IdPuntoAcopio.ToString(), Text = pa.NombrePunto })
+                .ToListAsync();
+
             var model = new PublicarDemandaViewModel
             {
                 ListaTiposProducto = await _context.TipoProductos
                     .Select(tp => new SelectListItem { Value = tp.IdTipoProducto.ToString(), Text = tp.Producto })
                     .ToListAsync(),
-                ListaPuntosAcopio = await _context.PuntoAcopios
-                    .Select(pa => new SelectListItem { Value = pa.IdPuntoAcopio.ToString(), Text = pa.NombrePunto })
-                    .ToListAsync()
+                ListaPuntosAcopio = puntosAcopio,
+                TienePuntosAcopio = puntosAcopio.Count > 0
             };
+
+            // Pasar la API Key de Google Maps a la vista
+            ViewBag.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
             return View("PublicarDemanda", model);
         }
@@ -54,6 +64,19 @@ namespace CampesinApp.Controllers
                 .ToListAsync();
 
             return Json(variedades);
+        }
+
+        [HttpGet("ObtenerCoordenadasPuntoAcopio")]
+        public async Task<IActionResult> ObtenerCoordenadasPuntoAcopio(int idPuntoAcopio)
+        {
+            var punto = await _context.PuntoAcopios
+                .Where(pa => pa.IdPuntoAcopio == idPuntoAcopio)
+                .Select(pa => new { lat = pa.Latitud, lng = pa.Longitud, direccion = pa.Direccion, nombre = pa.NombrePunto })
+                .FirstOrDefaultAsync();
+
+            if (punto == null) return Json(new { exito = false });
+
+            return Json(new { exito = true, lat = punto.lat, lng = punto.lng, direccion = punto.direccion, nombre = punto.nombre });
         }
 
         [HttpGet("ObtenerPrecioEstimado")]
@@ -70,15 +93,21 @@ namespace CampesinApp.Controllers
             }
 
             decimal precio = (decimal)Math.Round(precioEst.PrecioEstiComprador, 0);
-            decimal min = precio * 0.9m; // -10%
-            decimal max = precio * 1.1m; // +10%
+            decimal min = precio * 0.9m;
+            decimal max = precio * 1.1m;
 
             return Json(new { exito = true, precio = precio, min = min, max = max });
         }
 
-        [HttpPost]
-        public IActionResult GuardarAjax(PublicarDemandaViewModel model)
+        [HttpPost("GuardarAjax")]
+        public async Task<IActionResult> GuardarAjax(PublicarDemandaViewModel model)
         {
+            // Fecha límite automática: 1 día después de hoy a las 23:59 por seguridad
+            model.LimTiemDeman = DateTime.Now.AddDays(1).Date.AddHours(23).AddMinutes(59);
+
+            // Quitamos LimTiemDeman del ModelState temporalmente para que no exija validación manual externa
+            ModelState.Remove(nameof(model.LimTiemDeman));
+
             if (!ModelState.IsValid)
             {
                 var errorMensaje = ModelState.Values
@@ -89,29 +118,27 @@ namespace CampesinApp.Controllers
             }
 
             int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
-
             if (idUsuarioSesion == 0)
             {
-                return Json(new { exito = false, error = "La sesión ha expirado. Por favor, inicie sesión nuevamente." });
+                return Json(new { exito = false, error = "La sesión ha expirado. Inicie sesión nuevamente." });
             }
 
-            // Combinar Fecha y Hora de Entrega
+            var puntoAcopio = await _context.PuntoAcopios
+                .FirstOrDefaultAsync(pa => pa.IdPuntoAcopio == model.IdPuntoAcopio && pa.IdUsuario == idUsuarioSesion);
+
+            if (puntoAcopio == null)
+            {
+                return Json(new { exito = false, error = "El punto de acopio seleccionado no es válido o no le pertenece." });
+            }
+
             DateTime fechaHoraEntrega = model.FechaEntrega.Date;
             if (TimeSpan.TryParse(model.HoraEntrega, out TimeSpan timeEntrega))
             {
                 fechaHoraEntrega = fechaHoraEntrega.Add(timeEntrega);
             }
 
-            // Combinar Fecha y Hora Límite
-            DateTime fechaHoraLimite = model.LimTiemDeman.Date;
-            if (TimeSpan.TryParse(model.HoraLimite, out TimeSpan timeLimite))
-            {
-                fechaHoraLimite = fechaHoraLimite.Add(timeLimite);
-            }
+            DateTime fechaHoraLimite = model.LimTiemDeman.Value;
 
-            // Guardamos el pedido en memoria de sesión como borrador validado.
-            // NO se inserta en la base de datos hasta que el comprador pague el 100% en ProcesoPago (CU-017).
-            // Esto evita que pedidos no pagados o con pago rechazado queden registrados en el sistema.
             var borrador = new BorradorDemandaDto
             {
                 IdUsuario = idUsuarioSesion,
@@ -123,7 +150,7 @@ namespace CampesinApp.Controllers
                 LimTiemDeman = fechaHoraLimite,
                 Descripcion = model.Descripcion ?? string.Empty,
                 IdPuntoAcopio = model.IdPuntoAcopio,
-                DireccionInicial = model.DireccionEstructurada ?? string.Empty
+                DireccionInicial = puntoAcopio.Direccion ?? string.Empty
             };
 
             HttpContext.Session.SetString("DemandaBorrador", JsonSerializer.Serialize(borrador));
@@ -131,9 +158,23 @@ namespace CampesinApp.Controllers
             return Json(new
             {
                 exito = true,
-                mensaje = "Información del pedido validada. Procediendo a la confirmación del pago...",
+                mensaje = "Pedido validado correctamente. Redirigiendo al pago seguro...",
                 redirectUrl = Url.Action("Index", "ProcesoPago")
             });
         }
+    }
+
+    public class BorradorDemandaDto
+    {
+        public int IdUsuario { get; set; }
+        public int IdTipoProducto { get; set; }
+        public int IdVariedad { get; set; }
+        public int Cantidad { get; set; }
+        public double PrecioEstimado { get; set; }
+        public DateTime FechaEntrega { get; set; }
+        public DateTime LimTiemDeman { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public int IdPuntoAcopio { get; set; }
+        public string DireccionInicial { get; set; } = string.Empty;
     }
 }

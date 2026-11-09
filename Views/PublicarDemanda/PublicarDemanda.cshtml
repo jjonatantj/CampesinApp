@@ -3,11 +3,12 @@
 @{
     ViewData["Title"] = "Publicar Demanda - CampesinApp";
     Layout = "_LayoutCasosUso";
+    string googleMapsApiKey = ViewBag.GoogleMapsApiKey ?? string.Empty;
 }
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-9 col-lg-8 position-relative">
+        <div class="col-lg-10 position-relative">
 
             <!-- LOGO FLOTANTE OFICIAL -->
             <div class="text-center" style="position: relative; margin-bottom: -75px; z-index: 10;">
@@ -18,13 +19,13 @@
 
                 <div class="text-center mb-4 mt-3">
                     <h2 class="fw-bold text-dark mb-1">Publicar Nueva Demanda Mayorista</h2>
-                    <p class="text-muted small fw-semibold">Solicite productos agrícolas validando precios oficiales del modelo estadístico.</p>
+                    <p class="text-muted small fw-semibold">Seleccione su punto de acopio autorizado, valide el precio estadístico y proceda al pago seguro.</p>
                 </div>
 
                 <!-- TARJETA INFORMATIVA DEL MODELO ESTADÍSTICO -->
                 <div id="cardPrecioSugerido" class="alert border-0 shadow-sm rounded-4 mb-4 d-none p-4 text-white" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);">
                     <div>
-                        <h5 class="alert-heading fw-bold mb-1 text-white">Precio Sugerido del Modelo Estadístico</h5>
+                        <h5 class="alert-heading fw-bold mb-1 text-white"><i class="bi bi-graph-up-arrow me-2"></i>Precio Sugerido del Modelo Estadístico</h5>
                         <p class="mb-1 fs-5 fw-semibold" id="txtPrecioSugerido">Cargando...</p>
                         <p class="mb-0 small text-light opacity-90" id="txtRangoPermitido">Rango permitido (±10%): -</p>
                     </div>
@@ -32,129 +33,112 @@
 
                 <form id="formPublicarDemanda" onsubmit="enviarDemandaAjax(event)">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 fw-semibold"></div>
 
-                    <!-- PRODUCTO Y VARIEDAD -->
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="IdTipoProducto" class="form-label fw-bold text-dark small">Tipo de Producto</label>
-                            <select id="ddlTipoProducto" asp-for="IdTipoProducto" asp-items="Model.ListaTiposProducto" class="form-select rounded-pill px-3 py-2" onchange="cargarVariedades()">
-                                <option value="">Seleccione tipo de producto...</option>
-                            </select>
-                            <span asp-validation-for="IdTipoProducto" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="IdVariedad" class="form-label fw-bold text-dark small">Variedad</label>
-                            <select id="ddlVariedad" asp-for="IdVariedad" asp-items="Model.ListaVariedades" class="form-select rounded-pill px-3 py-2" onchange="consultarPrecioModelo()">
-                                <option value="">Seleccione variedad...</option>
-                            </select>
-                            <span asp-validation-for="IdVariedad" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <!-- CANTIDAD Y PRECIO -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Cantidad" class="form-label fw-bold text-dark small">Cantidad Requerida (Kilos)</label>
-                            <input asp-for="Cantidad" id="txtCantidad" type="number" min="20" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 500" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
-                            <small class="text-success fw-bold d-block mt-1 ms-3" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
-                            <span asp-validation-for="Cantidad" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small">Precio Propuesto (COP por Kilo)</label>
-                            <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" min="100" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
-                            <span asp-validation-for="PrecioEstimado" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <!-- CONSTRUCTOR DE DIRECCIÓN URBANA -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark small mb-1">Constructor de Dirección Urbana</label>
-                        <p class="text-muted small mb-3">Estructure la dirección estándar colombiana (Tipo de vía, número, cruce y placa):</p>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-3">
-                                <label asp-for="TipoVia" class="form-label small fw-bold text-dark">Tipo de Vía *</label>
-                                <select asp-for="TipoVia" id="txtTipoVia" asp-items="Model.ListaTiposVia" class="form-select rounded-pill px-3 py-2" onchange="actualizarDireccion()"></select>
-                                <span asp-validation-for="TipoVia" class="text-danger small"></span>
+                        <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+                        <div class="col-lg-6">
+                            <!-- PRODUCTO Y VARIEDAD -->
+                            <div class="mb-3">
+                                <label asp-for="IdTipoProducto" class="form-label fw-bold text-dark small"></label>
+                                <select id="ddlTipoProducto" asp-for="IdTipoProducto" asp-items="Model.ListaTiposProducto" class="form-select rounded-pill px-3 py-2" onchange="cargarVariedades()">
+                                    <option value="">Seleccione tipo de producto...</option>
+                                </select>
+                                <span asp-validation-for="IdTipoProducto" class="text-danger small fw-semibold"></span>
                             </div>
-                            <div class="col-md-3">
-                                <label asp-for="NumeroVia" class="form-label small fw-bold text-dark">Número de Vía *</label>
-                                <input asp-for="NumeroVia" id="txtNumeroVia" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 45" oninput="actualizarDireccion()" />
-                                <span asp-validation-for="NumeroVia" class="text-danger small"></span>
+
+                            <div class="mb-3">
+                                <label asp-for="IdVariedad" class="form-label fw-bold text-dark small"></label>
+                                <select id="ddlVariedad" asp-for="IdVariedad" asp-items="Model.ListaVariedades" class="form-select rounded-pill px-3 py-2" onchange="consultarPrecioModelo()">
+                                    <option value="">Seleccione variedad...</option>
+                                </select>
+                                <span asp-validation-for="IdVariedad" class="text-danger small fw-semibold"></span>
                             </div>
-                            <div class="col-md-2">
-                                <label asp-for="LetraBis" class="form-label small fw-bold text-dark">Letra / Bis</label>
-                                <input asp-for="LetraBis" id="txtLetraBis" class="form-control rounded-pill px-3 py-2" placeholder="Ej: A, Sur" oninput="actualizarDireccion()" />
+
+                            <!-- CANTIDAD Y PRECIO -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Cantidad" class="form-label fw-bold text-dark small"></label>
+                                    <!-- Se quitó el min="20" nativo para evitar los mensajes en inglés del navegador -->
+                                    <input asp-for="Cantidad" id="txtCantidad" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 500" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
+                                    <small class="text-success fw-bold d-block mt-1 ms-2" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
+                                    <span asp-validation-for="Cantidad" class="text-danger small fw-semibold"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small"></label>
+                                    <!-- Se quitó el min="100" nativo -->
+                                    <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
+                                    <span asp-validation-for="PrecioEstimado" class="text-danger small fw-semibold"></span>
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label asp-for="Cruce" class="form-label small fw-bold text-dark">Cruce (#) *</label>
-                                <input asp-for="Cruce" id="txtCruce" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 12" oninput="actualizarDireccion()" />
-                                <span asp-validation-for="Cruce" class="text-danger small"></span>
+
+                            <!-- FECHAS Y HORARIOS -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="FechaEntrega" class="form-label fw-bold text-dark small"></label>
+                                    <input asp-for="FechaEntrega" type="date" id="txtFechaEntrega" class="form-control rounded-pill px-3 py-2 mb-1" />
+                                    <small class="text-muted d-block ms-2" style="font-size: 0.75rem;">Mínimo 4 días a partir de hoy.</small>
+                                    <span asp-validation-for="FechaEntrega" class="text-danger small fw-semibold"></span>
+
+                                    <label asp-for="HoraEntrega" class="form-label fw-bold text-dark small mt-2"></label>
+                                    <input asp-for="HoraEntrega" type="time" class="form-control rounded-pill px-3 py-2" value="08:00" />
+                                    <span asp-validation-for="HoraEntrega" class="text-danger small fw-semibold"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <!-- Fecha Límite Automática y No Editable -->
+                                    <label asp-for="LimTiemDeman" class="form-label fw-bold text-dark small"></label>
+                                    <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-1 bg-light text-muted" readonly />
+                                    <small class="text-success fw-semibold d-block ms-2" style="font-size: 0.75rem;">Disponible hasta mañana a medianoche.</small>
+                                    <span asp-validation-for="LimTiemDeman" class="text-danger small fw-semibold"></span>
+
+                                    <label asp-for="HoraLimite" class="form-label fw-bold text-dark small mt-2"></label>
+                                    <input asp-for="HoraLimite" type="time" class="form-control rounded-pill px-3 py-2 bg-light text-muted" value="23:59" readonly />
+                                    <span asp-validation-for="HoraLimite" class="text-danger small fw-semibold"></span>
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label asp-for="PlacaVia" class="form-label small fw-bold text-dark">Placa (-) *</label>
-                                <input asp-for="PlacaVia" id="txtPlaca" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 34" oninput="actualizarDireccion()" />
-                                <span asp-validation-for="PlacaVia" class="text-danger small"></span>
+
+                            <!-- PUNTO DE ACOPIO AUTORIZADO -->
+                            <div class="mb-3">
+                                <label asp-for="IdPuntoAcopio" class="form-label fw-bold text-dark small"></label>
+                                <select id="ddlPuntoAcopio" asp-for="IdPuntoAcopio" asp-items="Model.ListaPuntosAcopio" class="form-select rounded-pill px-3 py-2" onchange="actualizarUbicacionMapa()">
+                                    <option value="">Seleccione su punto de acopio...</option>
+                                </select>
+                                <span asp-validation-for="IdPuntoAcopio" class="text-danger small fw-semibold"></span>
+
+                                @if (!Model.TienePuntosAcopio)
+                                {
+                                    <div class="mt-2 text-danger small fw-semibold">
+                                        <i class="bi bi-exclamation-circle me-1"></i> No tienes registrado punto de acopio.
+                                        <a href="@Url.Action("Index", "PuntoAcopio")" class="text-success fw-bold text-decoration-underline">Registra uno aquí</a>.
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- DESCRIPCIÓN -->
+                            <div class="mb-3">
+                                <label asp-for="Descripcion" class="form-label fw-bold text-dark small"></label>
+                                <textarea asp-for="Descripcion" class="form-control rounded-4 px-3 py-2" rows="2" placeholder="Detalle especificaciones de calidad..."></textarea>
+                                <span asp-validation-for="Descripcion" class="text-danger small fw-semibold"></span>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="IndicacionExtra" class="form-label small fw-bold text-dark">Indicación extra (Opcional - solo referencia visual)</label>
-                            <input asp-for="IndicacionExtra" class="form-control rounded-pill px-3 py-2" placeholder="Ej: Casa verde de dos pisos, frente al parque" />
+                        <!-- COLUMNA DERECHA: MAPA DE GOOGLE MAPS (SATELITAL) -->
+                        <div class="col-lg-6 d-flex flex-column">
+                            <label class="form-label fw-bold text-dark small"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Ubicación Geográfica del Punto de Acopio (Vista Satelital)</label>
+                            <div class="flex-grow-1 border rounded-4 overflow-hidden shadow-sm bg-light mb-3" style="min-height: 380px; position: relative;">
+                                <div id="map" style="width: 100%; height: 100%; min-height: 380px;"></div>
+                            </div>
+                            <div id="infoPuntoAcopio" class="p-3 bg-light border rounded-4 text-muted small mb-3">
+                                <i class="bi bi-info-circle me-1"></i> Seleccione un punto de acopio para visualizar su ubicación exacta en el mapa satelital.
+                            </div>
                         </div>
-
-                        <!-- Previsualización de dirección estructurada -->
-                        <div class="p-3 border rounded-4 bg-light">
-                            <span class="fw-bold small text-success d-block mb-1">Dirección estructurada para el sistema:</span>
-                            <span id="previewDireccion" class="text-muted fst-italic">Diligencie los campos anteriores para armar la dirección...</span>
-                            <input type="hidden" asp-for="DireccionEstructurada" id="inputDireccionEstructurada" />
-                        </div>
-                    </div>
-
-                    <!-- FECHAS Y HORARIOS -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="FechaEntrega" class="form-label fw-bold text-dark small">Fecha de Entrega *</label>
-                            <input asp-for="FechaEntrega" type="date" id="txtFechaEntrega" class="form-control rounded-pill px-3 py-2 mb-2" onchange="validarFechas()" />
-                            <span asp-validation-for="FechaEntrega" class="text-danger small"></span>
-
-                            <label asp-for="HoraEntrega" class="form-label fw-bold text-dark small mt-2">Hora de Entrega *</label>
-                            <input asp-for="HoraEntrega" type="time" class="form-control rounded-pill px-3 py-2" value="08:00" />
-                            <span asp-validation-for="HoraEntrega" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="LimTiemDeman" class="form-label fw-bold text-dark small">Fecha Límite *</label>
-                            <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-2" />
-                            <span asp-validation-for="LimTiemDeman" class="text-danger small"></span>
-
-                            <label asp-for="HoraLimite" class="form-label fw-bold text-dark small mt-2">Hora Límite *</label>
-                            <input asp-for="HoraLimite" type="time" class="form-control rounded-pill px-3 py-2" value="17:00" />
-                            <span asp-validation-for="HoraLimite" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <!-- PUNTO DE ACOPIO -->
-                    <div class="mb-3">
-                        <label asp-for="IdPuntoAcopio" class="form-label fw-bold text-dark small">Punto de Acopio Autorizado</label>
-                        <select asp-for="IdPuntoAcopio" asp-items="Model.ListaPuntosAcopio" class="form-select rounded-pill px-3 py-2">
-                            <option value="">Seleccione punto de acopio...</option>
-                        </select>
-                        <span asp-validation-for="IdPuntoAcopio" class="text-danger small"></span>
-                    </div>
-
-                    <!-- DESCRIPCIÓN -->
-                    <div class="mb-4">
-                        <label asp-for="Descripcion" class="form-label fw-bold text-dark small">Descripción y Requerimientos</label>
-                        <textarea asp-for="Descripcion" class="form-control rounded-4 px-3 py-2" rows="3" placeholder="Detalle especificaciones de calidad, empaque, etc..."></textarea>
-                        <span asp-validation-for="Descripcion" class="text-danger small"></span>
                     </div>
 
                     <!-- BOTONES DE ACCIÓN -->
-                    <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                         <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
                         <button type="submit" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
-                            Publicar Demanda
+                            Publicar Demanda y Pagar
                         </button>
                     </div>
                 </form>
@@ -164,81 +148,89 @@
 </div>
 
 @section Scripts {
-    <!-- Inclusión garantizada de jQuery y SweetAlert2 -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="https://code.jquery.com/jquery-3.6.4.min.js"><\/script>')</script>
+    <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Script oficial de Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=@googleMapsApiKey&callback=initMap" async defer></script>
+
     <script>
+        let map;
+        let marker;
         let precioMinPermitido = 0;
         let precioMaxPermitido = 0;
 
+        function initMap() {
+            const centroColombia = { lat: 4.7110, lng: -74.0721 };
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12,
+                center: centroColombia,
+                mapTypeId: "satellite",
+                mapTypeControl: true,
+                streetViewControl: false
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
-            configurarRestriccionesFechas();
-            actualizarDireccion();
+            configurarFechasAutomaticas();
         });
 
-        function configurarRestriccionesFechas() {
+        function configurarFechasAutomaticas() {
             const hoy = new Date();
+
+            const fechaLimite = new Date(hoy);
+            fechaLimite.setDate(hoy.getDate() + 1);
+            const strFechaLimite = fechaLimite.toISOString().split('T')[0];
+
+            const inputFechaLimite = document.getElementById('txtFechaLimite');
+            if (inputFechaLimite) {
+                inputFechaLimite.value = strFechaLimite;
+            }
+
             const minEntrega = new Date(hoy);
-            minEntrega.setDate(hoy.getDate() + 1);
+            minEntrega.setDate(hoy.getDate() + 4);
+            const strMinEntrega = minEntrega.toISOString().split('T')[0];
+
             const inputFechaEntrega = document.getElementById('txtFechaEntrega');
             if (inputFechaEntrega) {
-                inputFechaEntrega.min = minEntrega.toISOString().split('T')[0];
+                inputFechaEntrega.min = strMinEntrega;
+                inputFechaEntrega.value = strMinEntrega;
             }
         }
 
-        function validarFechas() {
-            const valEntrega = document.getElementById('txtFechaEntrega').value;
-            const inputLimite = document.getElementById('txtFechaLimite');
+        function actualizarUbicacionMapa() {
+            var idPunto = $("#ddlPuntoAcopio").val();
+            if (!idPunto) {
+                if (marker) marker.setMap(null);
+                $("#infoPuntoAcopio").html('<i class="bi bi-info-circle me-1"></i> Seleccione un punto de acopio para visualizar su ubicación exacta en el mapa satelital.');
+                return;
+            }
 
-            if (valEntrega && inputLimite) {
-                let fechaEnt = new Date(valEntrega);
-                fechaEnt.setDate(fechaEnt.getDate() + 3);
-                const strMinLimite = fechaEnt.toISOString().split('T')[0];
+            $.getJSON('@Url.Action("ObtenerCoordenadasPuntoAcopio", "PublicarDemanda")', { idPuntoAcopio: idPunto }, function (data) {
+                if (data && data.exito) {
+                    const latLng = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
 
-                inputLimite.min = strMinLimite;
-                if (inputLimite.value && inputLimite.value < strMinLimite) {
-                    inputLimite.value = strMinLimite;
+                    if (marker) {
+                        marker.setPosition(latLng);
+                    } else {
+                        marker = new google.maps.Marker({
+                            position: latLng,
+                            map: map,
+                            title: data.nombre,
+                            animation: google.maps.Animation.DROP
+                        });
+                    }
+                    map.setCenter(latLng);
+                    map.setZoom(17);
+
+                    $("#infoPuntoAcopio").html(`<strong>Punto:</strong> ${data.nombre}<br><strong>Dirección:</strong> ${data.direccion}`);
                 }
-            }
-        }
-
-        function actualizarDireccion() {
-            const elTipo = document.getElementById('txtTipoVia');
-            const elNum = document.getElementById('txtNumeroVia');
-            const elLetra = document.getElementById('txtLetraBis');
-            const elCruce = document.getElementById('txtCruce');
-            const elPlaca = document.getElementById('txtPlaca');
-
-            if (!elTipo || !elNum || !elLetra || !elCruce || !elPlaca) return;
-
-            const tipo = elTipo.value;
-            const num = elNum.value.trim();
-            const letra = elLetra.value.trim();
-            const cruce = elCruce.value.trim();
-            const placa = elPlaca.value.trim();
-
-            let direccionArmada = "";
-            if (num) {
-                direccionArmada = `${tipo} ${num} ${letra} # ${cruce} - ${placa}`.replace(/\s+/g, ' ').trim();
-                document.getElementById('previewDireccion').textContent = direccionArmada;
-                document.getElementById('previewDireccion').classList.remove('text-muted', 'fst-italic');
-                document.getElementById('previewDireccion').classList.add('fw-bold', 'text-dark');
-                document.getElementById('inputDireccionEstructurada').value = direccionArmada;
-            } else {
-                document.getElementById('previewDireccion').textContent = "Diligencie los campos anteriores para armar la dirección...";
-                document.getElementById('previewDireccion').classList.add('text-muted', 'fst-italic');
-                document.getElementById('previewDireccion').classList.remove('fw-bold', 'text-dark');
-                document.getElementById('inputDireccionEstructurada').value = "";
-            }
+            });
         }
 
         function soloNumeros(e) {
             var charCode = (e.which) ? e.which : e.keyCode;
-            if (charCode > 31 && (charCode < 48 || charCode > 57)) {
-                return false;
-            }
+            if (charCode > 31 && (charCode < 48 || charCode > 57)) return false;
             return true;
         }
 
@@ -266,10 +258,8 @@
                             $ddlVariedad.append($('<option>', { value: item.id, text: item.nombre }));
                         });
                     } else {
-                        $ddlVariedad.append('<option value="" disabled>(No hay variedades registradas para este producto)</option>');
+                        $ddlVariedad.append('<option value="" disabled>(No hay variedades registradas)</option>');
                     }
-                }).fail(function () {
-                    $ddlVariedad.empty().append('<option value="">Error al cargar variedades</option>');
                 });
             } else {
                 $ddlVariedad.empty().append('<option value="">Seleccione variedad...</option>');
@@ -292,29 +282,9 @@
                     } else {
                         $("#cardPrecioSugerido").addClass("d-none");
                     }
-                }).fail(function () {
-                    $("#cardPrecioSugerido").addClass("d-none");
                 });
             } else {
                 $("#cardPrecioSugerido").addClass("d-none");
-            }
-        }
-
-        function mostrarAlerta(tipo, titulo, texto, callback) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: tipo,
-                    title: titulo,
-                    text: texto,
-                    confirmButtonColor: (tipo === 'success' ? '#198754' : '#d33'),
-                    background: '#f8f9fa',
-                    customClass: { popup: 'rounded-4 shadow-lg' }
-                }).then(() => {
-                    if (callback) callback();
-                });
-            } else {
-                alert(`${titulo}\n\n${texto}`);
-                if (callback) callback();
             }
         }
 
@@ -325,61 +295,62 @@
             var cantidadIngresada = parseFloat($("#txtCantidad").val());
 
             if (isNaN(cantidadIngresada) || cantidadIngresada < 20) {
-                mostrarAlerta('error', 'Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.');
+                Swal.fire('Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.', 'error');
+                return;
+            }
+
+            if (isNaN(precioIngresado) || precioIngresado < 100) {
+                Swal.fire('Precio inválido', 'El precio propuesto debe ser mayor o igual a 100 COP.', 'error');
                 return;
             }
 
             if (precioMinPermitido > 0 && precioMaxPermitido > 0) {
-                if (isNaN(precioIngresado) || precioIngresado < precioMinPermitido || precioIngresado > precioMaxPermitido) {
-                    mostrarAlerta('error', 'Precio fuera de rango estadístico', `El precio ingresado debe estar dentro del margen del 10% permitido ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`);
+                if (precioIngresado < precioMinPermitido || precioIngresado > precioMaxPermitido) {
+                    Swal.fire('Precio fuera de rango estadístico', `El precio ingresado debe estar dentro del margen permitido del 10% ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`, 'error');
                     return;
                 }
             }
 
-            const procesarGuardado = function () {
-                var formData = $('#formPublicarDemanda').serialize();
+            var formData = $('#formPublicarDemanda').serialize();
 
-                $.ajax({
-                    url: '@Url.Action("GuardarAjax", "PublicarDemanda")',
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.exito) {
-                            mostrarAlerta('success', '¡Pedido Validado!', response.mensaje, function () {
-                                window.location.href = response.redirectUrl;
-                            });
-                        } else {
-                            mostrarAlerta('error', 'Error de validación', response.error || 'Verifique los campos obligatorios.');
+            Swal.fire({
+                title: '¿Confirmar solicitud y pago?',
+                text: "Serás redirigido a la pasarela de pago seguro.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Continuar al Pago',
+                cancelButtonText: 'Cancelar',
+                background: '#f8f9fa',
+                customClass: { popup: 'rounded-4 shadow-lg' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("GuardarAjax", "PublicarDemanda")',
+                        type: 'POST',
+                        data: formData,
+                        success: function (response) {
+                            if (response.exito) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Validado!',
+                                    text: response.mensaje,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.href = response.redirectUrl;
+                                });
+                            } else {
+                                Swal.fire('Error de validación', response.error, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error de servidor', 'Ocurrió un error inesperado al procesar la solicitud.', 'error');
                         }
-                    },
-                    error: function () {
-                        mostrarAlerta('error', 'Error de servidor', 'Ocurrió un error inesperado al procesar la solicitud.');
-                    }
-                });
-            };
-
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: '¿Confirmar solicitud del pedido?',
-                    text: "Pasarás a la pasarela de pago seguro para completar y activar tu demanda.",
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#198754',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Continuar al Pago',
-                    cancelButtonText: 'Cancelar',
-                    background: '#f8f9fa',
-                    customClass: { popup: 'rounded-4 shadow-lg' }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        procesarGuardado();
-                    }
-                });
-            } else {
-                if (confirm('¿Confirmar solicitud del pedido?\n\nPasarás a la pasarela de pago seguro para completar y activar tu demanda.')) {
-                    procesarGuardado();
+                    });
                 }
-            }
+            });
         }
     </script>
 }
