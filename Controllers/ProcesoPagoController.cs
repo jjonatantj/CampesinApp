@@ -116,37 +116,37 @@ namespace CampesinApp.Controllers
                 catch { }
             }
 
-            // Paso E: Si no hay borrador en sesión, buscamos la demanda en la base de datos (por id o última creada)
-            Demandum? demanda = null;
-
+            // Paso E: Si se especificó un ID de demanda existente en la URL, verificamos que exista, que le pertenezca y que NO esté pagada
             if (idDemanda.HasValue && idDemanda.Value > 0)
             {
-                demanda = await _context.Demanda
+                var demanda = await _context.Demanda
                     .Include(d => d.IdTipoProductoNavigation)
                     .Include(d => d.IdVariedadNavigation)
                     .Include(d => d.IdPuntoAcopioNavigation)
+                    .Include(d => d.PagoCompradors)
                     .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda.Value && d.IdUsuario == usuario.IdUsuario);
-            }
-            else
-            {
-                // Si no hay borrador ni ID específico, buscamos la última demanda pendiente de pago en la BD
-                demanda = await _context.Demanda
-                    .Include(d => d.IdTipoProductoNavigation)
-                    .Include(d => d.IdVariedadNavigation)
-                    .Include(d => d.IdPuntoAcopioNavigation)
-                    .Where(d => d.IdUsuario == usuario.IdUsuario)
-                    .OrderByDescending(d => d.IdDemanda)
-                    .FirstOrDefaultAsync();
+
+                if (demanda != null && !demanda.PagoCompradors.Any())
+                {
+                    await PoblarDatosDemandaAsync(model, demanda, usuario.IdUsuario);
+                    return View(model);
+                }
             }
 
-            if (demanda == null)
-            {
-                TempData["MensajeInfo"] = "No se encontró ningún pedido pendiente de pago asociado a su cuenta.";
-                return RedirectToAction("Index", "PublicarDemanda");
-            }
+            // Regla de Protección: Si no hay borrador activo ni orden pendiente de pago válida, NO se permite el acceso a la pantalla
+            TempData["MensajeInfo"] = "No tienes ningún pedido pendiente de pago en este momento.";
+            return RedirectToAction("Index", "PantallaPrincipal");
+        }
 
-            await PoblarDatosDemandaAsync(model, demanda, usuario.IdUsuario);
-            return View(model);
+        /// <summary>
+        /// Cancela el proceso de pago en curso, elimina el borrador temporal de la sesión y redirige al inicio.
+        /// </summary>
+        [HttpGet("Cancelar")]
+        public IActionResult Cancelar()
+        {
+            HttpContext.Session.Remove("DemandaBorrador");
+            TempData["MensajeInfo"] = "El proceso de pago ha sido cancelado.";
+            return RedirectToAction("Index", "PantallaPrincipal");
         }
 
         // =========================================================================
@@ -258,8 +258,11 @@ namespace CampesinApp.Controllers
                 // Limpiamos el borrador de sesión para que no se duplique
                 HttpContext.Session.Remove("DemandaBorrador");
 
-                TempData["MensajeExito"] = $"¡Pago de ${valorTotalPagar:N0} recibido con éxito! Tu demanda ha sido publicada y el dinero queda custodiado para aportes campesinos 🌾.";
-                return RedirectToAction("Index", "PantallaPrincipal");
+                // En lugar de redirigir inmediatamente, mostramos el modal de éxito con temporizador de 4 segundos
+                ViewBag.PagoExitoso = true;
+                ViewBag.MensajeExito = $"¡Pago de ${valorTotalPagar:N0} COP recibido con éxito!";
+                await PoblarDatosDemandaAsync(model, nuevaDemanda, idUsuarioSesion.Value);
+                return View("Index", model);
             }
 
             // =====================================================================
@@ -309,8 +312,11 @@ namespace CampesinApp.Controllers
             demandaExistente.IdEstadoDeman = 1; // Demanda confirmada y activa
             await _context.SaveChangesAsync();
 
-            TempData["MensajeExito"] = $"¡Pago de ${montoPagar:N0} recibido con éxito! El dinero ha sido retenido y tu demanda está activa para aportes 🌾.";
-            return RedirectToAction("Index", "PantallaPrincipal");
+            // Mostramos el modal de éxito con temporizador de 4 segundos
+            ViewBag.PagoExitoso = true;
+            ViewBag.MensajeExito = $"¡Pago de ${montoPagar:N0} COP recibido con éxito!";
+            await PoblarDatosDemandaAsync(model, demandaExistente, idUsuarioSesion.Value);
+            return View("Index", model);
         }
 
         // =========================================================================
@@ -456,13 +462,12 @@ namespace CampesinApp.Controllers
                 }
                 else
                 {
-                    string mensajeTraducido = "El banco emisor o la pasarela declinó la transacción. Por favor verifique el medio de pago.";
+                    int errorCode = 0;
+                    string? descripcionApi = null;
+
                     try
                     {
                         using var errorDoc = JsonDocument.Parse(responseBody);
-                        int errorCode = 0;
-                        string? descripcionApi = null;
-
                         if (errorDoc.RootElement.TryGetProperty("error_code", out var codeProp))
                         {
                             errorCode = codeProp.GetInt32();
@@ -471,36 +476,97 @@ namespace CampesinApp.Controllers
                         {
                             descripcionApi = descProp.GetString();
                         }
-
-                        if (!string.IsNullOrWhiteSpace(descripcionApi))
-                        {
-                            mensajeTraducido = descripcionApi;
-                        }
-                        else
-                        {
-                            mensajeTraducido = errorCode switch
-                            {
-                                1001 => "Los datos del pago requeridos por la entidad bancaria están incompletos.",
-                                2004 => "El código de seguridad (CVC) o los datos de la tarjeta son inválidos.",
-                                2005 => "La tarjeta seleccionada se encuentra vencida.",
-                                3001 => "La tarjeta fue declinada por la entidad bancaria emisora.",
-                                3002 => "La tarjeta se encuentra inactiva o expirada.",
-                                3003 => "Fondos insuficientes en la tarjeta o cuenta para cubrir el monto del pedido.",
-                                3004 => "La tarjeta se encuentra bloqueada por el banco.",
-                                3005 => "Transacción rechazada por políticas de seguridad del banco emisor.",
-                                _ => mensajeTraducido
-                            };
-                        }
                     }
                     catch { }
 
+                    // Traducir exhaustivamente a español para evitar cualquier mensaje en inglés
+                    string mensajeTraducido = TraducirErrorOpenpay(errorCode, descripcionApi);
                     return (false, mensajeTraducido, null);
                 }
             }
             catch (Exception ex)
             {
-                return (false, "Error de comunicación con la pasarela de pagos: " + ex.Message, null);
+                return (false, "No fue posible conectar con la pasarela de pagos: " + ex.Message, null);
             }
+        }
+
+        /// <summary>
+        /// Traduce de forma exhaustiva los códigos y descripciones en inglés de Openpay a español claro y formal (CU-017).
+        /// Garantiza que nunca se muestren textos en inglés al usuario final.
+        /// </summary>
+        private static string TraducirErrorOpenpay(int errorCode, string? descripcionApi)
+        {
+            // 1. Mapeo por código numérico de error oficial de Openpay
+            string? porCodigo = errorCode switch
+            {
+                1000 => "Ocurrió un error interno en la pasarela de pagos. Por favor intente más tarde.",
+                1001 => "Los datos requeridos para la transacción bancaria están incompletos o son inválidos.",
+                1002 => "La transacción no pudo ser autenticada por la pasarela de pagos. Verifique las credenciales.",
+                1003 => "El servicio de pagos no se encuentra disponible temporalmente. Intente en unos minutos.",
+                1004 => "Se ha superado el límite de intentos de transacción. Por favor intente más tarde.",
+                2001 => "La cuenta bancaria o tarjeta ya se encuentra registrada en el sistema.",
+                2004 => "El número de tarjeta o el código de seguridad (CVC) no es válido.",
+                2005 => "La tarjeta seleccionada se encuentra vencida o expirada.",
+                2006 => "El código de seguridad (CVC) no es válido para este tipo de tarjeta.",
+                2007 => "En modo de prueba (sandbox) solo se admiten números de tarjeta de prueba autorizados.",
+                2008 => "La tarjeta seleccionada no es admitida para pagos electrónicos en línea.",
+                2009 => "El código de seguridad de la tarjeta es inválido.",
+                3001 => "La tarjeta fue declinada por la entidad bancaria emisora. Verifique con su banco.",
+                3002 => "La tarjeta se encuentra inactiva o expirada.",
+                3003 => "Fondos insuficientes en la tarjeta para cubrir el monto del pedido.",
+                3004 => "La tarjeta se encuentra bloqueada por la entidad bancaria.",
+                3005 => "Transacción rechazada por los filtros de seguridad y prevención de fraude del banco.",
+                3006 => "La tarjeta no tiene habilitada la opción de compras por internet.",
+                3009 => "La tarjeta fue reportada como extraviada o robada.",
+                3010 => "El banco emisor ha restringido el uso de esta tarjeta.",
+                3011 => "La entidad bancaria solicita comunicarse directamente con el banco emisor.",
+                3012 => "El banco requiere autorización telefónica previa para procesar esta compra.",
+                _ => null
+            };
+
+            if (porCodigo != null)
+            {
+                return porCodigo;
+            }
+
+            // 2. Mapeo semántico por palabras clave en inglés de la descripción de la API
+            string desc = (descripcionApi ?? "").ToLowerInvariant();
+
+            if (desc.Contains("insufficient") || desc.Contains("funds") || desc.Contains("saldo"))
+                return "Fondos insuficientes en la tarjeta o cuenta para cubrir el monto del pedido.";
+
+            if (desc.Contains("declined") || desc.Contains("rechazad"))
+                return "La transacción fue declinada por la entidad bancaria emisora. Verifique con su banco.";
+
+            if (desc.Contains("expir") || desc.Contains("vencid"))
+                return "La tarjeta seleccionada se encuentra vencida o la fecha de expiración es inválida.";
+
+            if (desc.Contains("card_number") || desc.Contains("card number") || desc.Contains("luhn") || desc.Contains("número de tarjeta"))
+                return "El número de tarjeta ingresado no es válido o no cumple con el formato bancario.";
+
+            if (desc.Contains("cvc") || desc.Contains("cvv") || desc.Contains("security code"))
+                return "El código de seguridad (CVC) de la tarjeta es inválido.";
+
+            if (desc.Contains("fraud") || desc.Contains("risk") || desc.Contains("riesgo"))
+                return "Transacción declinada por las políticas de seguridad y prevención de fraude del banco.";
+
+            if (desc.Contains("inactive") || desc.Contains("inactiv"))
+                return "La tarjeta seleccionada se encuentra inactiva.";
+
+            if (desc.Contains("block") || desc.Contains("bloquead"))
+                return "La tarjeta se encuentra bloqueada por su entidad bancaria.";
+
+            if (desc.Contains("stolen") || desc.Contains("lost") || desc.Contains("robada"))
+                return "La tarjeta seleccionada registra un reporte ante la entidad financiera.";
+
+            if (desc.Contains("limit") || desc.Contains("límite"))
+                return "Se ha superado el límite de crédito o monto máximo autorizado para compras.";
+
+            if (desc.Contains("not authorized") || desc.Contains("no autorizad"))
+                return "La transacción no fue autorizada por la entidad financiera emisora de la tarjeta.";
+
+            // 3. Mensaje formal en español por defecto
+            return "La entidad bancaria o la pasarela de pagos no pudo autorizar la transacción. Por favor verifique el medio de pago o intente con otra tarjeta.";
         }
 
         // =========================================================================

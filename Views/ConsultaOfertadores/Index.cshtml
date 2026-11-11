@@ -29,9 +29,50 @@
     <div id="seccionVista1" class="vista-seccion">
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
             
-            <h5 class="fw-bold text-dark mb-3">
-                <i class="bi bi-list-check text-success me-2"></i>Demandas Disponibles
-            </h5>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-list-check text-success me-2"></i>Demandas Disponibles
+                </h5>
+            </div>
+
+            <!-- Barra de Filtros para Vista 1 (Filtro de Estado y Filtro Cédula Comprador para Admin) -->
+            <div class="p-3 bg-light rounded-4 mb-3 border">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4 col-sm-6">
+                        <label for="filtroEstadoDemanda" class="form-label small fw-bold text-muted mb-1">
+                            <i class="bi bi-funnel-fill text-success me-1"></i>Estado de Demanda:
+                        </label>
+                        <select id="filtroEstadoDemanda" class="form-select form-select-sm rounded-pill shadow-sm" onchange="aplicarFiltrosDemandas()">
+                            <option value="todos">Todas las demandas</option>
+                            <option value="pendiente">Aún le faltan (Pendientes)</option>
+                            <option value="completada">Completadas</option>
+                        </select>
+                    </div>
+
+                    @if (Model.EsAdmin)
+                    {
+                        <div class="col-md-4 col-sm-6">
+                            <label for="filtroCedulaComprador" class="form-label small fw-bold text-muted mb-1">
+                                <i class="bi bi-person-badge-fill text-success me-1"></i>Cédula Comprador:
+                            </label>
+                            <input type="text" 
+                                   id="filtroCedulaComprador" 
+                                   class="form-control form-control-sm rounded-pill shadow-sm" 
+                                   placeholder="Buscar por cédula..." 
+                                   onkeyup="aplicarFiltrosDemandas()" />
+                        </div>
+                    }
+
+                    <div class="col-auto d-flex align-items-end mt-sm-auto mt-2">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm"
+                                title="Restablecer filtros"
+                                onclick="restablecerFiltrosDemandas()">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restablecer
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             @if (Model.Demandas == null || !Model.Demandas.Any())
             {
@@ -43,10 +84,14 @@
             else
             {
                 <div class="table-responsive rounded-4 border">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0" id="tablaDemandasPrincipal">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center"># Demanda</th>
+                                @if (Model.EsAdmin)
+                                {
+                                    <th>Comprador</th>
+                                }
                                 <th>Producto</th>
                                 <th>Variedad</th>
                                 <th class="text-end">Cantidad Total</th>
@@ -59,13 +104,20 @@
                         <tbody>
                             @foreach (var d in Model.Demandas)
                             {
-                                <tr>
+                                <tr class="fila-demanda" data-completada="@(d.EstaCompletada ? "true" : "false")" data-cedula="@d.CedulaComprador">
                                     <td class="text-center fw-bold text-secondary">#@d.IdDemanda</td>
+                                    @if (Model.EsAdmin)
+                                    {
+                                        <td>
+                                            <div class="fw-semibold text-dark">@d.NombreComprador</div>
+                                            <small class="text-muted"><i class="bi bi-person-badge me-1"></i>CC: @d.CedulaComprador</small>
+                                        </td>
+                                    }
                                     <td class="fw-bold text-dark">@d.NombreProducto</td>
                                     <td><span class="badge bg-light text-dark border">@d.Variedad</span></td>
                                     <td class="text-end fw-semibold">@d.CantidadTotal.ToString("N0") Kg</td>
                                     <td class="text-end">
-                                        @if (d.CantidadRestante == 0)
+                                        @if (d.EstaCompletada)
                                         {
                                             <span class="badge bg-success rounded-pill">Completada</span>
                                         }
@@ -93,6 +145,19 @@
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div id="avisoSinResultadosDemandas" class="text-center py-4 text-muted d-none">
+                    <i class="bi bi-filter-circle fs-2 d-block mb-1 text-secondary"></i>
+                    No se encontraron demandas con los criterios seleccionados.
+                </div>
+
+                <!-- Paginación de Vista 1 (6 filas por página) -->
+                <div id="contenedorPaginacionVista1" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-2 border-top">
+                    <div class="small text-muted" id="infoPaginacionVista1"></div>
+                    <nav aria-label="Navegación de demandas">
+                        <ul class="pagination pagination-sm mb-0 justify-content-center" id="listaPaginacionVista1"></ul>
+                    </nav>
                 </div>
             }
 
@@ -230,13 +295,21 @@
                         No se encontraron campesinos con un aporte mayor a la cantidad especificada.
                     </div>
 
+                    <!-- Paginación de Vista 2 (6 ofertadores por página) -->
+                    <div id="contenedorPaginacionOfertadores_@d.IdDemanda" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pt-2">
+                        <div class="small text-muted" id="infoPaginacionOfertadores_@d.IdDemanda"></div>
+                        <nav aria-label="Navegación de ofertadores">
+                            <ul class="pagination pagination-sm mb-0 justify-content-center" id="listaPaginacionOfertadores_@d.IdDemanda"></ul>
+                        </nav>
+                    </div>
+
                     <!-- Botones Inferiores: Exportar a la izquierda/abajo, Salir a la derecha (FA-02 & FA-04) -->
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
-                        <!-- Botón verde "Exportar" -->
+                        <!-- Botón verde "Exportar" a Excel nativo (.xlsx) -->
                         <button type="button" 
                                 class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm"
                                 style="background-color: #2e7d32; border-color: #2e7d32;"
-                                onclick="exportarTablaAExcel(@d.IdDemanda, '@d.NombreProducto')">
+                                onclick="descargarExcelOfertadores(@d.IdDemanda)">
                             <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar
                         </button>
 
@@ -295,10 +368,296 @@
     </div>
 </div>
 
+<!-- ============================================================== -->
+<!-- MODAL HTML: ALERTA PERSONALIZADA DE DESCARGA EXITOSA (FA-02)   -->
+<!-- Basada en el estilo visual de CampesinApp con botón Aceptar   -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalDescargaExitosa" tabindex="-1" aria-labelledby="modalDescargaExitosaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            
+            <div class="modal-header border-0 bg-success bg-opacity-10 py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="modalDescargaExitosaLabel">
+                        Descarga Exitosa
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-center">
+                <i class="bi bi-file-earmark-excel-fill fs-1 text-success d-block mb-3"></i>
+                <h5 class="fw-bold text-dark mb-0">
+                    Descarga realizada con éxito
+                </h5>
+            </div>
+
+            <div class="modal-footer border-0 bg-light py-2 px-4 justify-content-center">
+                <button type="button" 
+                        class="btn btn-success rounded-pill px-5 py-2 fw-semibold shadow-sm" 
+                        style="background-color: #2e7d32; border-color: #2e7d32;"
+                        data-bs-dismiss="modal">
+                    Aceptar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+<style>
+    /* Estilos para la paginación verde CampesinApp */
+    .pagination .page-item.active .page-link {
+        background-color: #2e7d32 !important;
+        border-color: #2e7d32 !important;
+        color: #ffffff !important;
+        font-weight: bold;
+    }
+    .pagination .page-link {
+        color: #2e7d32;
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+    .pagination .page-link:hover {
+        background-color: #e8f5e9;
+        color: #1b5e20;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        background-color: #f8f9fa;
+    }
+</style>
+
 <script>
     // Variable para controlar el temporizador de cierre del modal FE-01
     let temporizadorModal = null;
+    const REGISTROS_POR_PAGINA = 6;
+
+    // =============================================================
+    // PAGINACIÓN Y FILTRADO DE VISTA 1 (LISTADO DE DEMANDAS)
+    // =============================================================
+    let paginaActualDemandas = 1;
+
+    function obtenerFilasDemandasFiltradas() {
+        const selectEstado = document.getElementById('filtroEstadoDemanda');
+        const filtroEstado = selectEstado ? selectEstado.value : 'todos';
+
+        const inputCedula = document.getElementById('filtroCedulaComprador');
+        const valorCedula = inputCedula ? inputCedula.value.trim().toLowerCase() : '';
+
+        const todasLasFilas = Array.from(document.querySelectorAll('#tablaDemandasPrincipal .fila-demanda'));
+        return todasLasFilas.filter(fila => {
+            const esCompletada = fila.getAttribute('data-completada') === 'true';
+            const cedula = (fila.getAttribute('data-cedula') || '').toLowerCase();
+
+            // Filtro por estado: pendiente o completada
+            if (filtroEstado === 'pendiente' && esCompletada) return false;
+            if (filtroEstado === 'completada' && !esCompletada) return false;
+
+            // Filtro por cédula de comprador (disponible para rol Administrador)
+            if (valorCedula !== '' && !cedula.includes(valorCedula)) return false;
+
+            return true;
+        });
+    }
+
+    function aplicarFiltrosDemandas() {
+        paginaActualDemandas = 1;
+        renderizarPaginacionDemandas();
+    }
+
+    function restablecerFiltrosDemandas() {
+        const selectEstado = document.getElementById('filtroEstadoDemanda');
+        if (selectEstado) selectEstado.value = 'todos';
+
+        const inputCedula = document.getElementById('filtroCedulaComprador');
+        if (inputCedula) inputCedula.value = '';
+
+        paginaActualDemandas = 1;
+        renderizarPaginacionDemandas();
+    }
+
+    function cambiarPaginaDemandas(nuevaPagina) {
+        paginaActualDemandas = nuevaPagina;
+        renderizarPaginacionDemandas();
+    }
+
+    function renderizarPaginacionDemandas() {
+        const todasLasFilas = Array.from(document.querySelectorAll('#tablaDemandasPrincipal .fila-demanda'));
+        const filasFiltradas = obtenerFilasDemandasFiltradas();
+        const totalFiltradas = filasFiltradas.length;
+        const totalPaginas = Math.ceil(totalFiltradas / REGISTROS_POR_PAGINA);
+
+        if (paginaActualDemandas > totalPaginas) paginaActualDemandas = totalPaginas || 1;
+        if (paginaActualDemandas < 1) paginaActualDemandas = 1;
+
+        // Ocultar todas las filas inicialmente
+        todasLasFilas.forEach(f => f.classList.add('d-none'));
+
+        const aviso = document.getElementById('avisoSinResultadosDemandas');
+        const contPaginacion = document.getElementById('contenedorPaginacionVista1');
+
+        if (totalFiltradas === 0) {
+            if (aviso) aviso.classList.remove('d-none');
+            if (contPaginacion) contPaginacion.classList.add('d-none');
+            return;
+        }
+
+        if (aviso) aviso.classList.add('d-none');
+        if (contPaginacion) contPaginacion.classList.remove('d-none');
+
+        // Mostrar solo los 6 registros correspondientes a la página seleccionada
+        const indiceInicio = (paginaActualDemandas - 1) * REGISTROS_POR_PAGINA;
+        const indiceFin = Math.min(indiceInicio + REGISTROS_POR_PAGINA, totalFiltradas);
+
+        for (let i = indiceInicio; i < indiceFin; i++) {
+            filasFiltradas[i].classList.remove('d-none');
+        }
+
+        // Actualizar texto informativo de paginación
+        const info = document.getElementById('infoPaginacionVista1');
+        if (info) {
+            info.textContent = `Mostrando ${indiceInicio + 1} a ${indiceFin} de ${totalFiltradas} demandas`;
+        }
+
+        // Generar botones de paginación
+        const lista = document.getElementById('listaPaginacionVista1');
+        if (!lista) return;
+        lista.innerHTML = '';
+
+        // Botón Anterior
+        const liPrev = document.createElement('li');
+        liPrev.className = `page-item ${paginaActualDemandas === 1 ? 'disabled' : ''}`;
+        liPrev.innerHTML = `<button class="page-link shadow-none" type="button" aria-label="Anterior">&laquo;</button>`;
+        if (paginaActualDemandas > 1) {
+            liPrev.addEventListener('click', () => cambiarPaginaDemandas(paginaActualDemandas - 1));
+        }
+        lista.appendChild(liPrev);
+
+        // Botones numéricos de página
+        for (let p = 1; p <= totalPaginas; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === paginaActualDemandas ? 'active' : ''}`;
+            li.innerHTML = `<button class="page-link shadow-none" type="button">${p}</button>`;
+            const numPag = p;
+            li.addEventListener('click', () => cambiarPaginaDemandas(numPag));
+            lista.appendChild(li);
+        }
+
+        // Botón Siguiente
+        const liNext = document.createElement('li');
+        liNext.className = `page-item ${paginaActualDemandas === totalPaginas ? 'disabled' : ''}`;
+        liNext.innerHTML = `<button class="page-link shadow-none" type="button" aria-label="Siguiente">&raquo;</button>`;
+        if (paginaActualDemandas < totalPaginas) {
+            liNext.addEventListener('click', () => cambiarPaginaDemandas(paginaActualDemandas + 1));
+        }
+        lista.appendChild(liNext);
+    }
+
+    // =============================================================
+    // PAGINACIÓN Y FILTRADO DE VISTA 2 (CAMPESINOS OFERTADORES)
+    // =============================================================
+    const estadoPaginacionOfertadores = {}; // idDemanda: { paginaActual: 1, filtroCantidad: null }
+
+    function obtenerEstadoOfertadores(idDemanda) {
+        if (!estadoPaginacionOfertadores[idDemanda]) {
+            estadoPaginacionOfertadores[idDemanda] = { paginaActual: 1, filtroCantidad: null };
+        }
+        return estadoPaginacionOfertadores[idDemanda];
+    }
+
+    function obtenerFilasOfertadoresFiltradas(idDemanda) {
+        const tabla = document.getElementById('tablaOfertadores_' + idDemanda);
+        if (!tabla) return [];
+        const filas = Array.from(tabla.querySelectorAll('.fila-ofertador'));
+        const estado = obtenerEstadoOfertadores(idDemanda);
+
+        return filas.filter(fila => {
+            if (estado.filtroCantidad === null) return true;
+            const cant = parseInt(fila.getAttribute('data-cantidad') || '0', 10);
+            return cant > estado.filtroCantidad;
+        });
+    }
+
+    function actualizarPaginacionOfertadores(idDemanda) {
+        const tabla = document.getElementById('tablaOfertadores_' + idDemanda);
+        if (!tabla) return;
+
+        const estado = obtenerEstadoOfertadores(idDemanda);
+        const todasLasFilas = Array.from(tabla.querySelectorAll('.fila-ofertador'));
+        const filasFiltradas = obtenerFilasOfertadoresFiltradas(idDemanda);
+        const totalFiltradas = filasFiltradas.length;
+        const totalPaginas = Math.ceil(totalFiltradas / REGISTROS_POR_PAGINA);
+
+        if (estado.paginaActual > totalPaginas) estado.paginaActual = totalPaginas || 1;
+        if (estado.paginaActual < 1) estado.paginaActual = 1;
+
+        todasLasFilas.forEach(f => f.classList.add('d-none'));
+
+        const aviso = document.getElementById('avisoSinResultados_' + idDemanda);
+        const contPaginacion = document.getElementById('contenedorPaginacionOfertadores_' + idDemanda);
+
+        if (totalFiltradas === 0) {
+            if (aviso) aviso.classList.remove('d-none');
+            if (contPaginacion) contPaginacion.classList.add('d-none');
+            return;
+        }
+
+        if (aviso) aviso.classList.add('d-none');
+        if (contPaginacion) contPaginacion.classList.remove('d-none');
+
+        const indiceInicio = (estado.paginaActual - 1) * REGISTROS_POR_PAGINA;
+        const indiceFin = Math.min(indiceInicio + REGISTROS_POR_PAGINA, totalFiltradas);
+
+        for (let i = indiceInicio; i < indiceFin; i++) {
+            filasFiltradas[i].classList.remove('d-none');
+        }
+
+        const info = document.getElementById('infoPaginacionOfertadores_' + idDemanda);
+        if (info) {
+            info.textContent = `Mostrando ${indiceInicio + 1} a ${indiceFin} de ${totalFiltradas} ofertadores`;
+        }
+
+        const lista = document.getElementById('listaPaginacionOfertadores_' + idDemanda);
+        if (!lista) return;
+        lista.innerHTML = '';
+
+        const liPrev = document.createElement('li');
+        liPrev.className = `page-item ${estado.paginaActual === 1 ? 'disabled' : ''}`;
+        liPrev.innerHTML = `<button class="page-link shadow-none" type="button" aria-label="Anterior">&laquo;</button>`;
+        if (estado.paginaActual > 1) {
+            liPrev.addEventListener('click', () => {
+                estado.paginaActual--;
+                actualizarPaginacionOfertadores(idDemanda);
+            });
+        }
+        lista.appendChild(liPrev);
+
+        for (let p = 1; p <= totalPaginas; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === estado.paginaActual ? 'active' : ''}`;
+            li.innerHTML = `<button class="page-link shadow-none" type="button">${p}</button>`;
+            const numPag = p;
+            li.addEventListener('click', () => {
+                estado.paginaActual = numPag;
+                actualizarPaginacionOfertadores(idDemanda);
+            });
+            lista.appendChild(li);
+        }
+
+        const liNext = document.createElement('li');
+        liNext.className = `page-item ${estado.paginaActual === totalPaginas ? 'disabled' : ''}`;
+        liNext.innerHTML = `<button class="page-link shadow-none" type="button" aria-label="Siguiente">&raquo;</button>`;
+        if (estado.paginaActual < totalPaginas) {
+            liNext.addEventListener('click', () => {
+                estado.paginaActual++;
+                actualizarPaginacionOfertadores(idDemanda);
+            });
+        }
+        lista.appendChild(liNext);
+    }
 
     // -------------------------------------------------------------
     // MOSTRAR DETALLE DE LA DEMANDA (TRANSICIÓN VISTA 1 -> VISTA 2)
@@ -337,6 +696,8 @@
         const target = document.getElementById('detalleDemanda_' + idDemanda);
         if (target) {
             target.classList.remove('d-none');
+            // Inicializar la paginación de la tabla de ofertadores en la página 1
+            actualizarPaginacionOfertadores(idDemanda);
         }
 
         // Scroll suave hacia la parte superior
@@ -366,31 +727,10 @@
             return;
         }
 
-        const cantidadMinima = parseInt(valorTexto, 10);
-        const tabla = document.getElementById('tablaOfertadores_' + idDemanda);
-        if (!tabla) return;
-
-        const filas = tabla.querySelectorAll('.fila-ofertador');
-        let visibles = 0;
-
-        filas.forEach(function (fila) {
-            const cant = parseInt(fila.getAttribute('data-cantidad') || '0', 10);
-            if (cant > cantidadMinima) {
-                fila.classList.remove('d-none');
-                visibles++;
-            } else {
-                fila.classList.add('d-none');
-            }
-        });
-
-        const aviso = document.getElementById('avisoSinResultados_' + idDemanda);
-        if (aviso) {
-            if (visibles === 0) {
-                aviso.classList.remove('d-none');
-            } else {
-                aviso.classList.add('d-none');
-            }
-        }
+        const estado = obtenerEstadoOfertadores(idDemanda);
+        estado.filtroCantidad = parseInt(valorTexto, 10);
+        estado.paginaActual = 1;
+        actualizarPaginacionOfertadores(idDemanda);
     }
 
     // -------------------------------------------------------------
@@ -400,81 +740,51 @@
         const input = document.getElementById('inputFiltro_' + idDemanda);
         if (input) input.value = '';
 
-        const tabla = document.getElementById('tablaOfertadores_' + idDemanda);
-        if (tabla) {
-            tabla.querySelectorAll('.fila-ofertador').forEach(function (fila) {
-                fila.classList.remove('d-none');
-            });
-        }
-
-        const aviso = document.getElementById('avisoSinResultados_' + idDemanda);
-        if (aviso) aviso.classList.add('d-none');
+        const estado = obtenerEstadoOfertadores(idDemanda);
+        estado.filtroCantidad = null;
+        estado.paginaActual = 1;
+        actualizarPaginacionOfertadores(idDemanda);
     }
 
     // -------------------------------------------------------------
-    // EXPORTACIÓN A EXCEL / CSV EN CLIENTE (FA-02-CU016)
+    // EXPORTACIÓN A EXCEL NATIVO (.XLSX) VIA BACKEND (FA-02-CU016)
     // -------------------------------------------------------------
-    function exportarTablaAExcel(idDemanda, nombreProducto) {
-        const tabla = document.getElementById('tablaOfertadores_' + idDemanda);
-        if (!tabla) return;
-
-        // Construcción de filas CSV con BOM (\uFEFF) para compatibilidad nativa con tildes en Excel
-        let csvContent = '\uFEFF';
-        csvContent += 'Reporte de Campesinos Ofertadores - Demanda #' + idDemanda + ' (' + nombreProducto + ')\r\n';
-        csvContent += 'Nombre del Campesino;Cantidad Aportada (Kg);Ubicacion Origen / Acopio\r\n';
-
-        const filas = tabla.querySelectorAll('.fila-ofertador');
-        let contador = 0;
-
-        filas.forEach(function (fila) {
-            // Solo exportar las filas visibles si hay un filtro aplicado
-            if (!fila.classList.contains('d-none')) {
-                const columnas = fila.querySelectorAll('td');
-                if (columnas.length >= 3) {
-                    const nombre = columnas[0].innerText.replace(/(\r\n|\n|\r)/gm, '').trim().replace(/"/g, '""');
-                    const cantidad = columnas[1].innerText.replace(/(\r\n|\n|\r)/gm, '').trim().replace('Kg', '').replace(/\./g, '').trim();
-                    const ubicacion = columnas[2].innerText.replace(/(\r\n|\n|\r)/gm, '').trim().replace(/"/g, '""');
-
-                    csvContent += '"' + nombre + '";"' + cantidad + '";"' + ubicacion + '"\r\n';
-                    contador++;
-                }
-            }
-        });
-
-        if (contador === 0) {
-            alert('No hay datos disponibles en la tabla para exportar.');
-            return;
+    function descargarExcelOfertadores(idDemanda) {
+        const estado = obtenerEstadoOfertadores(idDemanda);
+        let url = '@Url.Action("ExportarExcel", "ConsultaOfertadores")?idDemanda=' + idDemanda;
+        
+        // Si hay un filtro de cantidad activo, se envía al servidor para exportar los mismos datos
+        if (estado.filtroCantidad !== null && estado.filtroCantidad >= 0) {
+            url += '&cantidadMinima=' + estado.filtroCantidad;
         }
 
-        // Creación del blob y disparo de descarga en el navegador
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const enlace = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        const fechaActual = new Date().toISOString().slice(0, 10);
+        // Descarga el archivo Excel nativo (.xlsx) generado con ClosedXML
+        window.location.href = url;
 
-        enlace.setAttribute('href', url);
-        enlace.setAttribute('download', 'Ofertadores_Demanda_' + idDemanda + '_' + fechaActual + '.csv');
-        document.body.appendChild(enlace);
-        enlace.click();
-        document.body.removeChild(enlace);
-        URL.revokeObjectURL(url);
-
-        // Alerta nativa solicitada en la regla FA-02
-        alert('descarga realizada');
+        // Mostrar alerta propia de éxito (Modal CampesinApp)
+        const modalDescarga = document.getElementById('modalDescargaExitosa');
+        if (modalDescarga && typeof bootstrap !== 'undefined') {
+            const instanciaModal = bootstrap.Modal.getOrCreateInstance(modalDescarga);
+            instanciaModal.show();
+        }
     }
 
-    // Si se envió un idDemanda por parámetro en el ViewModel, abrir automáticamente su detalle
-    @if (Model.IdDemandaSeleccionada.HasValue)
-    {
-        <text>
-        document.addEventListener('DOMContentLoaded', function () {
+    // Inicialización al cargar la página
+    document.addEventListener('DOMContentLoaded', function () {
+        // Inicializar paginación de demandas en Vista 1
+        renderizarPaginacionDemandas();
+
+        // Si se envió un idDemanda por parámetro en el ViewModel, abrir automáticamente su detalle
+        @if (Model.IdDemandaSeleccionada.HasValue)
+        {
+            <text>
             const demandaInicial = document.getElementById('detalleDemanda_@Model.IdDemandaSeleccionada.Value');
             if (demandaInicial) {
                 mostrarDetalleDemanda(@Model.IdDemandaSeleccionada.Value, 1);
             }
-        });
-        </text>
-    }
+            </text>
+        }
+    });
 </script>
 }
 

@@ -12,6 +12,10 @@ namespace CampesinApp.ViewModels
         public string RolUsuario { get; set; } = "Usuario";
         public int? IdDemandaSeleccionada { get; set; }
         public List<DemandaOfertadorItemViewModel> Demandas { get; set; } = new List<DemandaOfertadorItemViewModel>();
+
+        public bool EsAdmin => string.Equals(RolUsuario, "Administrador", StringComparison.OrdinalIgnoreCase);
+        public bool EsTransportador => string.Equals(RolUsuario, "Transportador", StringComparison.OrdinalIgnoreCase);
+        public bool EsComprador => string.Equals(RolUsuario, "Comprador", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -28,6 +32,10 @@ namespace CampesinApp.ViewModels
         public DateTime FechaLimiteOfertar { get; set; }
         public DateTime FechaEntrega { get; set; }
         public int TotalOfertadores { get; set; }
+        public string CedulaComprador { get; set; } = string.Empty;
+        public string NombreComprador { get; set; } = string.Empty;
+        public string EstadoDemanda { get; set; } = "Publicada";
+        public bool EstaCompletada => CantidadRestante == 0 || EstadoDemanda.Equals("Completada", StringComparison.OrdinalIgnoreCase);
         public List<OfertadorDetalleViewModel> Ofertadores { get; set; } = new List<OfertadorDetalleViewModel>();
     }
 
