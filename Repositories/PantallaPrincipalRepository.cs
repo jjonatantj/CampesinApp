@@ -1,6 +1,7 @@
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CampesinApp.Repositories
 {
@@ -13,10 +14,41 @@ namespace CampesinApp.Repositories
             _context = context;
         }
 
-        // ─────────────────────────────────────────────────────────────────
-        // PRECIOS SUGERIDOS DEL DÍA (precio_Estimado + tipo_Producto + variedad)
-        // ─────────────────────────────────────────────────────────────────
-        public List<PrecioSugeridoItem> ObtenerPreciosDelDia(string buscar = "", string categoria = "")
+        // Obtener lista de tipos de producto para el desplegable
+        public List<SelectListItem> ObtenerListaTiposProducto(string categoriaSeleccionada = "")
+        {
+            return _context.TipoProductos
+                .OrderBy(tp => tp.Producto)
+                .Select(tp => new SelectListItem
+                {
+                    Value = tp.IdTipoProducto.ToString(),
+                    Text = tp.Producto,
+                    Selected = (tp.IdTipoProducto.ToString() == categoriaSeleccionada)
+                })
+                .ToList();
+        }
+
+        // Obtener variedades según el tipo seleccionado
+        public List<SelectListItem> ObtenerListaVariedadesPorTipo(string categoria, string variedadSeleccionada = "")
+        {
+            if (!string.IsNullOrEmpty(categoria) && int.TryParse(categoria, out int idTipoNum))
+            {
+                return _context.Variedads
+                    .Where(v => v.IdTipoProducto == idTipoNum)
+                    .OrderBy(v => v.VariedadProd)
+                    .Select(v => new SelectListItem
+                    {
+                        Value = v.IdVariedad.ToString(),
+                        Text = v.VariedadProd,
+                        Selected = (v.IdVariedad.ToString() == variedadSeleccionada)
+                    })
+                    .ToList();
+            }
+            return new List<SelectListItem>();
+        }
+
+        // Precios paginados estrictamente de 5 en 5 con filtros
+        public (List<PrecioSugeridoItem> ListaPrecios, int TotalRegistros) ObtenerPreciosPaginados(string buscar = "", string categoria = "", string variedad = "", int pagina = 1, int pageSize = 5)
         {
             var query = _context.PrecioEstimados
                 .Include(p => p.IdTipoProductoNavigation)
@@ -26,35 +58,53 @@ namespace CampesinApp.Repositories
 
             if (!string.IsNullOrWhiteSpace(buscar))
             {
-                query = query.Where(p => p.IdTipoProductoNavigation.Producto.Contains(buscar));
+                query = query.Where(p => p.IdTipoProductoNavigation.Producto.Contains(buscar) || p.IdVariedadNavigation.VariedadProd.Contains(buscar));
             }
 
-            if (!string.IsNullOrWhiteSpace(categoria) && categoria != "Todas")
+            if (!string.IsNullOrWhiteSpace(categoria))
             {
-                query = query.Where(p => p.IdTipoProductoNavigation.Producto == categoria);
+                if (int.TryParse(categoria, out int idCatNum))
+                {
+                    query = query.Where(p => p.IdTipoProducto == idCatNum);
+                }
+                else if (categoria != "Todas")
+                {
+                    query = query.Where(p => p.IdTipoProductoNavigation.Producto == categoria);
+                }
             }
 
-            // Garantiza que solo se obtenga el precio más reciente de la bitácora (CU-029)
+            if (!string.IsNullOrWhiteSpace(variedad) && int.TryParse(variedad, out int idVarNum))
+            {
+                query = query.Where(p => p.IdVariedad == idVarNum);
+            }
+
             var ultimosPreciosIds = query
                 .GroupBy(p => new { p.IdTipoProducto, p.IdVariedad })
                 .Select(g => g.Max(p => p.IdPrecioEstimado))
                 .ToList();
 
-            var precios = _context.PrecioEstimados
+            var preciosQuery = _context.PrecioEstimados
                 .Include(p => p.IdTipoProductoNavigation)
                 .Include(p => p.IdVariedadNavigation)
                 .Where(p => ultimosPreciosIds.Contains(p.IdPrecioEstimado))
                 .Select(p => new PrecioSugeridoItem
                 {
-                    Producto = p.IdTipoProductoNavigation.Producto + " (" + p.IdVariedadNavigation.VariedadProd + ")",
+                    Producto = p.IdTipoProductoNavigation.Producto,
+                    Variedad = p.IdVariedadNavigation.VariedadProd,
                     Categoria = p.IdTipoProductoNavigation.Producto,
                     UnidadMedida = "Kg",
                     PrecioVenta = (decimal)Math.Round(p.PrecioEstiCampesino, 0),
                     PrecioCompra = (decimal)Math.Round(p.PrecioEstiComprador, 0),
-                })
+                });
+
+            int totalRegistros = preciosQuery.Count();
+
+            var listaPaginada = preciosQuery
+                .Skip((pagina - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
-            return precios;
+            return (listaPaginada, totalRegistros);
         }
 
         public List<string> ObtenerCategorias()
@@ -65,10 +115,6 @@ namespace CampesinApp.Repositories
                 .Distinct()
                 .ToList();
         }
-
-        // ─────────────────────────────────────────────────────────────────
-        // BLOQUES DE SUGERENCIAS
-        // ─────────────────────────────────────────────────────────────────
 
         public List<CamionSugerenciaItem> ObtenerCamionesDisponibles(int top = 5)
         {
