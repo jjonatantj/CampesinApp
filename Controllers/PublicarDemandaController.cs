@@ -28,13 +28,28 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == idUsuario.Value && u.Estado);
+            // Consultar el usuario junto con su rol para validar la restricción de acceso
+            var usuario = await _context.Usuarios
+                .Include(u => u.IdRolNavigation)
+                .FirstOrDefaultAsync(u => u.IdUsuario == idUsuario.Value && u.Estado);
+
             if (usuario == null)
             {
                 return RedirectToAction("Login", "InicioSesion");
             }
 
-            // Validar Puntos de Acopio del usuario (tabla punto_Acopio filtrada por id_Usuario)[cite: 30]
+            // SEGURIDAD ESTRICTA: Solo el rol "Comprador" tiene permitido acceder a publicar demandas
+            string rolUsuario = usuario.IdRolNavigation?.TipoRol ?? string.Empty;
+            if (!rolUsuario.Equals("Comprador", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ErrorAcceso"] = "No tienes permisos para acceder a esta sección. Acceso exclusivo para compradores.";
+                return RedirectToAction("Index", "Perfil");
+            }
+
+            // Limpiar cualquier borrador previo al ingresar para iniciar con campos limpios
+            HttpContext.Session.Remove("DemandaBorrador");
+
+            // Validar Puntos de Acopio del usuario
             var puntosAcopio = await _context.PuntoAcopios
                 .Where(pa => pa.IdUsuario == idUsuario.Value)
                 .Select(pa => new SelectListItem { Value = pa.IdPuntoAcopio.ToString(), Text = pa.NombrePunto })
@@ -49,7 +64,6 @@ namespace CampesinApp.Controllers
                 TienePuntosAcopio = puntosAcopio.Count > 0
             };
 
-            // Pasar la API Key de Google Maps a la vista
             ViewBag.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
             return View("PublicarDemanda", model);
@@ -102,10 +116,26 @@ namespace CampesinApp.Controllers
         [HttpPost("GuardarAjax")]
         public async Task<IActionResult> GuardarAjax(PublicarDemandaViewModel model)
         {
-            // Fecha límite automática: 1 día después de hoy a las 23:59 por seguridad
-            model.LimTiemDeman = DateTime.Now.AddDays(1).Date.AddHours(23).AddMinutes(59);
+            int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+            if (idUsuarioSesion == 0)
+            {
+                return Json(new { exito = false, error = "La sesión ha expirado. Inicie sesión nuevamente." });
+            }
 
-            // Quitamos LimTiemDeman del ModelState temporalmente para que no exija validación manual externa
+            // Validar doble seguridad de rol en el POST
+            var usuario = await _context.Usuarios
+                .Include(u => u.IdRolNavigation)
+                .FirstOrDefaultAsync(u => u.IdUsuario == idUsuarioSesion);
+
+            string rolUsuario = usuario?.IdRolNavigation?.TipoRol ?? string.Empty;
+            if (!rolUsuario.Equals("Comprador", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new { exito = false, error = "Acción no autorizada para su rol de usuario." });
+            }
+
+            // Fecha límite automática: 2 días después a las 23:59[cite: 9]
+            model.LimTiemDeman = DateTime.Now.AddDays(2).Date.AddHours(23).AddMinutes(59);
+
             ModelState.Remove(nameof(model.LimTiemDeman));
 
             if (!ModelState.IsValid)
@@ -115,12 +145,6 @@ namespace CampesinApp.Controllers
                     .FirstOrDefault()?.ErrorMessage ?? "Datos inválidos.";
 
                 return Json(new { exito = false, error = errorMensaje });
-            }
-
-            int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
-            if (idUsuarioSesion == 0)
-            {
-                return Json(new { exito = false, error = "La sesión ha expirado. Inicie sesión nuevamente." });
             }
 
             var puntoAcopio = await _context.PuntoAcopios
@@ -161,6 +185,14 @@ namespace CampesinApp.Controllers
                 mensaje = "Pedido validado correctamente. Redirigiendo al pago seguro...",
                 redirectUrl = Url.Action("Index", "ProcesoPago")
             });
+        }
+
+        // Acción dedicada para cancelar y limpiar los datos de la demanda en sesión
+        [HttpGet("Cancelar")]
+        public IActionResult Cancelar()
+        {
+            HttpContext.Session.Remove("DemandaBorrador");
+            return RedirectToAction("Index", "Perfil");
         }
     }
 
