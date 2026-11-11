@@ -11,10 +11,12 @@ namespace CampesinApp.Controllers
     public class PublicarDemandaController : Controller
     {
         private readonly Campesinapp3Context _context;
+        private readonly IConfiguration _configuration;
 
-        public PublicarDemandaController(Campesinapp3Context context)
+        public PublicarDemandaController(Campesinapp3Context context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -26,21 +28,43 @@ namespace CampesinApp.Controllers
                 return RedirectToAction("Login", "InicioSesion");
             }
 
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == idUsuario.Value && u.Estado);
+            // Consultar el usuario junto con su rol para validar la restricción de acceso
+            var usuario = await _context.Usuarios
+                .Include(u => u.IdRolNavigation)
+                .FirstOrDefaultAsync(u => u.IdUsuario == idUsuario.Value && u.Estado);
+
             if (usuario == null)
             {
                 return RedirectToAction("Login", "InicioSesion");
             }
+
+            // SEGURIDAD ESTRICTA: Solo el rol "Comprador" tiene permitido acceder a publicar demandas
+            string rolUsuario = usuario.IdRolNavigation?.TipoRol ?? string.Empty;
+            if (!rolUsuario.Equals("Comprador", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ErrorAcceso"] = "No tienes permisos para acceder a esta sección. Acceso exclusivo para compradores.";
+                return RedirectToAction("Index", "Perfil");
+            }
+
+            // Limpiar cualquier borrador previo al ingresar para iniciar con campos limpios
+            HttpContext.Session.Remove("DemandaBorrador");
+
+            // Validar Puntos de Acopio del usuario
+            var puntosAcopio = await _context.PuntoAcopios
+                .Where(pa => pa.IdUsuario == idUsuario.Value)
+                .Select(pa => new SelectListItem { Value = pa.IdPuntoAcopio.ToString(), Text = pa.NombrePunto })
+                .ToListAsync();
 
             var model = new PublicarDemandaViewModel
             {
                 ListaTiposProducto = await _context.TipoProductos
                     .Select(tp => new SelectListItem { Value = tp.IdTipoProducto.ToString(), Text = tp.Producto })
                     .ToListAsync(),
-                ListaPuntosAcopio = await _context.PuntoAcopios
-                    .Select(pa => new SelectListItem { Value = pa.IdPuntoAcopio.ToString(), Text = pa.NombrePunto })
-                    .ToListAsync()
+                ListaPuntosAcopio = puntosAcopio,
+                TienePuntosAcopio = puntosAcopio.Count > 0
             };
+
+            ViewBag.GoogleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? string.Empty;
 
             return View("PublicarDemanda", model);
         }
@@ -54,6 +78,19 @@ namespace CampesinApp.Controllers
                 .ToListAsync();
 
             return Json(variedades);
+        }
+
+        [HttpGet("ObtenerCoordenadasPuntoAcopio")]
+        public async Task<IActionResult> ObtenerCoordenadasPuntoAcopio(int idPuntoAcopio)
+        {
+            var punto = await _context.PuntoAcopios
+                .Where(pa => pa.IdPuntoAcopio == idPuntoAcopio)
+                .Select(pa => new { lat = pa.Latitud, lng = pa.Longitud, direccion = pa.Direccion, nombre = pa.NombrePunto })
+                .FirstOrDefaultAsync();
+
+            if (punto == null) return Json(new { exito = false });
+
+            return Json(new { exito = true, lat = punto.lat, lng = punto.lng, direccion = punto.direccion, nombre = punto.nombre });
         }
 
         [HttpGet("ObtenerPrecioEstimado")]
@@ -70,15 +107,37 @@ namespace CampesinApp.Controllers
             }
 
             decimal precio = (decimal)Math.Round(precioEst.PrecioEstiComprador, 0);
-            decimal min = precio * 0.9m; // -10%
-            decimal max = precio * 1.1m; // +10%
+            decimal min = precio * 0.9m; // Margen inferior del 10%
+            decimal max = precio * 1.1m; // Margen superior del 10%
 
             return Json(new { exito = true, precio = precio, min = min, max = max });
         }
 
-        [HttpPost]
-        public IActionResult GuardarAjax(PublicarDemandaViewModel model)
+        [HttpPost("GuardarAjax")]
+        public async Task<IActionResult> GuardarAjax(PublicarDemandaViewModel model)
         {
+            int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+            if (idUsuarioSesion == 0)
+            {
+                return Json(new { exito = false, error = "La sesión ha expirado. Inicie sesión nuevamente." });
+            }
+
+            // Validar doble seguridad de rol en el POST
+            var usuario = await _context.Usuarios
+                .Include(u => u.IdRolNavigation)
+                .FirstOrDefaultAsync(u => u.IdUsuario == idUsuarioSesion);
+
+            string rolUsuario = usuario?.IdRolNavigation?.TipoRol ?? string.Empty;
+            if (!rolUsuario.Equals("Comprador", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new { exito = false, error = "Acción no autorizada para su rol de usuario." });
+            }
+
+
+            model.LimTiemDeman = DateTime.Now.AddDays(2).Date.AddHours(23).AddMinutes(59);
+
+            ModelState.Remove(nameof(model.LimTiemDeman));
+
             if (!ModelState.IsValid)
             {
                 var errorMensaje = ModelState.Values
@@ -88,30 +147,22 @@ namespace CampesinApp.Controllers
                 return Json(new { exito = false, error = errorMensaje });
             }
 
-            int idUsuarioSesion = HttpContext.Session.GetInt32("IdUsuario") ?? 0;
+            var puntoAcopio = await _context.PuntoAcopios
+                .FirstOrDefaultAsync(pa => pa.IdPuntoAcopio == model.IdPuntoAcopio && pa.IdUsuario == idUsuarioSesion);
 
-            if (idUsuarioSesion == 0)
+            if (puntoAcopio == null)
             {
-                return Json(new { exito = false, error = "La sesión ha expirado. Por favor, inicie sesión nuevamente." });
+                return Json(new { exito = false, error = "El punto de acopio seleccionado no es válido o no le pertenece." });
             }
 
-            // Combinar Fecha y Hora de Entrega
             DateTime fechaHoraEntrega = model.FechaEntrega.Date;
             if (TimeSpan.TryParse(model.HoraEntrega, out TimeSpan timeEntrega))
             {
                 fechaHoraEntrega = fechaHoraEntrega.Add(timeEntrega);
             }
 
-            // Combinar Fecha y Hora Límite
-            DateTime fechaHoraLimite = model.LimTiemDeman.Date;
-            if (TimeSpan.TryParse(model.HoraLimite, out TimeSpan timeLimite))
-            {
-                fechaHoraLimite = fechaHoraLimite.Add(timeLimite);
-            }
+            DateTime fechaHoraLimite = model.LimTiemDeman.Value;
 
-            // Guardamos el pedido en memoria de sesión como borrador validado.
-            // NO se inserta en la base de datos hasta que el comprador pague el 100% en ProcesoPago (CU-017).
-            // Esto evita que pedidos no pagados o con pago rechazado queden registrados en el sistema.
             var borrador = new BorradorDemandaDto
             {
                 IdUsuario = idUsuarioSesion,
@@ -123,7 +174,7 @@ namespace CampesinApp.Controllers
                 LimTiemDeman = fechaHoraLimite,
                 Descripcion = model.Descripcion ?? string.Empty,
                 IdPuntoAcopio = model.IdPuntoAcopio,
-                DireccionInicial = model.DireccionEstructurada ?? string.Empty
+                DireccionInicial = puntoAcopio.Direccion ?? string.Empty
             };
 
             HttpContext.Session.SetString("DemandaBorrador", JsonSerializer.Serialize(borrador));
@@ -131,9 +182,31 @@ namespace CampesinApp.Controllers
             return Json(new
             {
                 exito = true,
-                mensaje = "Información del pedido validada. Procediendo a la confirmación del pago...",
+                mensaje = "Pedido validado correctamente. Redirigiendo al pago seguro...",
                 redirectUrl = Url.Action("Index", "ProcesoPago")
             });
         }
+
+
+        [HttpGet("Cancelar")]
+        public IActionResult Cancelar()
+        {
+            HttpContext.Session.Remove("DemandaBorrador");
+            return RedirectToAction("Index", "Perfil");
+        }
+    }
+
+    public class BorradorDemandaDto
+    {
+        public int IdUsuario { get; set; }
+        public int IdTipoProducto { get; set; }
+        public int IdVariedad { get; set; }
+        public int Cantidad { get; set; }
+        public double PrecioEstimado { get; set; }
+        public DateTime FechaEntrega { get; set; }
+        public DateTime LimTiemDeman { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public int IdPuntoAcopio { get; set; }
+        public string DireccionInicial { get; set; } = string.Empty;
     }
 }

@@ -11,11 +11,13 @@ namespace CampesinApp.ViewModels
 
         [Required(ErrorMessage = "Los nombres son obligatorios.")]
         [StringLength(30, ErrorMessage = "Máximo 30 caracteres.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$", ErrorMessage = "Los nombres solo deben contener letras.")]
         [Display(Name = "Nombres")]
         public string Nombres { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Los apellidos son obligatorios.")]
         [StringLength(30, ErrorMessage = "Máximo 30 caracteres.")]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$", ErrorMessage = "Los apellidos solo deben contener letras.")]
         [Display(Name = "Apellidos")]
         public string Apellidos { get; set; } = string.Empty;
 

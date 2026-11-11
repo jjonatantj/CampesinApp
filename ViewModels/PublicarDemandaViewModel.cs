@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CampesinApp.ViewModels
@@ -8,72 +6,53 @@ namespace CampesinApp.ViewModels
     public class PublicarDemandaViewModel
     {
         [Required(ErrorMessage = "El tipo de producto es obligatorio.")]
+        [Display(Name = "Tipo de Producto")]
         public int IdTipoProducto { get; set; }
 
         [Required(ErrorMessage = "La variedad es obligatoria.")]
+        [Display(Name = "Variedad")]
         public int IdVariedad { get; set; }
 
-        [Required(ErrorMessage = "La cantidad es obligatoria.")]
-        [Range(20, 1000000, ErrorMessage = "Para compradores mayoristas, la cantidad mínima es de 20 kg.")]
+        [Required(ErrorMessage = "La cantidad requerida es obligatoria.")]
+        [Range(20, 1000000, ErrorMessage = "Para compradores mayoristas, la cantidad mínima permitida es de 20 kg.")]
+        [Display(Name = "Cantidad Requerida (Kilos)")]
         public decimal Cantidad { get; set; }
 
-        [Required(ErrorMessage = "El precio estimado es obligatorio.")]
-        [Range(100, 100000000, ErrorMessage = "Ingrese un precio real y válido.")]
+        [Required(ErrorMessage = "El precio propuesto es obligatorio.")]
+        [Range(100, 100000000, ErrorMessage = "Ingrese un precio real y válido (mayor a 100 COP).")]
+        [Display(Name = "Precio Propuesto (COP por Kilo)")]
         public decimal PrecioEstimado { get; set; }
 
         [Required(ErrorMessage = "La fecha de entrega es obligatoria.")]
         [DataType(DataType.Date)]
+        [Display(Name = "Fecha de Entrega")]
         public DateTime FechaEntrega { get; set; }
 
         [Required(ErrorMessage = "La hora de entrega es obligatoria.")]
+        [Display(Name = "Hora de Entrega")]
         public string HoraEntrega { get; set; } = "08:00";
 
-        [Required(ErrorMessage = "El límite de tiempo es obligatorio.")]
         [DataType(DataType.Date)]
-        public DateTime LimTiemDeman { get; set; }
+        [Display(Name = "Fecha Límite")]
+        public DateTime? LimTiemDeman { get; set; }
 
         [Required(ErrorMessage = "La hora límite es obligatoria.")]
-        public string HoraLimite { get; set; } = "17:00";
+        [Display(Name = "Hora Límite")]
+        public string HoraLimite { get; set; } = "23:59";
 
-        [Required(ErrorMessage = "La descripción es obligatoria.")]
+        [Required(ErrorMessage = "La descripción y requerimientos son obligatorios.")]
         [StringLength(500, ErrorMessage = "La descripción no puede superar los 500 caracteres.")]
+        [Display(Name = "Descripción y Requerimientos")]
         public string Descripcion { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El punto de acopio es obligatorio.")]
+        [Required(ErrorMessage = "Debe seleccionar un punto de acopio autorizado.")]
+        [Display(Name = "Punto de Acopio Autorizado")]
         public int IdPuntoAcopio { get; set; }
-
-        // --- CONSTRUCTOR DE DIRECCIÓN URBANA ---
-        [Required(ErrorMessage = "Seleccione el tipo de vía.")]
-        public string TipoVia { get; set; } = "Calle";
-
-        [Required(ErrorMessage = "El número de vía es obligatorio.")]
-        public string NumeroVia { get; set; } = string.Empty;
-
-        public string? LetraBis { get; set; }
-
-        [Required(ErrorMessage = "El cruce es obligatorio.")]
-        public string Cruce { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "La placa es obligatoria.")]
-        public string PlacaVia { get; set; } = string.Empty;
-
-        // Campo opcional solo visual (no se almacena en la BD)
-        public string? IndicacionExtra { get; set; }
-
-        public string? DetalleDireccion { get; set; }
-        public string DireccionEstructurada { get; set; } = string.Empty;
+        public bool TienePuntosAcopio { get; set; } = true;
 
         // Listas para desplegables
         public List<SelectListItem> ListaTiposProducto { get; set; } = new();
         public List<SelectListItem> ListaVariedades { get; set; } = new();
         public List<SelectListItem> ListaPuntosAcopio { get; set; } = new();
-        public List<SelectListItem> ListaTiposVia { get; set; } = new()
-        {
-            new() { Value = "Calle", Text = "Calle" },
-            new() { Value = "Carrera", Text = "Carrera" },
-            new() { Value = "Transversal", Text = "Transversal" },
-            new() { Value = "Diagonal", Text = "Diagonal" },
-            new() { Value = "Avenida", Text = "Avenida" }
-        };
     }
 }

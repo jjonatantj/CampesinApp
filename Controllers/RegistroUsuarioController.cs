@@ -54,9 +54,13 @@ namespace CampesinApp.Controllers
                 ModelState.Remove("CorreoEnmascarado");
                 ModelState.Remove("TelefonoEnmascarado");
 
-                // SEGURIDAD: Impedir registro como Administrador (IdRol 4) por consola
+                if (model.FotoPerfil == null || model.FotoPerfil.Length == 0)
+                {
+                    ModelState.AddModelError("FotoPerfil", "La foto de perfil es obligatoria. Por favor, suba una imagen.");
+                }
+
                 var rolSeleccionado = _context.Rols.FirstOrDefault(r => r.IdRol == model.IdRol);
-                if (rolSeleccionado == null || rolSeleccionado.TipoRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || model.IdRol == 4)
+                if (rolSeleccionado == null || (model.IdRol.HasValue && rolSeleccionado.TipoRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase)) || model.IdRol == 4)
                 {
                     ModelState.AddModelError("IdRol", "No está autorizado para registrarse con este rol.");
                 }
@@ -76,29 +80,25 @@ namespace CampesinApp.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    string nombreImagen = "default_user.png";
-                    if (model.FotoPerfil != null && model.FotoPerfil.Length > 0)
-                    {
-                        string folder = Path.Combine(_environment.WebRootPath, "images/perfiles");
-                        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                    string nombreImagen = string.Empty;
+                    string folder = Path.Combine(_environment.WebRootPath, "images/perfiles");
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                        nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil.FileName);
-                        string filePath = Path.Combine(folder, nombreImagen);
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await model.FotoPerfil.CopyToAsync(stream);
-                        }
+                    nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil!.FileName);
+                    string filePath = Path.Combine(folder, nombreImagen);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await model.FotoPerfil.CopyToAsync(stream);
                     }
 
-                    // Guardar datos temporalmente en Session (sin dirección)
                     HttpContext.Session.SetString("Reg_Nombres", model.Nombres);
                     HttpContext.Session.SetString("Reg_Apellidos", model.Apellidos);
                     HttpContext.Session.SetString("Reg_Cedula", model.Cedula);
                     HttpContext.Session.SetString("Reg_Correo", model.Correo);
                     HttpContext.Session.SetString("Reg_Telefono", model.Telefono);
                     HttpContext.Session.SetString("Reg_Contrasena", model.Contrasena);
-                    HttpContext.Session.SetInt32("Reg_IdRol", model.IdRol);
-                    HttpContext.Session.SetInt32("Reg_IdMunicipio", model.IdMunicipio);
+                    HttpContext.Session.SetInt32("Reg_IdRol", model.IdRol ?? 1);
+                    HttpContext.Session.SetInt32("Reg_IdMunicipio", model.IdMunicipio ?? 1);
                     HttpContext.Session.SetString("Reg_Imagen", nombreImagen);
 
                     model.Paso = 2;
@@ -137,7 +137,6 @@ namespace CampesinApp.Controllers
                 HttpContext.Session.SetString("Reg_MetodoElegido", model.MetodoSeleccionado);
                 HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
 
-                // Inicializar contadores de seguridad para intentos y reenvíos
                 HttpContext.Session.SetInt32("Reg_IntentosCodigo", 0);
                 HttpContext.Session.SetInt32("Reg_ReenviosCodigo", 0);
 
@@ -152,6 +151,9 @@ namespace CampesinApp.Controllers
                     EmailService.EnviarCodigoVerificacion(correo, nombres, codigoGenerado, _environment);
                     HttpContext.Session.SetString("Reg_CodigoCorreo", codigoGenerado);
                 }
+
+                int reenviosActuales = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
+                ViewBag.ReenviosRestantes = 3 - reenviosActuales;
 
                 model.Paso = 3;
                 model.Correo = correo;
@@ -171,22 +173,17 @@ namespace CampesinApp.Controllers
                     return RedirectToAction("Index");
                 }
 
-                DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
-                if (DateTime.Now > fechaExpiracion)
-                {
-                    ModelState.AddModelError(string.Empty, "El código ha caducado. Inicie el registro nuevamente.");
-                    model.Paso = 3;
-                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = HttpContext.Session.GetString("Reg_CodigoWhatsAppSimulado");
-                    return View("RegistroUsuario", model);
-                }
-
                 string codigoReal = (metodo == "telefono")
                     ? HttpContext.Session.GetString("Reg_CodigoWhatsAppSimulado")!
                     : HttpContext.Session.GetString("Reg_CodigoCorreo")!;
 
+                int reenviosActuales = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
+                ViewBag.ReenviosRestantes = 3 - reenviosActuales;
+                if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
+
+                // 1. PRIMERO VALIDAR SI EL CÓDIGO ES INCORRECTO
                 if (model.CodigoVerificacion != codigoReal)
                 {
-                    // Límite máximo de 3 intentos fallidos de código
                     int intentos = HttpContext.Session.GetInt32("Reg_IntentosCodigo") ?? 0;
                     intentos++;
                     HttpContext.Session.SetInt32("Reg_IntentosCodigo", intentos);
@@ -201,7 +198,15 @@ namespace CampesinApp.Controllers
                     int restantes = 3 - intentos;
                     ModelState.AddModelError("CodigoVerificacion", $"Código incorrecto. Le quedan {restantes} intento(s).");
                     model.Paso = 3;
-                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
+                    return View("RegistroUsuario", model);
+                }
+
+                // 2. SEGUNDO VALIDAR SI EL CÓDIGO YA EXPIRÓ (Solo si el código ingresado fue correcto)
+                DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
+                if (DateTime.Now > fechaExpiracion)
+                {
+                    ModelState.AddModelError(string.Empty, "El código ha caducado. Inicie el registro nuevamente.");
+                    model.Paso = 3;
                     return View("RegistroUsuario", model);
                 }
 
@@ -257,7 +262,6 @@ namespace CampesinApp.Controllers
             if (string.IsNullOrEmpty(correo) || string.IsNullOrEmpty(metodo))
                 return RedirectToAction("Index");
 
-            // Validar límite máximo de 3 reenvíos
             int reenvios = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
             if (reenvios >= 3)
             {
@@ -287,7 +291,8 @@ namespace CampesinApp.Controllers
                 TempData["MensajeReenvio"] = "Se ha reenviado el código a su correo electrónico.";
             }
 
-            // Forzar retorno al Paso 3 manteniendo el estado
+            ViewBag.ReenviosRestantes = 3 - reenvios;
+
             var model = new RegistroUsuarioViewModel
             {
                 Paso = 3,
@@ -336,9 +341,9 @@ namespace CampesinApp.Controllers
                 Cedula = HttpContext.Session.GetString("Reg_Cedula") ?? "",
                 Correo = HttpContext.Session.GetString("Reg_Correo") ?? "",
                 Telefono = HttpContext.Session.GetString("Reg_Telefono") ?? "",
-                IdRol = HttpContext.Session.GetInt32("Reg_IdRol") ?? 0,
-                IdDepartamento = HttpContext.Session.GetInt32("Reg_IdDepartamento") ?? 0,
-                IdMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio") ?? 0
+                IdRol = HttpContext.Session.GetInt32("Reg_IdRol"),
+                IdDepartamento = HttpContext.Session.GetInt32("Reg_IdDepartamento"),
+                IdMunicipio = HttpContext.Session.GetInt32("Reg_IdMunicipio")
             };
 
             CargarCombosBD(model);
@@ -356,10 +361,10 @@ namespace CampesinApp.Controllers
                 .Select(d => new SelectListItem { Value = d.IdDepartamento.ToString(), Text = d.Departamento1 })
                 .ToList();
 
-            if (model.IdDepartamento > 0)
+            if (model.IdDepartamento.HasValue && model.IdDepartamento.Value > 0)
             {
                 model.ListaMunicipios = _context.Municipios
-                    .Where(m => m.IdDepartamento == model.IdDepartamento)
+                    .Where(m => m.IdDepartamento == model.IdDepartamento.Value)
                     .Select(m => new SelectListItem { Value = m.IdMunicipio.ToString(), Text = m.Municipio1 })
                     .ToList();
             }

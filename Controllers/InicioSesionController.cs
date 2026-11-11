@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
-using System;
-using System.Linq;
-
 namespace CampesinApp.Controllers
 {
     /// <summary>
@@ -41,7 +37,6 @@ namespace CampesinApp.Controllers
             string sessionKeyIntentos = $"IntentosFallidos_{model.Cedula}";
             string sessionKeyBloqueo = "TiempoBloqueoUsuario";
 
-            // Verificar si el usuario se encuentra bloqueado temporalmente
             long? bloqueoTicks = HttpContext.Session.GetLong(sessionKeyBloqueo);
             if (bloqueoTicks != null)
             {
@@ -54,18 +49,15 @@ namespace CampesinApp.Controllers
                 }
                 else
                 {
-                    // Expiró el bloqueo, limpiar
                     HttpContext.Session.Remove(sessionKeyBloqueo);
                     HttpContext.Session.Remove(sessionKeyIntentos);
                 }
             }
 
-            // Validación de credenciales contra la base de datos real
             var usuario = _usuariosRepo.ValidarCredenciales(model.Cedula, model.Contrasena);
 
             if (usuario != null)
             {
-                // INTERCEPTAR: Verificar si tiene cambio de contraseña pendiente en log_Sistema (Primer inicio de admin)
                 var pendienteCambio = _context.LogSistemas
                     .FirstOrDefault(l => l.IdUsuario == usuario.IdUsuario && l.Mensaje == "CAMBIO_CONTRASENA_PENDIENTE");
 
@@ -75,30 +67,24 @@ namespace CampesinApp.Controllers
                     return RedirectToAction("ForzarCambioContrasena", "InicioSesion");
                 }
 
-                // Limpiar intentos fallidos al ingresar exitosamente
                 HttpContext.Session.Remove(sessionKeyIntentos);
                 HttpContext.Session.Remove(sessionKeyBloqueo);
 
                 string rolUsuario = usuario.IdRolNavigation?.TipoRol ?? "Campesino";
 
-                // Guardar información real de la BD en la Sesión HTTP
                 HttpContext.Session.SetString("RolUsuario", rolUsuario);
                 HttpContext.Session.SetString("CedulaUsuario", model.Cedula);
                 HttpContext.Session.SetInt32("IdUsuario", usuario.IdUsuario);
 
                 TempData["MensajeExito"] = $"¡Bienvenido de nuevo a CampesinApp ({rolUsuario})!";
-
-                // Redirección directa hacia la Pantalla Principal
                 return RedirectToAction("Index", "PantallaPrincipal");
             }
 
-            // Lógica de control de intentos fallidos (máximo 3)
             int intentosActuales = HttpContext.Session.GetInt32(sessionKeyIntentos) ?? 0;
             intentosActuales++;
 
             if (intentosActuales >= 3)
             {
-                // Bloquear por 5 minutos
                 DateTime bloqueoFin = DateTime.Now.AddMinutes(5);
                 HttpContext.Session.SetLong(sessionKeyBloqueo, bloqueoFin.Ticks);
                 HttpContext.Session.Remove(sessionKeyIntentos);
@@ -115,8 +101,6 @@ namespace CampesinApp.Controllers
             return View("InicioSesion", model ?? new LoginViewModel());
         }
 
-        // ─── CIERRE DE SESIÓN (CU-030) ───────────────────────────────────
-
         [HttpGet]
         public IActionResult CerrarSesion()
         {
@@ -124,10 +108,6 @@ namespace CampesinApp.Controllers
             TempData["MensajeExito"] = "Sesión cerrada correctamente.";
             return RedirectToAction("Login");
         }
-
-        // ─── FORZAR CAMBIO DE CONTRASEÑA (PRIMER INGRESO ADMINISTRADOR) ───
-
-        // ─── FORZAR CAMBIO DE CONTRASEÑA (PRIMER INGRESO ADMINISTRADOR) ───
 
         [HttpGet]
         public IActionResult ForzarCambioContrasena()
@@ -157,11 +137,9 @@ namespace CampesinApp.Controllers
             var usuario = _context.Usuarios.FirstOrDefault(u => u.IdUsuario == idUsuario.Value);
             if (usuario == null) return RedirectToAction("Login");
 
-            // Actualizar con la nueva contraseña encriptada
             usuario.ContrasenaUsu = EncriptacionService.Encriptar(model.NuevaContrasena);
             _context.Usuarios.Update(usuario);
 
-            // Eliminar el registro pendiente de la tabla log_Sistema
             var pendienteCambio = _context.LogSistemas
                 .FirstOrDefault(l => l.IdUsuario == idUsuario.Value && l.Mensaje == "CAMBIO_CONTRASENA_PENDIENTE");
 
@@ -171,10 +149,8 @@ namespace CampesinApp.Controllers
             }
 
             _context.SaveChanges();
-
             HttpContext.Session.Remove("UsuarioCambioPasswordId");
 
-            // Activar indicador para mostrar el modal de éxito en la vista
             TempData["PasswordActualizado"] = true;
             return RedirectToAction("ForzarCambioContrasena");
         }
@@ -207,7 +183,6 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
-                // Guardar datos en sesión para el flujo
                 HttpContext.Session.SetString("Rec_Cedula", model.Cedula);
                 HttpContext.Session.SetString("Rec_Correo", usuario.CorreoUsu);
                 HttpContext.Session.SetString("Rec_Telefono", usuario.TelelfonoUsu.ToString());
@@ -220,7 +195,7 @@ namespace CampesinApp.Controllers
                 return View("RecuperarContraseña", model);
             }
 
-            // PASO 2: El usuario seleccionó el método de envío (correo o teléfono)
+            // PASO 2: Seleccionar método de envío
             if (model.Paso == 2)
             {
                 string? cedula = HttpContext.Session.GetString("Rec_Cedula");
@@ -239,7 +214,6 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
-                // Generar código de 6 dígitos y expiración a 5 minutos
                 Random rnd = new Random();
                 string codigoGenerado = rnd.Next(100000, 999999).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
@@ -257,20 +231,18 @@ namespace CampesinApp.Controllers
                 else
                 {
                     string nombres = HttpContext.Session.GetString("Rec_Nombres") ?? "Usuario";
-                    EmailService.EnviarCodigoVerificacion(correo!, nombres, codigoGenerado, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                    EmailService.EnviarCodigoRecuperacionPassword(correo!, nombres, codigoGenerado, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
                     HttpContext.Session.SetString("Rec_CodigoCorreo", codigoGenerado);
                 }
 
-                // Calcular reenvíos restantes iniciales (3)
                 ViewBag.ReenviosRestantes = 3;
-
                 model.Paso = 3;
                 model.Cedula = cedula;
                 ModelState.Clear();
                 return View("RecuperarContraseña", model);
             }
 
-            // PASO 3: Validar código de verificación (Máx 3 intentos y caducidad de 5 min)
+            // PASO 3: Validar código de verificación
             if (model.Paso == 3)
             {
                 string? metodo = HttpContext.Session.GetString("Rec_MetodoElegido");
@@ -280,17 +252,6 @@ namespace CampesinApp.Controllers
                 if (string.IsNullOrEmpty(metodo) || string.IsNullOrEmpty(expiracionStr) || string.IsNullOrEmpty(cedula))
                 {
                     return RedirectToAction("RecuperarPassword");
-                }
-
-                DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
-                if (DateTime.Now > fechaExpiracion)
-                {
-                    ModelState.AddModelError(string.Empty, "El código ha caducado. Inicie la recuperación nuevamente.");
-                    model.Paso = 3;
-                    model.Cedula = cedula;
-                    ViewBag.ReenviosRestantes = 3 - (HttpContext.Session.GetInt32("Rec_ReenviosCodigo") ?? 0);
-                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = HttpContext.Session.GetString("Rec_CodigoWhatsAppSimulado");
-                    return View("RecuperarContraseña", model);
                 }
 
                 string codigoReal = (metodo == "telefono")
@@ -319,7 +280,17 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
-                // Código correcto -> Avanzar al Paso 4 (Nueva contraseña)
+                DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
+                if (DateTime.Now > fechaExpiracion)
+                {
+                    ModelState.AddModelError(string.Empty, "El código ha caducado. Inicie la recuperación nuevamente.");
+                    model.Paso = 3;
+                    model.Cedula = cedula;
+                    ViewBag.ReenviosRestantes = 3 - (HttpContext.Session.GetInt32("Rec_ReenviosCodigo") ?? 0);
+                    if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
+                    return View("RecuperarContraseña", model);
+                }
+
                 model.Paso = 4;
                 model.Cedula = cedula;
                 ModelState.Clear();
@@ -333,15 +304,18 @@ namespace CampesinApp.Controllers
                 {
                     _usuariosRepo.ActualizarContrasena(model.Cedula, model.NuevaContrasena);
                     HttpContext.Session.Clear();
-                    TempData["MensajeExito"] = "¡Contraseña actualizada con éxito! Inicie sesión con su nueva clave.";
-                    return RedirectToAction("Login");
+
+                    // Activamos la bandera para que la alerta emergente se muestre en el Paso 4
+                    TempData["PasswordActualizadoRecuperacion"] = true;
+                    model.Paso = 4;
+                    ModelState.Clear();
+                    return View("RecuperarContraseña", model);
                 }
             }
 
             return View("RecuperarContraseña", model);
         }
 
-        // ACCIÓN PARA REENVIAR CÓDIGO DE RECUPERACIÓN (Máximo 3 reenvíos)
         [HttpGet]
         public IActionResult ReenviarCodigoRecuperacion()
         {
@@ -376,12 +350,11 @@ namespace CampesinApp.Controllers
             else
             {
                 string nombres = HttpContext.Session.GetString("Rec_Nombres") ?? "Usuario";
-                EmailService.EnviarCodigoVerificacion(correo!, nombres, codigoGenerado, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                EmailService.EnviarCodigoRecuperacionPassword(correo!, nombres, codigoGenerado, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
                 HttpContext.Session.SetString("Rec_CodigoCorreo", codigoGenerado);
                 TempData["MensajeReenvio"] = "Se ha reenviado el código a su correo electrónico.";
             }
 
-            // Calcular reenvíos restantes dinámicamente y pasarlos a la vista
             ViewBag.ReenviosRestantes = 3 - reenvios;
 
             var model = new RecuperaciónContraseñaViewModel
@@ -394,8 +367,6 @@ namespace CampesinApp.Controllers
 
             return View("RecuperarContraseña", model);
         }
-
-        // ─── MÉTODOS PRIVADOS DE APOYO ───────────────────────────────────
 
         private static string EnmascararCorreo(string correo)
         {
@@ -414,7 +385,6 @@ namespace CampesinApp.Controllers
         }
     }
 
-    // Extensión auxiliar sencilla para almacenar long/Ticks en Session
     public static class SessionExtensions
     {
         public static void SetLong(this ISession session, string key, long value)

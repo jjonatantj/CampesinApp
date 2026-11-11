@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Collections.Generic;
 
 namespace CampesinApp.ViewModels
 {
@@ -35,17 +33,17 @@ namespace CampesinApp.ViewModels
         [Display(Name = "Teléfono")]
         public string Telefono { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Debe seleccionar un rol.")]
+        [Required(ErrorMessage = "Por favor, seleccione un rol válido.")]
         [Display(Name = "Rol")]
-        public int IdRol { get; set; }
+        public int? IdRol { get; set; }
 
-        [Required(ErrorMessage = "El departamento es obligatorio.")]
+        [Required(ErrorMessage = "Por favor, seleccione un departamento.")]
         [Display(Name = "Departamento")]
-        public int IdDepartamento { get; set; }
+        public int? IdDepartamento { get; set; }
 
-        [Required(ErrorMessage = "El municipio es obligatorio.")]
+        [Required(ErrorMessage = "Por favor, seleccione un municipio.")]
         [Display(Name = "Municipio")]
-        public int IdMunicipio { get; set; }
+        public int? IdMunicipio { get; set; }
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [StringLength(15, MinimumLength = 6, ErrorMessage = "Debe tener entre 6 y 15 caracteres.")]
@@ -56,10 +54,12 @@ namespace CampesinApp.ViewModels
 
         [Required(ErrorMessage = "Debe confirmar su contraseña.")]
         [DataType(DataType.Password)]
-        [Compare("Contrasena", ErrorMessage = "Las contraseñas no coinciden.")]
+        [Compare("Contrasena", ErrorMessage = "Las contraseñas no coinciden. Por favor, verifíquelas.")]
         [Display(Name = "Confirmar Contraseña")]
         public string ConfirmarContrasena { get; set; } = string.Empty;
 
+        // FOTO DE PERFIL OBLIGATORIA
+        [Required(ErrorMessage = "La foto de perfil es obligatoria. Por favor, adjunte una imagen.")]
         [Display(Name = "Foto de Perfil")]
         public IFormFile? FotoPerfil { get; set; }
 

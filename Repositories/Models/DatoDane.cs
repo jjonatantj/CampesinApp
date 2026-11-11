@@ -9,7 +9,7 @@ public partial class DatoDane
 
     public int IdVariedad { get; set; }
 
-    public int PrecioDane { get; set; }
+    public int? PrecioDane { get; set; }
 
     public DateOnly FechaDato { get; set; }
 
