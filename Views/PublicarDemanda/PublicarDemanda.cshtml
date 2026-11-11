@@ -27,7 +27,7 @@
                     <div>
                         <h5 class="alert-heading fw-bold mb-1 text-white"><i class="bi bi-graph-up-arrow me-2"></i>Precio Sugerido del Modelo Estadístico</h5>
                         <p class="mb-1 fs-5 fw-semibold" id="txtPrecioSugerido">Cargando...</p>
-                        <p class="mb-0 small text-light opacity-90" id="txtRangoPermitido">Rango permitido (±10%): -</p>
+                        <p class="mb-0 small text-light opacity-90" id="txtRangoPermitido">Rango permitido mayorista (±10%): -</p>
                     </div>
                 </div>
 
@@ -63,10 +63,14 @@
                                     <small class="text-success fw-bold d-block mt-1 ms-2" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
                                     <span asp-validation-for="Cantidad" class="text-danger small fw-semibold"></span>
                                 </div>
+
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small"></label>
+                                    <!-- El input con su id para control de estilos -->
                                     <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
-                                    <span asp-validation-for="PrecioEstimado" class="text-danger small fw-semibold"></span>
+                                    <!-- Contenedor dedicado exclusivamente al texto de error en rojo -->
+                                    <span id="errorTextoPrecio" class="text-danger small fw-semibold d-block mt-1"></span>
+                                    <span asp-validation-for="PrecioEstimado" class="text-danger small fw-semibold" style="display:none;"></span>
                                 </div>
                             </div>
 
@@ -83,7 +87,7 @@
                                     <span asp-validation-for="HoraEntrega" class="text-danger small fw-semibold"></span>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <!-- Fecha Límite Actualizada a Fecha disponible en el aplicativo (2 días después) -->
+                                    <!-- Campos actualizados con el nombre requerido de 2 días y textos correctos -->
                                     <label class="form-label fw-bold text-dark small">Fecha disponible en el aplicativo</label>
                                     <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-1 bg-light text-muted" readonly />
                                     <small class="text-success fw-semibold d-block ms-2" style="font-size: 0.75rem;">Disponible por 2 días hasta medianoche.</small>
@@ -134,7 +138,7 @@
 
                     <!-- BOTONES DE ACCIÓN -->
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                        <!-- Botón cancelar redirige al perfil y limpia el formulario -->
+                        <!-- Botón cancelar redirige a la acción del controlador que limpia la sesión y devuelve al perfil -->
                         <a href="@Url.Action("Cancelar", "PublicarDemanda")" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
                         <button type="submit" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
                             Publicar Demanda y Pagar
@@ -177,7 +181,6 @@
         function configurarFechasAutomaticas() {
             const hoy = new Date();
 
-            // Configurar fecha disponible a 2 días después[cite: 9]
             const fechaLimite = new Date(hoy);
             fechaLimite.setDate(hoy.getDate() + 2);
             const strFechaLimite = fechaLimite.toISOString().split('T')[0];
@@ -267,7 +270,7 @@
         }
 
         function consultarPrecioModelo() {
-            var idTipo = $("#ddlTipoProducto".val());
+            var idTipo = $("#ddlTipoProducto").val();
             var idVariedad = $("#ddlVariedad").val();
 
             if (idTipo && idVariedad) {
@@ -294,19 +297,36 @@
             var precioIngresado = parseFloat($("#txtPrecioEstimado").val());
             var cantidadIngresada = parseFloat($("#txtCantidad").val());
 
+            // Limpiar errores visuales previos en el input de precio
+            $("#errorTextoPrecio").text("");
+            $("#txtPrecioEstimado").removeClass("is-invalid");
+
             if (isNaN(cantidadIngresada) || cantidadIngresada < 20) {
                 Swal.fire('Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.', 'error');
                 return;
             }
 
             if (isNaN(precioIngresado) || precioIngresado < 100) {
+                // Marcar en rojo el borde con icono y mostrar el texto abajo
+                $("#txtPrecioEstimado").addClass("is-invalid");
+                $("#errorTextoPrecio").text("El precio propuesto debe ser mayor o igual a 100 COP.");
+
                 Swal.fire('Precio inválido', 'El precio propuesto debe ser mayor o igual a 100 COP.', 'error');
                 return;
             }
 
+            // Validación estricta del margen del 10% del modelo estadístico
             if (precioMinPermitido > 0 && precioMaxPermitido > 0) {
                 if (precioIngresado < precioMinPermitido || precioIngresado > precioMaxPermitido) {
-                    Swal.fire('Precio fuera de rango estadístico', `El precio ingresado debe estar dentro del margen permitido del 10% ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()}).`, 'error');
+                    var mensajeError = `Fuera del margen permitido (±10%): $${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()} COP.`;
+
+                    // 1. Enmarca el campo con borde rojo e icono de advertencia
+                    $("#txtPrecioEstimado").addClass("is-invalid");
+                    // 2. Muestra el texto detallado en rojo debajo del campo
+                    $("#errorTextoPrecio").text(mensajeError);
+
+                    // 3. Muestra la alerta emergente explicativa
+                    Swal.fire('Precio fuera de rango estadístico', `El precio ingresado debe estar dentro del margen permitido del 10% ($${precioMinPermitido.toLocaleString()} - $${precioMaxPermitido.toLocaleString()} COP).`, 'error');
                     return;
                 }
             }

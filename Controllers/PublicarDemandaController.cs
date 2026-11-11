@@ -107,8 +107,8 @@ namespace CampesinApp.Controllers
             }
 
             decimal precio = (decimal)Math.Round(precioEst.PrecioEstiComprador, 0);
-            decimal min = precio * 0.9m;
-            decimal max = precio * 1.1m;
+            decimal min = precio * 0.9m; // Margen inferior del 10%
+            decimal max = precio * 1.1m; // Margen superior del 10%
 
             return Json(new { exito = true, precio = precio, min = min, max = max });
         }
@@ -133,7 +133,7 @@ namespace CampesinApp.Controllers
                 return Json(new { exito = false, error = "Acción no autorizada para su rol de usuario." });
             }
 
-            // Fecha límite automática: 2 días después a las 23:59[cite: 9]
+
             model.LimTiemDeman = DateTime.Now.AddDays(2).Date.AddHours(23).AddMinutes(59);
 
             ModelState.Remove(nameof(model.LimTiemDeman));
@@ -187,7 +187,7 @@ namespace CampesinApp.Controllers
             });
         }
 
-        // Acción dedicada para cancelar y limpiar los datos de la demanda en sesión
+
         [HttpGet("Cancelar")]
         public IActionResult Cancelar()
         {
