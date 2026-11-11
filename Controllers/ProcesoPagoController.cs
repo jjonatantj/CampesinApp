@@ -496,41 +496,11 @@ namespace CampesinApp.Controllers
         /// </summary>
         private static string TraducirErrorOpenpay(int errorCode, string? descripcionApi)
         {
-            // 1. Mapeo por código numérico de error oficial de Openpay
-            string? porCodigo = errorCode switch
-            {
-                1000 => "Ocurrió un error interno en la pasarela de pagos. Por favor intente más tarde.",
-                1001 => "Los datos requeridos para la transacción bancaria están incompletos o son inválidos.",
-                1002 => "La transacción no pudo ser autenticada por la pasarela de pagos. Verifique las credenciales.",
-                1003 => "El servicio de pagos no se encuentra disponible temporalmente. Intente en unos minutos.",
-                1004 => "Se ha superado el límite de intentos de transacción. Por favor intente más tarde.",
-                2001 => "La cuenta bancaria o tarjeta ya se encuentra registrada en el sistema.",
-                2004 => "El número de tarjeta o el código de seguridad (CVC) no es válido.",
-                2005 => "La tarjeta seleccionada se encuentra vencida o expirada.",
-                2006 => "El código de seguridad (CVC) no es válido para este tipo de tarjeta.",
-                2007 => "En modo de prueba (sandbox) solo se admiten números de tarjeta de prueba autorizados.",
-                2008 => "La tarjeta seleccionada no es admitida para pagos electrónicos en línea.",
-                2009 => "El código de seguridad de la tarjeta es inválido.",
-                3001 => "La tarjeta fue declinada por la entidad bancaria emisora. Verifique con su banco.",
-                3002 => "La tarjeta se encuentra inactiva o expirada.",
-                3003 => "Fondos insuficientes en la tarjeta para cubrir el monto del pedido.",
-                3004 => "La tarjeta se encuentra bloqueada por la entidad bancaria.",
-                3005 => "Transacción rechazada por los filtros de seguridad y prevención de fraude del banco.",
-                3006 => "La tarjeta no tiene habilitada la opción de compras por internet.",
-                3009 => "La tarjeta fue reportada como extraviada o robada.",
-                3010 => "El banco emisor ha restringido el uso de esta tarjeta.",
-                3011 => "La entidad bancaria solicita comunicarse directamente con el banco emisor.",
-                3012 => "El banco requiere autorización telefónica previa para procesar esta compra.",
-                _ => null
-            };
-
-            if (porCodigo != null)
-            {
-                return porCodigo;
-            }
-
-            // 2. Mapeo semántico por palabras clave en inglés de la descripción de la API
             string desc = (descripcionApi ?? "").ToLowerInvariant();
+
+            // 1. Verificación prioritaria de descripciones específicas de la API
+            if (desc.Contains("already used") || desc.Contains("source_id"))
+                return "Este medio de pago ya fue utilizado en una transacción anterior (el token de seguridad bancaria ya caducó). Por favor ingresa a 'Perfil de Pago' y registra la tarjeta nuevamente para generar un token nuevo.";
 
             if (desc.Contains("insufficient") || desc.Contains("funds") || desc.Contains("saldo"))
                 return "Fondos insuficientes en la tarjeta o cuenta para cubrir el monto del pedido.";
@@ -564,6 +534,39 @@ namespace CampesinApp.Controllers
 
             if (desc.Contains("not authorized") || desc.Contains("no autorizad"))
                 return "La transacción no fue autorizada por la entidad financiera emisora de la tarjeta.";
+
+            // 2. Mapeo por código numérico de error oficial de Openpay
+            string? porCodigo = errorCode switch
+            {
+                1000 => "Ocurrió un error interno en la pasarela de pagos. Por favor intente más tarde.",
+                1001 => "Los datos requeridos para la transacción bancaria están incompletos o son inválidos.",
+                1002 => "La transacción no pudo ser autenticada por la pasarela de pagos. Verifique las credenciales.",
+                1003 => "El servicio de pagos no se encuentra disponible temporalmente. Intente en unos minutos.",
+                1004 => "Se ha superado el límite de intentos de transacción. Por favor intente más tarde.",
+                2001 => "La cuenta bancaria o tarjeta ya se encuentra registrada en el sistema.",
+                2004 => "El número de tarjeta o el código de seguridad (CVC) no es válido.",
+                2005 => "La tarjeta seleccionada se encuentra vencida o expirada.",
+                2006 => "El código de seguridad (CVC) no es válido para este tipo de tarjeta.",
+                2007 => "En modo de prueba (sandbox) solo se admiten números de tarjeta de prueba autorizados.",
+                2008 => "La tarjeta seleccionada no es admitida para pagos electrónicos en línea.",
+                2009 => "El código de seguridad de la tarjeta es inválido.",
+                3001 => "La tarjeta fue declinada por la entidad bancaria emisora. Verifique con su banco.",
+                3002 => "La tarjeta se encuentra inactiva o expirada.",
+                3003 => "Fondos insuficientes en la tarjeta para cubrir el monto del pedido.",
+                3004 => "La tarjeta se encuentra bloqueada por la entidad bancaria.",
+                3005 => "Transacción rechazada por los filtros de seguridad y prevención de fraude del banco.",
+                3006 => "La tarjeta no tiene habilitada la opción de compras por internet.",
+                3009 => "La tarjeta fue reportada como extraviada o robada.",
+                3010 => "El banco emisor ha restringido el uso de esta tarjeta.",
+                3011 => "La entidad bancaria solicita comunicarse directamente con el banco emisor.",
+                3012 => "El banco requiere autorización telefónica previa para procesar esta compra.",
+                _ => null
+            };
+
+            if (porCodigo != null)
+            {
+                return porCodigo;
+            }
 
             // 3. Mensaje formal en español por defecto
             return "La entidad bancaria o la pasarela de pagos no pudo autorizar la transacción. Por favor verifique el medio de pago o intente con otra tarjeta.";
