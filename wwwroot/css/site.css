@@ -102,12 +102,55 @@ p.mulish-bold {
 .navbar-custom .brand-title:hover {
     color: #1b5e20;
 }
+/* Transición suave y efecto general para ambos botones */
+.btn-efecto {
+    transition: all 0.3s ease-in-out;
+}
+
+
+    .btn-efecto:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0:0, 0, 0.15) !important; 
+    }
+
+
+.btn-success.btn-efecto:hover {
+    background-color: #256328 !important;
+    border-color: #256328 !important;
+}
+
+
+.btn-outline-dark.btn-efecto:hover {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+}
 
 /* Enlaces del Menú de Navegación */
 .navbar-custom .navbar-nav {
     gap: 0.35rem;
 }
-
+.support-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    background-color: #e8f5e9;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.feature-icon-box {
+    font-size: 1.8rem; /* Controla el tamaño del icono (puedes subirlo a 2rem si los quieres más grandes) */
+    color: #198754; /* Color verde institucional */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background-color: #e8f5e9; /* Fondo verde claro sutil */
+    border-radius: 12px; /* Bordes redondeados */
+    margin-bottom: 1.2rem;
+}
 .navbar-custom .nav-link {
     color: #374151 !important;
     font-family: 'Mulish', sans-serif;

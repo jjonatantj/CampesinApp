@@ -1,16 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories;
 using CampesinApp.ViewModels;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
 using System.Collections.Generic;
 
 namespace CampesinApp.Controllers
 {
-    /// <summary>
-    /// Controlador de la Pantalla Principal – CU-009.
-    /// Funciona exclusivamente con los datos reales de la BD y la sesión activa del usuario.
-    /// </summary>
     public class PantallaPrincipalController : Controller
     {
         private readonly PantallaPrincipalRepository _repo;
@@ -21,13 +18,11 @@ namespace CampesinApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index(string buscar = "", string categoria = "")
+        public IActionResult Index(string categoria = "", string variedad = "", string buscar = "", int pagina = 1)
         {
-            // 1. Obtener datos reales de la sesión activa iniciada en InicioSesionController
             string? rolSesion = HttpContext.Session.GetString("RolUsuario");
             string? cedulaSesion = HttpContext.Session.GetString("CedulaUsuario");
 
-            // Si el usuario no ha iniciado sesión, se redirige al Login
             if (string.IsNullOrEmpty(rolSesion))
             {
                 return RedirectToAction("Login", "InicioSesion");
@@ -38,31 +33,45 @@ namespace CampesinApp.Controllers
                 RolUsuario = rolSesion,
                 CedulaUsuario = cedulaSesion ?? "No identificada",
                 TerminoBusqueda = buscar,
-                CategoriaSeleccionada = categoria
+                CategoriaSeleccionada = categoria,
+                VariedadSeleccionada = variedad,
+                PaginaActualPrecios = pagina
             };
 
-            // 2. Cargar categorías reales desde la base de datos (tabla tipo_Producto)
+            // 1. Cargar desplegables a través del repositorio
             try
             {
-                model.CategoriasDisponibles = _repo.ObtenerCategorias();
+                model.ListaTiposProducto = _repo.ObtenerListaTiposProducto(categoria);
+                model.ListaVariedades = _repo.ObtenerListaVariedadesPorTipo(categoria, variedad);
             }
             catch
             {
-                model.CategoriasDisponibles = new List<string>();
+                model.ListaTiposProducto = new List<SelectListItem>();
+                model.ListaVariedades = new List<SelectListItem>();
             }
 
-            // 3. Consultar la tabla de precios sugeridos de la BD (precio_Estimado)
+            // 2. Obtener precios paginados estrictamente de 5 en 5
             try
             {
-                model.TablaPrecios = _repo.ObtenerPreciosDelDia(buscar, categoria);
+                int pageSize = 5; // <--- Límite estricto de 5 elementos por página
+                var resultado = _repo.ObtenerPreciosPaginados(buscar, categoria, variedad, pagina, pageSize);
+
+                model.TotalRegistrosPrecios = resultado.TotalRegistros;
+                model.TotalPaginasPrecios = (int)Math.Ceiling(model.TotalRegistrosPrecios / (double)pageSize);
+                if (model.TotalPaginasPrecios < 1) model.TotalPaginasPrecios = 1;
+
+                if (pagina > model.TotalPaginasPrecios) pagina = model.TotalPaginasPrecios;
+                if (pagina < 1) pagina = 1;
+
+                model.PaginaActualPrecios = pagina;
+                model.TablaPrecios = resultado.ListaPrecios;
             }
             catch (Exception)
             {
-                // FE02-CU009: Mensaje de excepción por falla de conexión a la BD
                 model.MensajeExcepcionPrecios = "Los precios sugeridos para la jornada se encuentran en proceso de actualización. Intente nuevamente en unos minutos.";
             }
 
-            // 4. Cargar sugerencias destacadas reales desde la BD
+            // 3. Cargar sugerencias del aplicativo
             try
             {
                 model.HaySugerenciasDisponibles = _repo.ExistenSugerencias();
