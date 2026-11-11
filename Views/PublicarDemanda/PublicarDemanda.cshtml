@@ -59,14 +59,12 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="Cantidad" class="form-label fw-bold text-dark small"></label>
-                                    <!-- Se quitó el min="20" nativo para evitar los mensajes en inglés del navegador -->
                                     <input asp-for="Cantidad" id="txtCantidad" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 500" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
                                     <small class="text-success fw-bold d-block mt-1 ms-2" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
                                     <span asp-validation-for="Cantidad" class="text-danger small fw-semibold"></span>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small"></label>
-                                    <!-- Se quitó el min="100" nativo -->
                                     <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
                                     <span asp-validation-for="PrecioEstimado" class="text-danger small fw-semibold"></span>
                                 </div>
@@ -85,13 +83,13 @@
                                     <span asp-validation-for="HoraEntrega" class="text-danger small fw-semibold"></span>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <!-- Fecha Límite Automática y No Editable -->
-                                    <label asp-for="LimTiemDeman" class="form-label fw-bold text-dark small"></label>
+                                    <!-- Fecha Límite Actualizada a Fecha disponible en el aplicativo (2 días después) -->
+                                    <label class="form-label fw-bold text-dark small">Fecha disponible en el aplicativo</label>
                                     <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-1 bg-light text-muted" readonly />
-                                    <small class="text-success fw-semibold d-block ms-2" style="font-size: 0.75rem;">Disponible hasta mañana a medianoche.</small>
+                                    <small class="text-success fw-semibold d-block ms-2" style="font-size: 0.75rem;">Disponible por 2 días hasta medianoche.</small>
                                     <span asp-validation-for="LimTiemDeman" class="text-danger small fw-semibold"></span>
 
-                                    <label asp-for="HoraLimite" class="form-label fw-bold text-dark small mt-2"></label>
+                                    <label class="form-label fw-bold text-dark small mt-2">Hora disponible en el aplicativo</label>
                                     <input asp-for="HoraLimite" type="time" class="form-control rounded-pill px-3 py-2 bg-light text-muted" value="23:59" readonly />
                                     <span asp-validation-for="HoraLimite" class="text-danger small fw-semibold"></span>
                                 </div>
@@ -136,7 +134,8 @@
 
                     <!-- BOTONES DE ACCIÓN -->
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                        <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
+                        <!-- Botón cancelar redirige al perfil y limpia el formulario -->
+                        <a href="@Url.Action("Cancelar", "PublicarDemanda")" class="btn btn-outline-secondary rounded-pill px-4 py-2">Cancelar</a>
                         <button type="submit" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
                             Publicar Demanda y Pagar
                         </button>
@@ -178,8 +177,9 @@
         function configurarFechasAutomaticas() {
             const hoy = new Date();
 
+            // Configurar fecha disponible a 2 días después[cite: 9]
             const fechaLimite = new Date(hoy);
-            fechaLimite.setDate(hoy.getDate() + 1);
+            fechaLimite.setDate(hoy.getDate() + 2);
             const strFechaLimite = fechaLimite.toISOString().split('T')[0];
 
             const inputFechaLimite = document.getElementById('txtFechaLimite');
@@ -267,7 +267,7 @@
         }
 
         function consultarPrecioModelo() {
-            var idTipo = $("#ddlTipoProducto").val();
+            var idTipo = $("#ddlTipoProducto".val());
             var idVariedad = $("#ddlVariedad").val();
 
             if (idTipo && idVariedad) {
