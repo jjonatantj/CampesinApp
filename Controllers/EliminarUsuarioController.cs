@@ -66,6 +66,12 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SolicitarCodigo(EliminarUsuarioViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                model.CodigoEnviado = false;
+                return View("EliminarUsuario", model);
+            }
+
             int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
             if (idUsuario == null) return RedirectToAction("Login", "InicioSesion");
 
@@ -152,6 +158,24 @@ namespace CampesinApp.Controllers
 
             model.Correo = usuario.CorreoUsu;
             model.CodigoEnviado = true;
+
+            // En este segundo paso solo se envía y valida el Código de Verificación;
+            // la contraseña ya fue verificada en el Paso 1 (SolicitarCodigo), por lo que se remueve de ModelState.
+            ModelState.Remove(nameof(model.Contrasena));
+
+            if (string.IsNullOrWhiteSpace(model.CodigoVerificacion))
+            {
+                ModelState.AddModelError("CodigoVerificacion", "Por favor ingrese el código de verificación.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                int reenviosActuales = HttpContext.Session.GetInt32("Eliminar_ReenviosCodigo") ?? 0;
+                ViewBag.ReenviosRestantes = 3 - reenviosActuales;
+                ViewBag.MensajeCodigoEnviado = "Ingrese el código enviado a su correo.";
+                ViewBag.SegundosRestantes = ObtenerSegundosRestantesExpiracion();
+                return View("EliminarUsuario", model);
+            }
 
             string? codigoSesion = HttpContext.Session.GetString("Eliminar_Codigo");
             string? expiracionStr = HttpContext.Session.GetString("Eliminar_Expiracion");
