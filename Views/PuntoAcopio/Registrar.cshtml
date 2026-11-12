@@ -6,7 +6,7 @@
 }
 
 <!-- Librería de iconos Bootstrap integrada en el proyecto -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" integrity="sha384-VEUxUOfBS7QDvoTnQog7KMPvO3E45aeIAsZGozRTYKCk7nWdPqYAuVdEHY9ArO9o" crossorigin="anonymous">
 
 <div class="container py-4 my-4">
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
@@ -486,7 +486,7 @@
 @section Scripts {
     <!-- Validaciones estándar de ASP.NET Core MVC -->
     <partial name="_ValidationScriptsPartial" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-EmXqfSTJbSt8WdD6Wl+Vp8d447P1rT8Y5k7S1J9yF7K90yP3U05q0xQ9hX9gE4v" crossorigin="anonymous"></script>
 
     <!-- Carga de la API de Google Maps JavaScript -->
     @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
