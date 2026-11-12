@@ -1,28 +1,36 @@
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CampesinApp.ViewModels
 {
-    /// <summary>
-    /// ViewModel para la Pantalla Principal (CU-009).
-    /// Agrupa todos los datos que la vista necesita mostrar sin exponer
-    /// directamente las entidades del DbContext.
-    /// </summary>
     public class PantallaPrincipalViewModel
     {
-        // Información de Sesión y Rol
         public string RolUsuario { get; set; } = "Campesino";
         public string CedulaUsuario { get; set; } = string.Empty;
 
-        // Búsqueda y Filtro por Categoría / Tipo de Producto
+        // Búsqueda y Filtros
         public string TerminoBusqueda { get; set; } = string.Empty;
         public string CategoriaSeleccionada { get; set; } = string.Empty;
-        public List<string> CategoriasDisponibles { get; set; } = new List<string>();
+        public string VariedadSeleccionada { get; set; } = string.Empty;
 
-        // Mensajes y Banderas de Excepción (FE01-CU009 / FE02-CU009)
+        // Listas de texto (por si se usan en otras partes)
+        public List<string> CategoriasDisponibles { get; set; } = new List<string>();
+        public List<string> VariedadesDisponibles { get; set; } = new List<string>();
+
+        // Listas desplegables oficiales tipo SelectListItem
+        public List<SelectListItem> ListaTiposProducto { get; set; } = new List<SelectListItem>();
+        public List<SelectListItem> ListaVariedades { get; set; } = new List<SelectListItem>();
+
+        // Paginación (5 resultados por página)
+        public int PaginaActualPrecios { get; set; } = 1;
+        public int TotalPaginasPrecios { get; set; } = 1;
+        public int TotalRegistrosPrecios { get; set; } = 0;
+
+        // Mensajes y Banderas
         public string MensajeExcepcionPrecios { get; set; } = string.Empty;
         public bool HaySugerenciasDisponibles { get; set; } = true;
 
-        // Listas de Datos para la Tabla de Precios y los 4 Bloques de Tarjetas
+        // Listados
         public List<PrecioSugeridoItem> TablaPrecios { get; set; } = new List<PrecioSugeridoItem>();
         public List<CamionSugerenciaItem> Camiones { get; set; } = new List<CamionSugerenciaItem>();
         public List<CampesinoDestacadoItem> CampesinosDestacados { get; set; } = new List<CampesinoDestacadoItem>();
@@ -30,19 +38,17 @@ namespace CampesinApp.ViewModels
         public List<ProductoOfertaItem> CatalogoProductos { get; set; } = new List<ProductoOfertaItem>();
     }
 
-    /// <summary>Fila de la tabla de precios sugeridos del día (datos DANE / precio_Estimado).</summary>
     public class PrecioSugeridoItem
     {
         public string Producto { get; set; } = string.Empty;
         public string Variedad { get; set; } = string.Empty;
         public string Categoria { get; set; } = string.Empty;
         public string UnidadMedida { get; set; } = "Kg";
-        public decimal? PrecioVenta { get; set; }   // Visible para Campesino, Admin y Transportador (RN-01-CU009)
-        public decimal? PrecioCompra { get; set; }  // Visible para Comprador, Admin y Transportador (RN-01-CU009)
+        public decimal? PrecioVenta { get; set; }
+        public decimal? PrecioCompra { get; set; }
         public DateOnly? FechaActualizacion { get; set; }
     }
 
-    /// <summary>Tarjeta de camión/flete disponible (Bloque 1 de sugerencias FA01-CU009).</summary>
     public class CamionSugerenciaItem
     {
         public int Id { get; set; }
@@ -52,7 +58,6 @@ namespace CampesinApp.ViewModels
         public string RutaProyectada { get; set; } = string.Empty;
     }
 
-    /// <summary>Tarjeta de campesino destacado (Bloque 2 – RN-02-CU009).</summary>
     public class CampesinoDestacadoItem
     {
         public int Id { get; set; }
@@ -61,7 +66,6 @@ namespace CampesinApp.ViewModels
         public string FotoUrl { get; set; } = string.Empty;
     }
 
-    /// <summary>Tarjeta de comprador mayorista (Bloque 3 – RN-02-CU009).</summary>
     public class CompradorMayoristaItem
     {
         public int Id { get; set; }
@@ -69,7 +73,6 @@ namespace CampesinApp.ViewModels
         public string LogoUrl { get; set; } = string.Empty;
     }
 
-    /// <summary>Tarjeta de producto en catálogo (Bloque 4).</summary>
     public class ProductoOfertaItem
     {
         public int Id { get; set; }
@@ -80,4 +83,3 @@ namespace CampesinApp.ViewModels
         public string ImagenUrl { get; set; } = string.Empty;
     }
 }
-
