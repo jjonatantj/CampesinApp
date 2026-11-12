@@ -46,11 +46,15 @@
         </div>
 
         <div class="small border rounded p-2 mb-3">
-            <strong>Teléfonos oficiales de soporte</strong> (para reportar inconformidades):
+            <strong>Contacto oficial de soporte</strong> (para reportar inconformidades):
             <ul class="mb-0">
                 @foreach (var telefono in Model.TelefonosSoporte)
                 {
-                    <li>@telefono</li>
+                    <li><i class="bi bi-telephone me-1"></i>@telefono</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CorreoSoporte))
+                {
+                    <li><i class="bi bi-envelope me-1"></i><a href="mailto:@Model.CorreoSoporte">@Model.CorreoSoporte</a></li>
                 }
             </ul>
         </div>

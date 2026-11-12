@@ -72,6 +72,8 @@ public partial class Campesinapp3Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.UseCollation("Modern_Spanish_CI_AS");
+
         modelBuilder.Entity<AlertaGuardadum>(entity =>
         {
             entity.HasKey(e => e.IdAlertaGuardada);
@@ -102,7 +104,11 @@ public partial class Campesinapp3Context : DbContext
         {
             entity.HasKey(e => e.IdAporte);
 
-            entity.ToTable("aporte_Camp");
+            entity.ToTable("aporte_Camp", tb =>
+                {
+                    tb.HasTrigger("trg_ActualizarEstadoPorAporte");
+                    tb.HasTrigger("trg_CierreAutomaticoPorAportes");
+                });
 
             entity.Property(e => e.IdAporte).HasColumnName("id_Aporte");
             entity.Property(e => e.CantAporte).HasColumnName("cant_Aporte");
@@ -214,7 +220,7 @@ public partial class Campesinapp3Context : DbContext
         {
             entity.HasKey(e => e.IdDemanda);
 
-            entity.ToTable("demanda");
+            entity.ToTable("demanda", tb => tb.HasTrigger("trg_CalcularPrecioCampesino"));
 
             entity.Property(e => e.IdDemanda).HasColumnName("id_Demanda");
             entity.Property(e => e.CantidadDeman).HasColumnName("cantidad_Deman");
@@ -229,6 +235,7 @@ public partial class Campesinapp3Context : DbContext
             entity.Property(e => e.FechaEntrega)
                 .HasColumnType("datetime")
                 .HasColumnName("fecha_Entrega");
+            entity.Property(e => e.FleteEstimado).HasColumnName("flete_Estimado");
             entity.Property(e => e.IdCamion).HasColumnName("id_Camion");
             entity.Property(e => e.IdEstadoDeman).HasColumnName("id_Estado_Deman");
             entity.Property(e => e.IdPuntoAcopio).HasColumnName("id_Punto_Acopio");
@@ -238,6 +245,7 @@ public partial class Campesinapp3Context : DbContext
             entity.Property(e => e.LimTiemDeman)
                 .HasColumnType("datetime")
                 .HasColumnName("lim_Tiem_Deman");
+            entity.Property(e => e.PrecioCampesino).HasColumnName("precio_Campesino");
             entity.Property(e => e.PrecioDeman).HasColumnName("precio_Deman");
 
             entity.HasOne(d => d.IdCamionNavigation).WithMany(p => p.Demanda)

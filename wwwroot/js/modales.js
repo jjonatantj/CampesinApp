@@ -18,7 +18,8 @@
  *   #panelPagina                 (en pantallas completas) recibe el HTML cuando el servidor responde X-Modal-Destino: pagina,
  *                                o cuando el formulario / enlace que lo pidió está dentro del panel.
  *   data-modal-estatico          (en el contenido) el modal no se puede cerrar con ESC, clic fuera ni "X".
- *   data-confirmar="texto"       (en data-modal-post) pide confirmación antes de enviar.
+ *   data-confirmar="texto"       (en data-modal-post) pide confirmación antes de enviar, con una ventana de CampesinApp
+ *                                (Aceptar / Cancelar) y no con el cuadro del navegador.
  *   select[data-copiar-extra]    al elegir una opción copia su data-extra en el campo indicado (selector CSS).
  *   data-autoredirigir="ms"      (con data-url) navega a la URL pasado ese tiempo; data-redirigir-ahora lo adelanta.
  */
@@ -113,6 +114,24 @@
         }
     }
 
+    // Confirmación (Aceptar / Cancelar) con el diseño de CampesinApp, en la ventana de encima.
+    let resolverConfirmacion = null;
+
+    function preguntar(texto) {
+        return new Promise((resolver) => {
+            resolverConfirmacion?.(false);
+            resolverConfirmacion = resolver;
+            renderizar('superpuesta',
+                '<div class="modal-body text-center p-4 aviso aviso-advertencia" role="alertdialog" aria-live="assertive">' +
+                '<div class="aviso-icono"><i class="bi bi-question-lg"></i></div>' +
+                '<p class="aviso-mensaje fw-semibold mb-3">' + escapar(texto) + '</p>' +
+                '<div class="d-flex justify-content-center gap-2">' +
+                '<button type="button" class="btn btn-dark px-4" data-confirmar-respuesta="si">Aceptar</button>' +
+                '<button type="button" class="btn btn-outline-dark px-4" data-confirmar-respuesta="no">Cancelar</button>' +
+                '</div></div>');
+        });
+    }
+
     async function procesar(respuesta, destinoPorDefecto) {
         const redirigir = respuesta.headers.get('X-Redirigir');
         if (redirigir) {
@@ -160,6 +179,12 @@
             }
         });
         modales[nombre].addEventListener('hidden.bs.modal', () => {
+            if (nombre === 'superpuesta' && resolverConfirmacion) {
+                // Se cerró la pregunta (ESC o clic fuera) sin responder: equivale a Cancelar.
+                const resolver = resolverConfirmacion;
+                resolverConfirmacion = null;
+                resolver(false);
+            }
             delete modales[nombre].dataset.forzarCierre;
             clearTimeout(temporizadorRedireccion);
             contenido(nombre).innerHTML = '';
@@ -197,14 +222,30 @@
             return;
         }
 
+        const respuesta = evento.target.closest('[data-confirmar-respuesta]');
+        if (respuesta) {
+            evento.preventDefault();
+            const acepto = respuesta.dataset.confirmarRespuesta === 'si';
+            const resolver = resolverConfirmacion;
+            resolverConfirmacion = null;
+            if (!acepto) cerrar('superpuesta');
+            resolver?.(acepto);
+            return;
+        }
+
         const envio = evento.target.closest('[data-modal-post]');
         if (envio) {
             evento.preventDefault();
-            if (envio.dataset.confirmar && !window.confirm(envio.dataset.confirmar)) {
-                return;
+            const origen = modalDe(envio) || 'principal';
+            const enviar = () => {
+                const datos = new URLSearchParams(JSON.parse(envio.dataset.modalDatos || '{}'));
+                pedir(envio.dataset.modalPost, { method: 'POST', body: datos }, origen);
+            };
+            if (envio.dataset.confirmar) {
+                preguntar(envio.dataset.confirmar).then((acepto) => { if (acepto) enviar(); });
+            } else {
+                enviar();
             }
-            const datos = new URLSearchParams(JSON.parse(envio.dataset.modalDatos || '{}'));
-            pedir(envio.dataset.modalPost, { method: 'POST', body: datos }, modalDe(envio) || 'principal');
             return;
         }
 

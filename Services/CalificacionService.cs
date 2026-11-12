@@ -69,6 +69,7 @@ namespace CampesinApp.Services
                 CodigoPedido = CodigoPedido.Formatear(idDemanda),
                 EsComprador = usuario.Rol == RolUsuario.Comprador,
                 TelefonosSoporte = _soporte.Telefonos,
+                CorreoSoporte = _soporte.Correo,
                 PorDesacuerdo = porDesacuerdo
             });
         }

@@ -40,6 +40,9 @@ namespace CampesinApp.Dtos
 
         public string? EstadoFiltro { get; set; }
 
+        /// <summary>true = pantalla "Pedidos Terminados" (entregados y recibidos); false = pedidos pendientes.</summary>
+        public bool Terminados { get; set; }
+
         public List<PedidoResumenDto> Pedidos { get; set; } = new();
 
         public PaginacionDto Paginacion { get; set; } = new();
