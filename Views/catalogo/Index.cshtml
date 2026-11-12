@@ -249,8 +249,8 @@
 
                                     <!-- Caja de precio propuesta (.price-box de site.css) -->
                                     <div class="price-box mb-3">
-                                        <span class="price-label">Valor propuesto</span>
-                                        <p class="price-value">$@item.PrecioDeman.ToString("N0")</p>
+                                        <span class="price-label">Valor neto por kg</span>
+                                        <p class="price-value">$@((item.PrecioCampesino ?? item.PrecioDeman).ToString("N0"))</p>
                                     </div>
                                 </div>
 

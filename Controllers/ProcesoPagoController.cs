@@ -27,11 +27,16 @@ namespace CampesinApp.Controllers
     {
         private readonly Campesinapp3Context _context;
         private readonly IConfiguration _configuration;
+        private readonly CampesinApp.Services.ILogisticaFleteService _logisticaFleteService;
 
-        public ProcesoPagoController(Campesinapp3Context context, IConfiguration configuration)
+        public ProcesoPagoController(
+            Campesinapp3Context context, 
+            IConfiguration configuration,
+            CampesinApp.Services.ILogisticaFleteService logisticaFleteService)
         {
             _context = context;
             _configuration = configuration;
+            _logisticaFleteService = logisticaFleteService;
         }
 
         // =========================================================================
@@ -75,7 +80,7 @@ namespace CampesinApp.Controllers
             if (!perfilesPago.Any())
             {
                 TempData["MensajeAdvertencia"] = "Antes de realizar el pago de tu pedido, debes registrar un medio de pago.";
-                return RedirectToAction("Index", "PerfilPago");
+                return RedirectToAction("Index", "PerfilPago", new { returnUrl = "ProcesoPago" });
             }
 
             var model = new ProcesoPagoViewModel();
@@ -224,7 +229,12 @@ namespace CampesinApp.Controllers
                     return View("Index", model);
                 }
 
-                // 2. Si Openpay APRUEBA el pago: procedemos a guardar la demanda y el pago en la base de datos
+                // 2. Si Openpay APRUEBA el pago: procedemos a calcular el flete logístico y guardar la demanda
+                double fleteCalculado = await _logisticaFleteService.CalcularFleteAsync(
+                    kilos: borrador.Cantidad,
+                    idPuntoAcopio: borrador.IdPuntoAcopio
+                );
+
                 var nuevaDemanda = new Demandum
                 {
                     IdUsuario = idUsuarioSesion.Value,
@@ -232,6 +242,7 @@ namespace CampesinApp.Controllers
                     IdVariedad = borrador.IdVariedad,
                     CantidadDeman = borrador.Cantidad,
                     PrecioDeman = borrador.PrecioEstimado,
+                    FleteEstimado = fleteCalculado,
                     FechaEntrega = borrador.FechaEntrega,
                     LimTiemDeman = borrador.LimTiemDeman,
                     DescripcionDeman = borrador.Descripcion,
@@ -308,6 +319,14 @@ namespace CampesinApp.Controllers
                 FechaPagoC = DateTime.Now
             };
 
+            if (demandaExistente.FleteEstimado == null || demandaExistente.FleteEstimado <= 0)
+            {
+                demandaExistente.FleteEstimado = await _logisticaFleteService.CalcularFleteAsync(
+                    kilos: demandaExistente.CantidadDeman,
+                    idPuntoAcopio: demandaExistente.IdPuntoAcopio ?? 0
+                );
+            }
+
             _context.PagoCompradors.Add(pagoGuardado);
             demandaExistente.IdEstadoDeman = 1; // Demanda confirmada y activa
             await _context.SaveChangesAsync();
@@ -337,7 +356,7 @@ namespace CampesinApp.Controllers
 
             double comisionPasarela = montoTotalRetenido * 0.03;
             double comisionCampesinApp = montoTotalRetenido * 0.05;
-            double tarifaFleteTransportador = 150000;
+            double tarifaFleteTransportador = demanda.FleteEstimado ?? 150000;
             double fondoCampesinos = montoTotalRetenido - comisionPasarela - comisionCampesinApp - tarifaFleteTransportador;
 
             if (demanda.IdCamionNavigation != null)
@@ -687,6 +706,12 @@ namespace CampesinApp.Controllers
                     ? $"{p.IdEntiFinancNavigation.EntiFinanc} - {p.IdTipoCuentaNavigation.TipoCuenta} (•••• {p.NumCuenta.Substring(Math.Max(0, p.NumCuenta.Length - 4))}) [Prueba anterior - No válido]"
                     : $"{p.IdEntiFinancNavigation.EntiFinanc} - {p.IdTipoCuentaNavigation.TipoCuenta} (•••• {p.NumCuenta.Substring(Math.Max(0, p.NumCuenta.Length - 4))})"
             }).ToList();
+
+            // Si no hay ningún medio de pago preseleccionado, seleccionamos el más reciente (recién registrado)
+            if (model.IdPerfilPagoSeleccionado == 0 && perfiles.Any())
+            {
+                model.IdPerfilPagoSeleccionado = perfiles.Last().IdPerfilPago;
+            }
         }
     }
 }

@@ -185,7 +185,7 @@ namespace CampesinApp.Controllers
                     CantidadTotal = demanda.CantidadDeman,
                     CantidadAportada = totalAportado,
                     CantidadFaltante = cantidadFaltante,
-                    PrecioPropuesto = demanda.PrecioDeman,
+                    PrecioPropuesto = demanda.PrecioCampesino ?? demanda.PrecioDeman,
                     DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial ?? "Punto de Acopio",
                     MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Municipio no registrado",
                     DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "",

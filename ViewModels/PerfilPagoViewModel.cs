@@ -56,6 +56,9 @@ namespace CampesinApp.ViewModels
         // Identificador del dispositivo (Device Session ID) que genera Openpay para antifraude
         public string? DeviceSessionId { get; set; }
 
+        // Parámetro opcional para retornar a un flujo previo tras registro exitoso (ej. "ProcesoPago")
+        public string? ReturnUrl { get; set; }
+
         // Listas para poblar los elementos de selección (<select>) en la Vista
         public List<SelectListItem> ListaEntidadesFinancieras { get; set; } = new();
         public List<SelectListItem> ListaTiposCuenta { get; set; } = new();

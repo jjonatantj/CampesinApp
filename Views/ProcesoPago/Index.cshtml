@@ -109,13 +109,17 @@
                 <label asp-for="IdPerfilPagoSeleccionado" class="form-label fw-bold small text-dark">
                     Método de Pago Registrado *
                 </label>
-                <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-2">
+                <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-1" id="groupSelectMetodoPago">
                     <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-wallet2"></i></span>
                     <select asp-for="IdPerfilPagoSeleccionado" asp-items="Model.ListaMetodosPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMetodoPago" required>
                         <option value="">-- Selecciona el medio de pago para la transacción --</option>
                     </select>
                 </div>
-                <small class="text-muted ms-2">
+                <!-- Mensaje de error dinámico con estilo CampesinApp -->
+                <div id="errorMetodoPagoRequerido" class="text-danger small ms-2 fw-semibold d-none mt-1">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> Por favor selecciona un método de pago registrado para continuar.
+                </div>
+                <small class="text-muted ms-2 d-block mt-1">
                     ¿Deseas usar otra tarjeta o cuenta bancaria? Puedes agregarla en <a asp-controller="PerfilPago" asp-action="Index" class="text-success fw-semibold">Perfil de Pago</a>.
                 </small>
                 <span asp-validation-for="IdPerfilPagoSeleccionado" class="text-danger small ms-2 d-block"></span>
@@ -251,13 +255,35 @@
             const btnConfirmarPago = document.getElementById("btnConfirmarPago");
             const btnEjecutarPagoFinal = document.getElementById("btnEjecutarPagoFinal");
             const selectMetodoPago = document.getElementById("selectMetodoPago");
+            const groupSelectMetodoPago = document.getElementById("groupSelectMetodoPago");
+            const errorMetodoPago = document.getElementById("errorMetodoPagoRequerido");
             const modalConfirmar = new bootstrap.Modal(document.getElementById("modalConfirmarPagoModal"));
             const form = document.getElementById("formProcesoPago");
+
+            // Limpiar error al interactuar con el selector
+            if (selectMetodoPago) {
+                selectMetodoPago.addEventListener("change", function () {
+                    if (this.value) {
+                        if (groupSelectMetodoPago) groupSelectMetodoPago.classList.remove("border-danger");
+                        if (errorMetodoPago) errorMetodoPago.classList.add("d-none");
+                    }
+                });
+            }
 
             if (btnConfirmarPago) {
                 btnConfirmarPago.addEventListener("click", function () {
                     if (!selectMetodoPago || !selectMetodoPago.value) {
-                        alert("Por favor selecciona un método de pago registrado para continuar.");
+                        // Validación visual integrada con la identidad de CampesinApp (sin alert nativo)
+                        if (groupSelectMetodoPago) {
+                            groupSelectMetodoPago.classList.add("border-danger");
+                        }
+                        if (errorMetodoPago) {
+                            errorMetodoPago.classList.remove("d-none");
+                        }
+                        if (selectMetodoPago) {
+                            selectMetodoPago.focus();
+                            selectMetodoPago.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                         return;
                     }
                     modalConfirmar.show();

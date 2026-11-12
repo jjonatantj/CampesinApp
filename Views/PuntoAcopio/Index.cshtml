@@ -378,10 +378,10 @@
                 })
                 .catch(error => {
                     console.error('Error al consultar puntos:', error);
-                    // Caso FE-03-CU019: Error de conexión o base de datos
+                    // Caso FE-03-CU019: Error al cargar información de puntos de acopio
                     if (badgeContador) badgeContador.textContent = 'Error al cargar';
                     if (textoAlerta) {
-                        textoAlerta.innerHTML = '<i class="bi bi-wifi-off me-1"></i> <strong>Error de conexión:</strong> Error al obtener la información actualizada de los puntos de acopio. Intente nuevamente.';
+                        textoAlerta.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1"></i> <strong>Aviso del Sistema:</strong> No fue posible obtener la información actualizada de los puntos de acopio. Por favor intente nuevamente más tarde.';
                     }
                     if (alerta) alerta.classList.remove('d-none');
                 });

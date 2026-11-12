@@ -35,7 +35,10 @@ namespace CampesinApp.ViewModels
         public string CedulaComprador { get; set; } = string.Empty;
         public string NombreComprador { get; set; } = string.Empty;
         public string EstadoDemanda { get; set; } = "Publicada";
-        public bool EstaCompletada => CantidadRestante == 0 || EstadoDemanda.Equals("Completada", StringComparison.OrdinalIgnoreCase);
+        public bool EstaCompletada => CantidadRestante == 0 
+            || EstadoDemanda.Equals("Completada", StringComparison.OrdinalIgnoreCase)
+            || EstadoDemanda.Equals("En tránsito", StringComparison.OrdinalIgnoreCase)
+            || EstadoDemanda.Equals("Pedido Completo", StringComparison.OrdinalIgnoreCase);
         public List<OfertadorDetalleViewModel> Ofertadores { get; set; } = new List<OfertadorDetalleViewModel>();
     }
 

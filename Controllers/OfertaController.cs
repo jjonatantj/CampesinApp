@@ -186,7 +186,7 @@ namespace CampesinApp.Controllers
                     TopeDiezPorciento = topeDiezPorciento,
                     AportePrevioCampesino = aportePrevioCampesino,
                     MinimoPermitido = minimoPermitido,
-                    PrecioPropuesto = demanda.PrecioDeman,
+                    PrecioPropuesto = demanda.PrecioCampesino ?? demanda.PrecioDeman,
                     MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Punto de acopio",
                     DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia",
                     DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial,
@@ -289,7 +289,7 @@ namespace CampesinApp.Controllers
             model.CantidadTotal = demanda.CantidadDeman;
             model.CantidadAportadaPrevia = totalAportadoActual;
             model.CantidadFaltante = cantidadFaltanteActual;
-            model.PrecioPropuesto = demanda.PrecioDeman;
+            model.PrecioPropuesto = demanda.PrecioCampesino ?? demanda.PrecioDeman;
             model.MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Punto de acopio";
             model.DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia";
             model.DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial;
@@ -446,23 +446,12 @@ namespace CampesinApp.Controllers
                 _context.AporteCamps.Add(nuevoAporte);
 
                 // B) RN-02 y RN-03: Evaluar si el aporte completa el 100% de la solicitud
+                // NOTA: El cambio de estado de la demanda (a Estado 2 'En recolección' o Estado 3 'En tránsito')
+                // lo gestionan automáticamente los triggers de BD: [trg_ActualizarEstadoPorAporte] y [trg_CierreAutomaticoPorAportes].
                 bool pedidoCompleto = (totalAportadoActual + model.CantidadAporte.Value) >= demanda.CantidadDeman;
 
                 if (pedidoCompleto)
                 {
-                    // Buscar el estado 'Pedido Completo' o 'Completada' en la base de datos
-                    var estadoCompleto = await _context.EstadoDemanda
-                        .FirstOrDefaultAsync(e => e.Estado.ToLower() == "pedido completo" || e.Estado.ToLower() == "completada");
-
-                    if (estadoCompleto != null)
-                    {
-                        demanda.IdEstadoDeman = estadoCompleto.IdEstadoDeman;
-                    }
-                    else
-                    {
-                        demanda.IdEstadoDeman = 4; // Id de estado 'Completada' (4) según la tabla estado_Demanda
-                    }
-
                     // Notificar al comprador que su pedido fue completado al 100%
                     try
                     {
@@ -479,8 +468,11 @@ namespace CampesinApp.Controllers
                     }
                 }
 
-                // Guardar los cambios en la base de datos
+                // Guardar los cambios en la base de datos (dispara los triggers de BD)
                 await _context.SaveChangesAsync();
+
+                // Sincronizamos la entidad en memoria con los estados actualizados por los triggers de BD
+                await _context.Entry(demanda).ReloadAsync();
 
                 // AUDITORÍA EN LA TABLA log_Sistema (CU-030 / RNF-01):
                 try
@@ -502,7 +494,7 @@ namespace CampesinApp.Controllers
                         await _logService.RegistrarAsync(
                             NivelesLog.Info,
                             "CU-013 Demanda Completa",
-                            $"La Demanda #{demanda.IdDemanda} ({demanda.IdTipoProductoNavigation?.Producto}) ha alcanzado el 100% requerido ({demanda.CantidadDeman} unidades) tras el aporte del campesino ID #{idUsuarioCampesino}. Estado actualizado a 'Pedido Completo'.",
+                            $"La Demanda #{demanda.IdDemanda} ({demanda.IdTipoProductoNavigation?.Producto}) ha alcanzado el 100% requerido ({demanda.CantidadDeman} unidades) tras el aporte del campesino ID #{idUsuarioCampesino}. Estado de la demanda actualizado en base de datos a 'En tránsito' (Estado 3).",
                             idUsuarioCampesino
                         );
                     }

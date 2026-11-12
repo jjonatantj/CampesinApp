@@ -41,7 +41,7 @@ namespace CampesinApp.Controllers
         // =========================================================================
         [HttpGet("")]
         [HttpGet("Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery] string? returnUrl = null)
         {
             // 1. Verificamos si existe una sesión activa en la aplicación
             var idUsuario = HttpContext.Session.GetInt32("IdUsuario");
@@ -72,12 +72,17 @@ namespace CampesinApp.Controllers
                 }
             }
 
+            // Detectamos si proviene del flujo de publicación de demanda (CU-010 / CU-017)
+            bool vieneDeDemanda = returnUrl == "ProcesoPago" || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("DemandaBorrador"));
+            ViewBag.VieneDeDemanda = vieneDeDemanda;
+
             // 3. Preparamos el ViewModel con los datos iniciales
             var model = new PerfilPagoViewModel
             {
                 IdUsuario = usuario.IdUsuario,
                 // RN-01-CU014: El número de documento validado debe coincidir con la sesión activa
-                DocumentoTitular = usuario.CedulaUsu.ToString()
+                DocumentoTitular = usuario.CedulaUsu.ToString(),
+                ReturnUrl = returnUrl
             };
 
             // 4. Llenamos las listas desplegables desde la base de datos (tipo_Cuenta, entidad_Financiera, tipo_Pago)
@@ -198,8 +203,20 @@ namespace CampesinApp.Controllers
                 await _context.SaveChangesAsync();
 
                 // 9. Mostramos la ventana emergente de proceso exitoso con temporizador de 4s
+                bool vieneDeDemanda = model.ReturnUrl == "ProcesoPago" || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("DemandaBorrador"));
                 ViewBag.RegistroExitoso = true;
-                ViewBag.MensajeExito = "Perfil de pago registrado con éxito.";
+                ViewBag.VieneDeDemanda = vieneDeDemanda;
+                if (vieneDeDemanda)
+                {
+                    ViewBag.MensajeExito = "Perfil de pago registrado con éxito. Redirigiendo al pago de tu pedido...";
+                    ViewBag.UrlDestinoExito = Url.Action("Index", "ProcesoPago");
+                }
+                else
+                {
+                    ViewBag.MensajeExito = "Perfil de pago registrado con éxito.";
+                    ViewBag.UrlDestinoExito = Url.Action("Index", "Perfil");
+                }
+
                 await PoblarCatalogosAsync(model);
                 ViewBag.OpenpayMerchantId = _configuration["Openpay:MerchantId"] ?? "m9xxxxxxsandboxid";
                 ViewBag.OpenpayPublicKey = _configuration["Openpay:PublicApiKey"] ?? "pk_xxxxxxxxxxxxxxxxxxxxxxxx";

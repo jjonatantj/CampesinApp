@@ -30,13 +30,13 @@
         <!-- MENSAJES DE NOTIFICACIÓN TEMPORALES (FE-01, FE-02 Y ÉXITO)     -->
         <!-- ============================================================== -->
 
-        <!-- FE-01-CU018: Error de conexión a la BD o Internet (6 segundos) -->
+        <!-- FE-01-CU018: Notificación de error en servicio o base de datos (6 segundos) -->
         @if (ViewBag.MensajeErrorConexion != null)
         {
             <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
-                <i class="bi bi-wifi-off fs-4 me-3 text-danger"></i>
+                <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-danger"></i>
                 <div class="flex-grow-1">
-                    <strong>Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
+                    <strong>Aviso del Sistema:</strong> @ViewBag.MensajeErrorConexion
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
@@ -310,15 +310,17 @@
                                 </div>
                             </div>
 
-                            <!-- Botón para Zona Urbana: Geocodifica la dirección con Google Geocoder -->
-                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm text-white" id="btnGeocodificarDireccion" style="background-color: #2e7d32; border-color: #2e7d32;">
-                                <i class="bi bi-geo-alt-fill me-1"></i> Ubicar en Mapa
-                            </button>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <!-- Botón para Zona Urbana: Geocodifica la dirección con Google Geocoder -->
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm text-white" id="btnGeocodificarDireccion" style="background-color: #2e7d32; border-color: #2e7d32;">
+                                    <i class="bi bi-geo-alt-fill me-1"></i> Ubicar en Mapa
+                                </button>
 
-                            <!-- Botón para Zona Rural: Obtiene el GPS del dispositivo sin alterar la vereda escrita -->
-                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm fw-semibold" id="btnUbicacionActualRural" style="display: none;">
-                                <i class="bi bi-crosshair me-1"></i> Usar mi Ubicación Actual
-                            </button>
+                                <!-- Botón de GPS "Mi Ubicación Actual" reubicado aquí (mismo funcionamiento) -->
+                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm fw-semibold" id="btnUbicacionActualGPS" title="Centrar mapa en la posición GPS de tu teléfono o computador">
+                                    <i class="bi bi-crosshair me-1"></i> Mi Ubicación Actual
+                                </button>
+                            </div>
                         </div>
                         <span asp-validation-for="Direccion" class="text-danger small mt-1 ps-4 d-block"></span>
                     </div>
@@ -419,19 +421,8 @@
                         <span asp-validation-for="Capacidad" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 8. Acceso Vehicular (RN-02-CU018) con bordes redondeados -->
-                    <div class="card p-3 border-success-subtle bg-light rounded-4 mb-3 shadow-sm">
-                        <div class="form-check form-switch mb-0">
-                            <input asp-for="AccesoVehicular" class="form-check-input" type="checkbox" id="checkAccesoVehicular" role="switch" checked>
-                            <label class="form-check-label fw-bold text-dark ms-2" for="checkAccesoVehicular">
-                                <i class="bi bi-truck text-success me-1"></i> Cuenta con acceso vehicular para camión
-                            </label>
-                        </div>
-                        <small class="text-muted ms-4 mt-1 d-block">
-                            Requisito logístico obligatorio para maniobras de cargue y descargue de cosecha.
-                        </small>
-                        <span asp-validation-for="AccesoVehicular" class="text-danger small ms-4"></span>
-                    </div>
+                    <!-- 8. Acceso Vehicular por defecto habilitado (RN-02-CU018) -->
+                    <input type="hidden" asp-for="AccesoVehicular" value="true" />
 
                 </div>
 
@@ -442,14 +433,9 @@
                     <div class="sticky-top" style="top: 1.5rem; z-index: 10;">
                         <h5 class="fw-bold text-success mb-3 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <span><i class="bi bi-map-fill me-1"></i> Ubicación Geográfica en el Mapa</span>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold shadow-sm" id="btnUbicacionActualMapa" title="Centrar mapa en la posición GPS de tu teléfono o computador">
-                                    <i class="bi bi-crosshair me-1"></i> Mi Ubicación Actual
-                                </button>
-                                <span class="badge bg-success text-dark small fw-normal py-1 px-2 rounded-pill">
-                                    <i class="bi bi-globe-americas me-1"></i> Vista Satelital
-                                </span>
-                            </div>
+                            <span class="badge bg-success text-dark small fw-normal py-1 px-2 rounded-pill">
+                                <i class="bi bi-globe-americas me-1"></i> Vista Satelital
+                            </span>
                         </h5>
 
                         <!-- Contenedor del Mapa de Google Maps redondeado en Vista Satelital -->
@@ -824,15 +810,13 @@
             const bloqueUrbano = document.getElementById('bloqueDireccionUrbana');
             const bloqueRural = document.getElementById('bloqueDireccionRural');
             const btnGeocodificar = document.getElementById('btnGeocodificarDireccion');
-            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
 
             if (zona === 'Rural') {
                 bloqueUrbano.style.display = 'none';
                 bloqueRural.style.display = 'block';
 
-                // En zona rural se oculta el botón de geocodificar de maps y se activa "Usar mi Ubicación Actual"
+                // En zona rural se oculta el botón de geocodificar dirección por vía/calle
                 if (btnGeocodificar) btnGeocodificar.style.display = 'none';
-                if (btnUbicacionRural) btnUbicacionRural.style.display = 'inline-block';
 
                 const valUrbano = document.getElementById('urbanoIndicacionExtra')?.value || '';
                 const ruralExtra = document.getElementById('ruralIndicacionExtra');
@@ -845,7 +829,6 @@
 
                 // En zona urbana se reactiva el botón "Ubicar en Mapa"
                 if (btnGeocodificar) btnGeocodificar.style.display = 'inline-block';
-                if (btnUbicacionRural) btnUbicacionRural.style.display = 'none';
 
                 const valRural = document.getElementById('ruralIndicacionExtra')?.value || '';
                 const urbanoExtra = document.getElementById('urbanoIndicacionExtra');
@@ -1110,15 +1093,12 @@
                 });
             }
 
-            // Botones de "Mi Ubicación Actual" (GPS) tanto en el mapa como en la zona rural
-            const btnUbicacionMapa = document.getElementById('btnUbicacionActualMapa');
-            if (btnUbicacionMapa) {
-                btnUbicacionMapa.addEventListener('click', obtenerUbicacionActualGPS);
-            }
-
-            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
-            if (btnUbicacionRural) {
-                btnUbicacionRural.addEventListener('click', obtenerUbicacionActualGPS);
+            // Botón de "Mi Ubicación Actual" (GPS) ubicado en el contenedor de dirección
+            const btnUbicacionGPS = document.getElementById('btnUbicacionActualGPS') 
+                                 || document.getElementById('btnUbicacionActualMapa') 
+                                 || document.getElementById('btnUbicacionActualRural');
+            if (btnUbicacionGPS) {
+                btnUbicacionGPS.addEventListener('click', obtenerUbicacionActualGPS);
             }
 
             // E. Inputs del Horario de Atención

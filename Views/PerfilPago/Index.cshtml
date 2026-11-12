@@ -63,8 +63,9 @@
         <form asp-controller="PerfilPago" asp-action="Guardar" method="post" id="formPerfilPago" novalidate autocomplete="off">
             @Html.AntiForgeryToken()
 
-            <!-- CAMPOS OCULTOS DE SESIÓN Y TOKENIZACIÓN OPENPAY -->
+            <!-- CAMPESINAPP: CAMPOS OCULTOS DE SESIÓN Y TOKENIZACIÓN OPENPAY -->
             <input type="hidden" asp-for="IdUsuario" />
+            <input type="hidden" asp-for="ReturnUrl" />
             <input type="hidden" id="tokenOpenpay" name="TokenOpenpay" />
             <input type="hidden" id="deviceSessionId" name="DeviceSessionId" />
 
@@ -167,10 +168,19 @@
             <!-- BOTONES DE ACCIÓN: Volver y Guardar con estilo rounded-pill    -->
             <!-- ============================================================== -->
             <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
-                <!-- Botón Volver -->
-                <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Volver
-                </a>
+                <!-- Botón Volver contextual -->
+                @if (Model.ReturnUrl == "ProcesoPago" || ViewBag.VieneDeDemanda == true)
+                {
+                    <a asp-controller="PublicarDemanda" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Volver a Demanda
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </a>
+                }
 
                 <!-- Botón Guardar -->
                 <button type="button" class="btn btn-success px-5 py-2 fw-bold rounded-pill text-white shadow-sm" id="btnGuardar" style="background-color: #2e7d32; border-color: #2e7d32;">
@@ -251,13 +261,13 @@
                 </div>
                 <h3 class="fw-bold mb-2" style="color: #1b5e20;">¡Proceso Exitoso!</h3>
                 <p class="fs-5 text-dark fw-semibold mb-3">
-                    Perfil de pago registrado con éxito.
+                    @(ViewBag.MensajeExito ?? "Perfil de pago registrado con éxito.")
                 </p>
                 <div class="alert alert-light border rounded-pill d-inline-block px-4 py-2 text-muted small mb-4">
-                    <i class="bi bi-clock me-1 text-success"></i> Redirigiendo a la página principal en <strong id="contadorSegundosExito" class="text-success fs-6">4</strong> segundos...
+                    <i class="bi bi-clock me-1 text-success"></i> Redirigiendo en <strong id="contadorSegundosExito" class="text-success fs-6">4</strong> segundos...
                 </div>
                 <div>
-                    <a href="@Url.Action("Index", "PantallaPrincipal")" class="btn btn-success rounded-pill px-5 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
+                    <a href="@(ViewBag.UrlDestinoExito ?? Url.Action("Index", "Perfil"))" class="btn btn-success rounded-pill px-5 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
                         <span>Continuar</span>
                         <i class="bi bi-arrow-right"></i>
                     </a>
@@ -292,7 +302,7 @@
 
                     let segundos = 4;
                     const contador = document.getElementById("contadorSegundosExito");
-                    const urlDestino = "@Url.Action("Index", "PantallaPrincipal")";
+                    const urlDestino = "@(ViewBag.UrlDestinoExito ?? Url.Action("Index", "Perfil"))";
 
                     const intervalo = setInterval(function () {
                         segundos--;
