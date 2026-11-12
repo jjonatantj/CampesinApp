@@ -1,6 +1,10 @@
 // Importamos las librerías necesarias de ASP.NET Core y Entity Framework
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -37,7 +41,7 @@ namespace CampesinApp.Controllers
         // =========================================================================
         [HttpGet("")]
         [HttpGet("Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery] string? returnUrl = null)
         {
             // 1. Verificamos si existe una sesión activa en la aplicación
             var idUsuario = HttpContext.Session.GetInt32("IdUsuario");
@@ -68,12 +72,17 @@ namespace CampesinApp.Controllers
                 }
             }
 
+            // Detectamos si proviene del flujo de publicación de demanda (CU-010 / CU-017)
+            bool vieneDeDemanda = returnUrl == "ProcesoPago" || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("DemandaBorrador"));
+            ViewBag.VieneDeDemanda = vieneDeDemanda;
+
             // 3. Preparamos el ViewModel con los datos iniciales
             var model = new PerfilPagoViewModel
             {
                 IdUsuario = usuario.IdUsuario,
                 // RN-01-CU014: El número de documento validado debe coincidir con la sesión activa
-                DocumentoTitular = usuario.CedulaUsu.ToString()
+                DocumentoTitular = usuario.CedulaUsu.ToString(),
+                ReturnUrl = returnUrl
             };
 
             // 4. Llenamos las listas desplegables desde la base de datos (tipo_Cuenta, entidad_Financiera, tipo_Pago)
@@ -141,11 +150,25 @@ namespace CampesinApp.Controllers
                 return View("Index", model);
             }
 
+            // 5. REGISTRO PERMANENTE DE CLIENTE Y TARJETA EN OPENPAY (Customer & Saved Card)
+            var resultadoOpenpay = await RegistrarTarjetaEnOpenpayAsync(usuario, model.TokenOpenpay!, model.DeviceSessionId);
+            if (!resultadoOpenpay.Exito)
+            {
+                ModelState.AddModelError("", resultadoOpenpay.ErrorMensaje ?? "No fue posible registrar la tarjeta con la pasarela de pagos.");
+                await PoblarCatalogosAsync(model);
+                ViewBag.OpenpayMerchantId = _configuration["Openpay:MerchantId"] ?? "m9xxxxxxsandboxid";
+                ViewBag.OpenpayPublicKey = _configuration["Openpay:PublicApiKey"] ?? "pk_xxxxxxxxxxxxxxxxxxxxxxxx";
+                ViewBag.OpenpaySandbox = _configuration.GetValue<bool>("Openpay:SandboxMode", true);
+                ViewBag.OpenpayPais = _configuration["Openpay:Pais"] ?? "CO";
+                return View("Index", model);
+            }
+
             try
             {
                 // 6. Preparación de la entidad perfil_Pago:
                 // Usamos exclusivamente las columnas exactas de la tabla perfil_Pago en CAMPESINAPP_3:
                 // id_Usuario, id_Tipo_Cuenta, id_Tipo_Pago, id_Enti_Financ, num_Cuenta, cvc
+                string numLimpio = (model.NumCuenta ?? "").Replace(" ", "").Replace("-", "");
                 var perfilPago = new PerfilPago
                 {
                     // Llave foránea del usuario activo
@@ -160,17 +183,17 @@ namespace CampesinApp.Controllers
                     // Llave foránea de entidad_Financiera (Banco Agrario, Bancolombia, etc.)
                     IdEntiFinanc = model.IdEntiFinanc,
 
-                    // Para num_Cuenta (varchar(12) en BD): guardamos los últimos dígitos enmascarados o el número recibido
-                    NumCuenta = model.NumCuenta.Length > 12 
-                        ? model.NumCuenta.Substring(model.NumCuenta.Length - 12) 
-                        : model.NumCuenta,
+                    // Para num_Cuenta (varchar(12) en BD): guardamos los últimos dígitos limpios
+                    NumCuenta = numLimpio.Length > 12 
+                        ? numLimpio.Substring(numLimpio.Length - 12) 
+                        : numLimpio,
 
                     // BUENA PRÁCTICA DE SEGURIDAD (PCI-DSS):
-                    // En el campo cvc (varchar(100) en BD) almacenamos el Token generado por Openpay
-                    // de modo que nunca guardamos el CVC real en texto plano y cumplimos el esquema de la BD.
-                    Cvc = (model.TokenOpenpay ?? "").Length > 100 
-                        ? (model.TokenOpenpay ?? "").Substring(0, 100) 
-                        : (model.TokenOpenpay ?? "")
+                    // En el campo cvc (varchar(100) en BD) almacenamos el identificador compuesto permanente
+                    // en formato customerId|cardId para permitir cargos recurrentes sin quemar el token.
+                    Cvc = (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "").Length > 100 
+                        ? (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "").Substring(0, 100) 
+                        : (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "")
                 };
 
                 // 7. Insertamos el nuevo registro en la tabla perfil_Pago
@@ -179,11 +202,27 @@ namespace CampesinApp.Controllers
                 // 8. Confirmamos los cambios en MySQL
                 await _context.SaveChangesAsync();
 
-                // 9. Mensaje de éxito para el usuario (Paso 6 del CU-014: "Registro exitoso")
-                TempData["MensajeExito"] = "¡Registro exitoso! Su perfil de pago ha sido guardado correctamente.";
+                // 9. Mostramos la ventana emergente de proceso exitoso con temporizador de 4s
+                bool vieneDeDemanda = model.ReturnUrl == "ProcesoPago" || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("DemandaBorrador"));
+                ViewBag.RegistroExitoso = true;
+                ViewBag.VieneDeDemanda = vieneDeDemanda;
+                if (vieneDeDemanda)
+                {
+                    ViewBag.MensajeExito = "Perfil de pago registrado con éxito. Redirigiendo al pago de tu pedido...";
+                    ViewBag.UrlDestinoExito = Url.Action("Index", "ProcesoPago");
+                }
+                else
+                {
+                    ViewBag.MensajeExito = "Perfil de pago registrado con éxito.";
+                    ViewBag.UrlDestinoExito = Url.Action("Index", "Perfil");
+                }
 
-                // 10. Redirigimos a la pantalla principal como estipula el flujo de éxito del CU-014
-                return RedirectToAction("Index", "PantallaPrincipal");
+                await PoblarCatalogosAsync(model);
+                ViewBag.OpenpayMerchantId = _configuration["Openpay:MerchantId"] ?? "m9xxxxxxsandboxid";
+                ViewBag.OpenpayPublicKey = _configuration["Openpay:PublicApiKey"] ?? "pk_xxxxxxxxxxxxxxxxxxxxxxxx";
+                ViewBag.OpenpaySandbox = _configuration.GetValue<bool>("Openpay:SandboxMode", true);
+                ViewBag.OpenpayPais = _configuration["Openpay:Pais"] ?? "CO";
+                return View("Index", model);
             }
             catch (Exception ex)
             {
@@ -232,6 +271,222 @@ namespace CampesinApp.Controllers
                     Text = tp.TipoPago1
                 })
                 .ToListAsync();
+        }
+
+        // =========================================================================
+        // MÉTODO AUXILIAR: REGISTRO DE CLIENTE Y TARJETA RECURRENTE EN OPENPAY
+        // =========================================================================
+        private async Task<(bool Exito, string? IdentificadorCompuesto, string? ErrorMensaje)> RegistrarTarjetaEnOpenpayAsync(
+            Usuario usuario, 
+            string tokenTarjeta, 
+            string? deviceSessionId)
+        {
+            string merchantId = _configuration["Openpay:MerchantId"] ?? "";
+            string privateKey = _configuration["Openpay:PrivateApiKey"] ?? "";
+            bool isSandbox = _configuration.GetValue<bool>("Openpay:SandboxMode", true);
+            string pais = _configuration["Openpay:Pais"] ?? "CO";
+
+            if (string.IsNullOrWhiteSpace(merchantId) || string.IsNullOrWhiteSpace(privateKey))
+            {
+                return (false, null, "La configuración de Openpay no se encuentra disponible.");
+            }
+
+            try
+            {
+                string dominio = pais.Equals("MX", StringComparison.OrdinalIgnoreCase) ? "openpay.mx" : "openpay.co";
+                string apiBase = isSandbox 
+                    ? $"https://sandbox-api.{dominio}/v1/{merchantId}" 
+                    : $"https://api.{dominio}/v1/{merchantId}";
+
+                using var client = new HttpClient();
+                var credencialesBytes = Encoding.ASCII.GetBytes($"{privateKey}:");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(credencialesBytes));
+
+                // 1. Obtener o crear el Cliente en Openpay
+                string externalId = $"campesinapp_user_{usuario.IdUsuario}";
+                string customerId = "";
+
+                try
+                {
+                    var searchResp = await client.GetAsync($"{apiBase}/customers?external_id={externalId}");
+                    if (searchResp.IsSuccessStatusCode)
+                    {
+                        var searchBody = await searchResp.Content.ReadAsStringAsync();
+                        using var docSearch = JsonDocument.Parse(searchBody);
+                        if (docSearch.RootElement.ValueKind == JsonValueKind.Array && docSearch.RootElement.GetArrayLength() > 0)
+                        {
+                            var primerCliente = docSearch.RootElement[0];
+                            if (primerCliente.TryGetProperty("id", out var idProp))
+                            {
+                                customerId = idProp.GetString() ?? "";
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                if (string.IsNullOrWhiteSpace(customerId))
+                {
+                    string telefono = usuario.TelelfonoUsu.ToString();
+                    if (telefono.Length < 10)
+                    {
+                        telefono = "300" + telefono.PadLeft(7, '0');
+                    }
+
+                    var payloadCliente = new
+                    {
+                        external_id = externalId,
+                        name = string.IsNullOrWhiteSpace(usuario.NombreCom) ? "Usuario" : usuario.NombreCom.Trim(),
+                        last_name = string.IsNullOrWhiteSpace(usuario.ApellidoCom) ? "CampesinApp" : usuario.ApellidoCom.Trim(),
+                        email = string.IsNullOrWhiteSpace(usuario.CorreoUsu) ? "usuario@campesinapp.test" : usuario.CorreoUsu.Trim(),
+                        phone_number = telefono,
+                        requires_account = false
+                    };
+
+                    var postClienteContent = new StringContent(JsonSerializer.Serialize(payloadCliente), Encoding.UTF8, "application/json");
+                    var postClienteResp = await client.PostAsync($"{apiBase}/customers", postClienteContent);
+                    var postClienteBody = await postClienteResp.Content.ReadAsStringAsync();
+
+                    if (!postClienteResp.IsSuccessStatusCode)
+                    {
+                        string errorDesc = ExtraerErrorOpenpay(postClienteBody);
+                        return (false, null, errorDesc);
+                    }
+
+                    using var docCli = JsonDocument.Parse(postClienteBody);
+                    if (docCli.RootElement.TryGetProperty("id", out var idCliProp))
+                    {
+                        customerId = idCliProp.GetString() ?? "";
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(customerId))
+                {
+                    return (false, null, "No fue posible registrar el cliente en la pasarela de pagos.");
+                }
+
+                // 2. Asociar la tarjeta al Cliente de Openpay de forma permanente
+                var payloadTarjeta = new
+                {
+                    token_id = tokenTarjeta,
+                    device_session_id = string.IsNullOrWhiteSpace(deviceSessionId) ? "device_session_default" : deviceSessionId
+                };
+
+                var postTarjetaContent = new StringContent(JsonSerializer.Serialize(payloadTarjeta), Encoding.UTF8, "application/json");
+                var postTarjetaResp = await client.PostAsync($"{apiBase}/customers/{customerId}/cards", postTarjetaContent);
+                var postTarjetaBody = await postTarjetaResp.Content.ReadAsStringAsync();
+
+                if (!postTarjetaResp.IsSuccessStatusCode)
+                {
+                    int errCode = 0;
+                    try
+                    {
+                        using var errDoc = JsonDocument.Parse(postTarjetaBody);
+                        if (errDoc.RootElement.TryGetProperty("error_code", out var cProp))
+                        {
+                            errCode = cProp.GetInt32();
+                        }
+                    }
+                    catch { }
+
+                    // Código 2001: La tarjeta ya está registrada para este cliente
+                    if (errCode == 2001)
+                    {
+                        var getCardsResp = await client.GetAsync($"{apiBase}/customers/{customerId}/cards");
+                        if (getCardsResp.IsSuccessStatusCode)
+                        {
+                            var getCardsBody = await getCardsResp.Content.ReadAsStringAsync();
+                            using var docCards = JsonDocument.Parse(getCardsBody);
+                            if (docCards.RootElement.ValueKind == JsonValueKind.Array && docCards.RootElement.GetArrayLength() > 0)
+                            {
+                                var ultimaTarjeta = docCards.RootElement[docCards.RootElement.GetArrayLength() - 1];
+                                if (ultimaTarjeta.TryGetProperty("id", out var idExistenteProp))
+                                {
+                                    string existingCardId = idExistenteProp.GetString() ?? "";
+                                    if (!string.IsNullOrWhiteSpace(existingCardId))
+                                    {
+                                        return (true, $"{customerId}|{existingCardId}", null);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    string errorDesc = ExtraerErrorOpenpay(postTarjetaBody);
+                    return (false, null, errorDesc);
+                }
+
+                string cardId = "";
+                using var docCard = JsonDocument.Parse(postTarjetaBody);
+                if (docCard.RootElement.TryGetProperty("id", out var idCardProp))
+                {
+                    cardId = idCardProp.GetString() ?? "";
+                }
+
+                if (string.IsNullOrWhiteSpace(cardId))
+                {
+                    return (false, null, "No fue posible registrar la tarjeta de crédito/débito con la pasarela.");
+                }
+
+                // 3. Devolvemos el identificador permanente compuesto: customerId|cardId
+                return (true, $"{customerId}|{cardId}", null);
+            }
+            catch (Exception ex)
+            {
+                return (false, null, "Error de comunicación con la pasarela de pagos: " + ex.Message);
+            }
+        }
+
+        // =========================================================================
+        // MÉTODO AUXILIAR: TRADUCE ERRORES DE REGISTRO DE TARJETA EN OPENPAY
+        // =========================================================================
+        private string ExtraerErrorOpenpay(string responseBody)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(responseBody);
+                int codigo = 0;
+                string desc = "";
+                if (doc.RootElement.TryGetProperty("error_code", out var codProp))
+                {
+                    codigo = codProp.GetInt32();
+                }
+                if (doc.RootElement.TryGetProperty("description", out var descProp))
+                {
+                    desc = (descProp.GetString() ?? "").ToLower();
+                }
+
+                if (desc.Contains("already used") || desc.Contains("source_id"))
+                {
+                    return "El token de la tarjeta ya fue utilizado o expiró. Intente registrar la tarjeta de nuevo.";
+                }
+                if (desc.Contains("already registered") || codigo == 2001)
+                {
+                    return "La tarjeta ingresada ya se encuentra registrada en la pasarela de pagos.";
+                }
+                if (desc.Contains("card_number") || desc.Contains("card number") || desc.Contains("luhn") || codigo == 2004)
+                {
+                    return "El número de tarjeta no es válido o no cumple con el formato bancario.";
+                }
+                if (desc.Contains("cvc") || desc.Contains("cvv") || desc.Contains("security code") || codigo == 2006 || codigo == 2009)
+                {
+                    return "El código de seguridad (CVC) es inválido.";
+                }
+                if (desc.Contains("expir") || codigo == 2005)
+                {
+                    return "La tarjeta ingresada se encuentra vencida o inactiva.";
+                }
+                if (codigo == 1003)
+                {
+                    return "El servicio de pagos no se encuentra disponible temporalmente. Intente en unos minutos.";
+                }
+
+                return !string.IsNullOrWhiteSpace(desc) ? $"Error en pasarela de pagos: {desc}" : "No fue posible registrar los datos en la pasarela de pagos.";
+            }
+            catch
+            {
+                return "Respuesta inesperada de la pasarela de pagos.";
+            }
         }
     }
 }

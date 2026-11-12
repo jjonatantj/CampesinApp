@@ -39,9 +39,12 @@
         <!-- Resumen de errores si existen -->
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger shadow-sm rounded-4 mb-4">
-                <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes detalles:</h6>
-                <div asp-validation-summary="All" class="small mb-0"></div>
+            <div class="alert alert-danger shadow-sm rounded-4 mb-4 border-0" id="alertaErrorPago" style="background-color: #fde8e8;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-x-circle-fill text-danger fs-4 me-2"></i>
+                    <h6 class="fw-bold text-danger mb-0">No fue posible completar la transacción:</h6>
+                </div>
+                <div asp-validation-summary="All" class="small mb-0 text-dark ps-4 fw-semibold"></div>
             </div>
         }
 
@@ -106,13 +109,17 @@
                 <label asp-for="IdPerfilPagoSeleccionado" class="form-label fw-bold small text-dark">
                     Método de Pago Registrado *
                 </label>
-                <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-2">
+                <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-1" id="groupSelectMetodoPago">
                     <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-wallet2"></i></span>
                     <select asp-for="IdPerfilPagoSeleccionado" asp-items="Model.ListaMetodosPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMetodoPago" required>
                         <option value="">-- Selecciona el medio de pago para la transacción --</option>
                     </select>
                 </div>
-                <small class="text-muted ms-2">
+                <!-- Mensaje de error dinámico con estilo CampesinApp -->
+                <div id="errorMetodoPagoRequerido" class="text-danger small ms-2 fw-semibold d-none mt-1">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> Por favor selecciona un método de pago registrado para continuar.
+                </div>
+                <small class="text-muted ms-2 d-block mt-1">
                     ¿Deseas usar otra tarjeta o cuenta bancaria? Puedes agregarla en <a asp-controller="PerfilPago" asp-action="Index" class="text-success fw-semibold">Perfil de Pago</a>.
                 </small>
                 <span asp-validation-for="IdPerfilPagoSeleccionado" class="text-danger small ms-2 d-block"></span>
@@ -122,7 +129,7 @@
             <!-- BOTONES DE ACCIÓN: Cancelar y Confirmar Pago                   -->
             <!-- ============================================================== -->
             <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
-                <a asp-controller="PublicarDemanda" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                <a asp-controller="ProcesoPago" asp-action="Cancelar" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
                     <i class="bi bi-arrow-left me-1"></i> Cancelar
                 </a>
 
@@ -172,28 +179,124 @@
     </div>
 </div>
 
+<!-- ============================================================== -->
+<!-- MODAL DE PAGO EXITOSO CON TEMPORIZADOR DE 4 SEGUNDOS          -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalPagoExitoso" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalPagoExitosoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content text-center p-4 rounded-4 shadow border-0 bg-white position-relative">
+            
+            <!-- Botón X para cerrar y redirigir -->
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-3" aria-label="Cerrar" onclick="redirigirInicio()"></button>
+
+            <div class="modal-body p-3">
+                <div class="mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm"
+                         style="width: 85px; height: 85px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 3.2rem;"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-2" style="color: #1b5e20;" id="modalPagoExitosoLabel">¡Pago Exitoso!</h3>
+                <p class="fs-6 text-dark fw-semibold mb-2">
+                    @(ViewBag.MensajeExito ?? "Tu pago ha sido procesado y confirmado con éxito.")
+                </p>
+                <p class="small text-muted mb-3">
+                    Tu solicitud ha sido publicada en el catálogo y los fondos han quedado custodiados de forma segura.
+                </p>
+                <div class="alert alert-light border rounded-pill d-inline-block px-4 py-2 text-muted small mb-4">
+                    <i class="bi bi-clock me-1 text-success"></i> Redirigiendo al inicio en <strong id="contadorSegundosExito" class="text-success fs-6">4</strong> segundos...
+                </div>
+                <div>
+                    <button type="button" class="btn btn-success rounded-pill px-5 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;" onclick="redirigirInicio()">
+                        <span>Aceptar</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script type="text/javascript">
+        function redirigirInicio() {
+            window.location.href = '@Url.Action("Index", "PantallaPrincipal")';
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
+            // 1. Manejo del Modal de Pago Exitoso con temporizador de 4 segundos
+            const esPagoExitoso = @(ViewBag.PagoExitoso == true ? "true" : "false");
+            if (esPagoExitoso) {
+                const modalExitoElem = document.getElementById("modalPagoExitoso");
+                if (modalExitoElem && typeof bootstrap !== "undefined") {
+                    const modalExito = new bootstrap.Modal(modalExitoElem);
+                    modalExito.show();
+
+                    let segundos = 4;
+                    const contador = document.getElementById("contadorSegundosExito");
+                    const intervalo = setInterval(function () {
+                        segundos--;
+                        if (contador) contador.textContent = segundos;
+                        if (segundos <= 0) {
+                            clearInterval(intervalo);
+                            redirigirInicio();
+                        }
+                    }, 1000);
+                }
+            }
+
+            // 2. Si ocurrió un error en el pago, enfocar suavemente la alerta para que no pase desapercibida
+            const alertaError = document.getElementById("alertaErrorPago");
+            if (alertaError) {
+                alertaError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // 3. Control del Modal de Confirmación previo a enviar el pago
             const btnConfirmarPago = document.getElementById("btnConfirmarPago");
             const btnEjecutarPagoFinal = document.getElementById("btnEjecutarPagoFinal");
             const selectMetodoPago = document.getElementById("selectMetodoPago");
-            const modalElement = new bootstrap.Modal(document.getElementById("modalConfirmarPagoModal"));
+            const groupSelectMetodoPago = document.getElementById("groupSelectMetodoPago");
+            const errorMetodoPago = document.getElementById("errorMetodoPagoRequerido");
+            const modalConfirmar = new bootstrap.Modal(document.getElementById("modalConfirmarPagoModal"));
             const form = document.getElementById("formProcesoPago");
 
-            btnConfirmarPago.addEventListener("click", function () {
-                if (!selectMetodoPago.value) {
-                    alert("Por favor selecciona un método de pago registrado para continuar.");
-                    return;
-                }
-                modalElement.show();
-            });
+            // Limpiar error al interactuar con el selector
+            if (selectMetodoPago) {
+                selectMetodoPago.addEventListener("change", function () {
+                    if (this.value) {
+                        if (groupSelectMetodoPago) groupSelectMetodoPago.classList.remove("border-danger");
+                        if (errorMetodoPago) errorMetodoPago.classList.add("d-none");
+                    }
+                });
+            }
 
-            btnEjecutarPagoFinal.addEventListener("click", function () {
-                btnEjecutarPagoFinal.disabled = true;
-                btnEjecutarPagoFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando pago seguro...';
-                form.submit();
-            });
+            if (btnConfirmarPago) {
+                btnConfirmarPago.addEventListener("click", function () {
+                    if (!selectMetodoPago || !selectMetodoPago.value) {
+                        // Validación visual integrada con la identidad de CampesinApp (sin alert nativo)
+                        if (groupSelectMetodoPago) {
+                            groupSelectMetodoPago.classList.add("border-danger");
+                        }
+                        if (errorMetodoPago) {
+                            errorMetodoPago.classList.remove("d-none");
+                        }
+                        if (selectMetodoPago) {
+                            selectMetodoPago.focus();
+                            selectMetodoPago.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return;
+                    }
+                    modalConfirmar.show();
+                });
+            }
+
+            if (btnEjecutarPagoFinal) {
+                btnEjecutarPagoFinal.addEventListener("click", function () {
+                    btnEjecutarPagoFinal.disabled = true;
+                    btnEjecutarPagoFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando pago seguro...';
+                    form.submit();
+                });
+            }
         });
     </script>
 }

@@ -25,16 +25,19 @@ namespace CampesinApp.Controllers
 
         /// <summary>
         /// Acción principal Index:
-        /// Recibe por parámetros GET los filtros jerárquicos:
+        /// Recibe por parámetros GET los filtros jerárquicos y la página actual:
         /// 1. idTipoProducto (Tipo de Producto)
         /// 2. idVariedad (Variedad dependiente)
         /// 3. idDepartamento (Departamento)
         /// 4. idMunicipio (Municipio dependiente)
+        /// 5. pagina (Página actual para mostrar de a 8 demandas = 2 filas de 4)
         /// </summary>
-        public async Task<IActionResult> Index(int? idTipoProducto, int? idVariedad, int? idDepartamento, int? idMunicipio)
+        public async Task<IActionResult> Index(int? idTipoProducto, int? idVariedad, int? idDepartamento, int? idMunicipio, int pagina = 1)
         {
             // 1. Obtener el rol del usuario desde la sesión HTTP (si existe)
             string? rolUsuario = HttpContext.Session.GetString("RolUsuario");
+
+            if (pagina < 1) pagina = 1;
 
             var modelo = new CatalogoDemandaViewModel
             {
@@ -42,14 +45,30 @@ namespace CampesinApp.Controllers
                 IdVariedadSeleccionada = idVariedad,
                 IdDepartamentoSeleccionado = idDepartamento,
                 IdMunicipioSeleccionado = idMunicipio,
-                RolUsuario = rolUsuario
+                RolUsuario = rolUsuario,
+                PaginaActual = pagina,
+                TamanoPagina = 8 // 8 productos por página (2 filas de 4 tarjetas)
             };
 
             try
             {
                 // 2. Consultar demandas aplicando los filtros jerárquicos a través del repositorio
-                modelo.Demandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(
+                var todasDemandas = await _demandaRepository.ObtenerDemandasFiltradasAsync(
                     idTipoProducto, idVariedad, idDepartamento, idMunicipio);
+
+                modelo.TotalDemandas = todasDemandas.Count;
+
+                // Si la página excede el total, ubicamos en la última página disponible
+                if (modelo.TotalPaginas > 0 && modelo.PaginaActual > modelo.TotalPaginas)
+                {
+                    modelo.PaginaActual = modelo.TotalPaginas;
+                }
+
+                // Aplicar paginación (Skip y Take) para obtener únicamente los 8 de la página
+                modelo.Demandas = todasDemandas
+                    .Skip((modelo.PaginaActual - 1) * modelo.TamanoPagina)
+                    .Take(modelo.TamanoPagina)
+                    .ToList();
 
                 // 3. Poblar desplegables principales
                 modelo.TiposProductoDisponibles = await _demandaRepository.ObtenerTiposProductoAsync();
@@ -166,7 +185,7 @@ namespace CampesinApp.Controllers
                     CantidadTotal = demanda.CantidadDeman,
                     CantidadAportada = totalAportado,
                     CantidadFaltante = cantidadFaltante,
-                    PrecioPropuesto = demanda.PrecioDeman,
+                    PrecioPropuesto = demanda.PrecioCampesino ?? demanda.PrecioDeman,
                     DireccionEntrega = demanda.IdPuntoAcopioNavigation?.Direccion ?? demanda.DireccionInicial ?? "Punto de Acopio",
                     MunicipioEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 ?? "Municipio no registrado",
                     DepartamentoEntrega = demanda.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "",

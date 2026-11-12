@@ -1,13 +1,55 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Dtos;
+using CampesinApp.Services;
+using CampesinApp.Repositories.Models;
 
 namespace CampesinApp.Controllers
 {
     public class Error404Controller : Controller
     {
-        [Route("Error404/Index")]
-        public IActionResult Index(int statusCode)
+        private readonly ILogService? _log;
+        private readonly ILogger<Error404Controller>? _logger;
+
+        public Error404Controller(ILogService? log = null, ILogger<Error404Controller>? logger = null)
         {
+            _log = log;
+            _logger = logger;
+        }
+
+        [Route("Error404/Index")]
+        public async Task<IActionResult> Index(int statusCode)
+        {
+            if (statusCode == 504)
+            {
+                Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+
+                var idUsuario = HttpContext.Session?.GetInt32("IdUsuario");
+                _logger?.LogWarning("Error 504 Gateway Timeout detectado. IdSeguimiento: {TraceId}", HttpContext.TraceIdentifier);
+
+                if (_log != null)
+                {
+                    try
+                    {
+                        var ruta = HttpContext.Request.Path.Value ?? string.Empty;
+                        await _log.RegistrarAsync(NivelesLog.Advertencia, "504 Gateway Timeout",
+                            $"Tiempo de espera agotado al procesar la solicitud en {ruta}", idUsuario);
+                    }
+                    catch
+                    {
+                        // Evita que un problema de auditoría impida presentar el error
+                    }
+                }
+
+                if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new EmptyResult();
+                }
+
+                var modelo504 = PaginaErrorDto.TiempoAgotado();
+                modelo504.IdSeguimiento = HttpContext.TraceIdentifier;
+                return View("~/Views/Error/Pagina.cshtml", modelo504);
+            }
+
             var modelo = new PaginaErrorDto();
 
             if (statusCode == 404)

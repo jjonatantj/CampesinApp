@@ -352,15 +352,39 @@
                         data: formData,
                         success: function (response) {
                             if (response.exito) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: '¡Validado!',
-                                    text: response.mensaje,
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    window.location.href = response.redirectUrl;
-                                });
+                                if (response.requierePerfilPago) {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: response.titulo || 'Método de Pago Requerido',
+                                        text: response.mensaje,
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#2e7d32',
+                                        cancelButtonColor: '#6c757d',
+                                        confirmButtonText: '<i class="bi bi-credit-card me-1"></i> Registrar Perfil de Pago',
+                                        cancelButtonText: 'Cancelar',
+                                        background: '#f8f9fa',
+                                        customClass: {
+                                            popup: 'rounded-4 shadow-lg',
+                                            confirmButton: 'rounded-pill px-4',
+                                            cancelButton: 'rounded-pill px-4'
+                                        }
+                                    }).then((alertResult) => {
+                                        if (alertResult.isConfirmed) {
+                                            window.location.href = response.urlPerfilPago;
+                                        }
+                                        // Si le da clic en Cancelar, se cierra el modal y permanece en el formulario con sus datos
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: '¡Validado!',
+                                        text: response.mensaje,
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.href = response.redirectUrl;
+                                    });
+                                }
                             } else {
                                 Swal.fire('Error de validación', response.error, 'error');
                             }

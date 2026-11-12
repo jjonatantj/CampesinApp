@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CampesinApp.Repositories.Models;
@@ -21,11 +23,42 @@ namespace CampesinApp.Controllers
     {
         private readonly Campesinapp3Context _context;
         private readonly ILogService _log;
+        private readonly IWebHostEnvironment _entorno;
 
-        public ConsultaPerfilController(Campesinapp3Context context, ILogService log)
+        public ConsultaPerfilController(Campesinapp3Context context, ILogService log, IWebHostEnvironment entorno)
         {
             _context = context;
             _log = log;
+            _entorno = entorno;
+        }
+
+        /// <summary>
+        /// Valida si el archivo de foto existe físicamente en el servidor. Si no existe, retorna null para dibujar iniciales.
+        /// </summary>
+        private string? ResolverFoto(string? nombreArchivo)
+        {
+            if (string.IsNullOrWhiteSpace(nombreArchivo) || nombreArchivo.Trim().Equals("null", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var nombreLimpio = nombreArchivo.Trim();
+            var nombreSoloArchivo = Path.GetFileName(nombreLimpio);
+
+            // 1. Verificar en wwwroot/images/perfiles/{nombre}
+            var rutaEnPerfiles = Path.Combine(_entorno.WebRootPath ?? string.Empty, "images", "perfiles", nombreSoloArchivo);
+            if (System.IO.File.Exists(rutaEnPerfiles))
+            {
+                return $"/images/perfiles/{nombreSoloArchivo}";
+            }
+
+            // 2. Verificar en la ruta directa relativa a wwwroot
+            var rutaDirecta = Path.Combine(_entorno.WebRootPath ?? string.Empty, nombreLimpio.TrimStart('/', '\\'));
+            if (System.IO.File.Exists(rutaDirecta))
+            {
+                return "/" + nombreLimpio.TrimStart('/', '\\');
+            }
+
+            // Si el archivo físico no existe en disco, retornar null para que se muestren las iniciales
+            return null;
         }
 
         /// <summary>
@@ -166,7 +199,7 @@ namespace CampesinApp.Controllers
                     IdUsuario = usuario.IdUsuario,
                     NombreCompleto = nombreCompleto,
                     Rol = rolVisualizar,
-                    FotoUrl = !string.IsNullOrEmpty(usuario.Imagen) ? usuario.Imagen : null,
+                    FotoUrl = ResolverFoto(usuario.Imagen),
                     Iniciales = iniciales,
                     Correo = (esPerfilPropio || esAdmin) ? usuario.CorreoUsu : "***@***",
                     EsPerfilPropio = esPerfilPropio,
@@ -211,36 +244,54 @@ namespace CampesinApp.Controllers
                             Categoria = prod.IdTipoProductoNavigation?.Producto ?? "General",
                             Variedad = prod.IdVariedadNavigation?.VariedadProd ?? "Estándar",
                             PrecioEstimado = precioRef != null ? precioRef.PrecioEsti : 0,
+                            Total = precioRef != null ? precioRef.PrecioEsti : 0,
                             UnidadMedida = "Kg",
                             Descripcion = prod.DescripcionProduc,
-                            ImagenUrl = !string.IsNullOrEmpty(prod.ImagenProduc) ? prod.ImagenProduc : null
+                            ImagenUrl = !string.IsNullOrEmpty(prod.ImagenProduc) ? prod.ImagenProduc : null,
+                            UbicacionCultivo = !string.IsNullOrWhiteSpace(prod.UbicacionCultivo) ? prod.UbicacionCultivo : "Predio Campesino"
                         });
                     }
                 }
                 else
                 {
-                    // Perfil del Comprador: Pestaña "Historial de ventas" (Mockup 3)
+                    // Perfil del Comprador: Pestaña "Historial de ventas" (Solo demandas terminadas / culminadas)
                     viewModel.TituloPestana2 = "Historial de ventas";
 
                     var demandas = await _context.Demanda
                         .Include(d => d.IdTipoProductoNavigation)
                         .Include(d => d.IdVariedadNavigation)
+                        .Include(d => d.IdEstadoDemanNavigation)
                         .Where(d => d.IdUsuario == usuario.IdUsuario)
+                        .Where(d => d.IdEstadoDeman == 4 ||
+                                    (d.IdEstadoDemanNavigation != null && (
+                                        d.IdEstadoDemanNavigation.Estado.ToLower().Contains("complet") ||
+                                        d.IdEstadoDemanNavigation.Estado.ToLower().Contains("finaliz") ||
+                                        d.IdEstadoDemanNavigation.Estado.ToLower().Contains("culmin") ||
+                                        d.IdEstadoDemanNavigation.Estado.ToLower().Contains("terminad")
+                                    )))
                         .OrderByDescending(d => d.IdDemanda)
                         .ToListAsync();
 
                     foreach (var dem in demandas)
                     {
+                        // En la base de datos, en PrecioDeman ya está el TOTAL pagado de la demanda
+                        decimal totalCompra = (decimal)dem.PrecioDeman;
+                        int cantidadKilos = dem.CantidadDeman;
+                        decimal precioPorKg = cantidadKilos > 0 ? Math.Round(totalCompra / cantidadKilos, 0) : totalCompra;
+
                         viewModel.ItemsPestana2.Add(new ItemPerfilViewModel
                         {
                             Id = dem.IdDemanda,
                             Nombre = dem.IdTipoProductoNavigation?.Producto ?? "Solicitud de Compra",
                             Categoria = dem.IdTipoProductoNavigation?.Producto ?? "General",
                             Variedad = dem.IdVariedadNavigation?.VariedadProd ?? "Estándar",
-                            PrecioEstimado = (decimal)dem.PrecioDeman,
+                            PrecioEstimado = precioPorKg,
+                            Cantidad = cantidadKilos,
+                            Total = totalCompra,
                             UnidadMedida = "Kg",
                             Descripcion = dem.DescripcionDeman,
-                            Fecha = dem.LimTiemDeman
+                            Fecha = dem.FechaEntrega != default ? dem.FechaEntrega : dem.LimTiemDeman,
+                            Estado = dem.IdEstadoDemanNavigation?.Estado ?? "Completada"
                         });
                     }
                 }
