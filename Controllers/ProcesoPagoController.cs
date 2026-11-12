@@ -30,7 +30,7 @@ namespace CampesinApp.Controllers
         private readonly CampesinApp.Services.ILogisticaFleteService _logisticaFleteService;
 
         public ProcesoPagoController(
-            Campesinapp3Context context, 
+            Campesinapp3Context context,
             IConfiguration configuration,
             CampesinApp.Services.ILogisticaFleteService logisticaFleteService)
         {
@@ -175,6 +175,13 @@ namespace CampesinApp.Controllers
             if (usuario == null)
             {
                 return RedirectToAction("Login", "InicioSesion");
+            }
+
+            // Validación agregada para cumplir con la regla csharpsquid:S6967[cite: 9]
+            if (!ModelState.IsValid)
+            {
+                await RepoblarModeloErrorAsync(model, idUsuarioSesion.Value);
+                return View("Index", model);
             }
 
             // Validamos que haya seleccionado un método de pago
@@ -403,9 +410,9 @@ namespace CampesinApp.Controllers
         // MÉTODO AUXILIAR: COMUNICACIÓN CON LA API DE OPENPAY
         // =========================================================================
         private async Task<(bool Aprobado, string? MensajeError, string? IdTransaccion)> ProcesarCargoOpenpayAsync(
-            string tokenTarjeta, 
-            double monto, 
-            string descripcion, 
+            string tokenTarjeta,
+            double monto,
+            string descripcion,
             string? deviceSessionId,
             Usuario usuario)
         {
@@ -441,7 +448,7 @@ namespace CampesinApp.Controllers
             {
                 string pais = _configuration["Openpay:Pais"] ?? "CO";
                 string dominio = pais.Equals("MX", StringComparison.OrdinalIgnoreCase) ? "openpay.mx" : "openpay.co";
-                
+
                 using var client = new HttpClient();
 
                 var credencialesBytes = Encoding.ASCII.GetBytes($"{privateKey}:");
@@ -453,8 +460,8 @@ namespace CampesinApp.Controllers
                 if (!string.IsNullOrWhiteSpace(customerId))
                 {
                     // Cobro a Tarjeta Permanente de Cliente (no expira tras el primer uso)
-                    baseUrl = isSandbox 
-                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/customers/{customerId}/charges" 
+                    baseUrl = isSandbox
+                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/customers/{customerId}/charges"
                         : $"https://api.{dominio}/v1/{merchantId}/customers/{customerId}/charges";
 
                     payload = new
@@ -470,8 +477,8 @@ namespace CampesinApp.Controllers
                 else
                 {
                     // Cobro directo con token temporal de un solo uso
-                    baseUrl = isSandbox 
-                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/charges" 
+                    baseUrl = isSandbox
+                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/charges"
                         : $"https://api.{dominio}/v1/{merchantId}/charges";
 
                     string telefono = usuario.TelelfonoUsu.ToString();
@@ -640,9 +647,9 @@ namespace CampesinApp.Controllers
             model.CantidadKilos = demanda.CantidadDeman;
             model.PrecioPorKilo = demanda.PrecioDeman;
             model.FechaEntrega = demanda.FechaEntrega;
-            
-            model.DireccionEntrega = !string.IsNullOrWhiteSpace(demanda.DireccionInicial) 
-                ? demanda.DireccionInicial 
+
+            model.DireccionEntrega = !string.IsNullOrWhiteSpace(demanda.DireccionInicial)
+                ? demanda.DireccionInicial
                 : (demanda.IdPuntoAcopioNavigation != null ? demanda.IdPuntoAcopioNavigation.NombrePunto : "Punto de acopio asignado");
 
             await RecargarListaMetodosPagoAsync(model, idUsuario);
@@ -715,4 +722,3 @@ namespace CampesinApp.Controllers
         }
     }
 }
-

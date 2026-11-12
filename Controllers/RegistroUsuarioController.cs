@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
+using System.Security.Cryptography; // <-- Espacio de nombres necesario para la seguridad
 
 namespace CampesinApp.Controllers
 {
@@ -130,8 +131,8 @@ namespace CampesinApp.Controllers
                     return View("RegistroUsuario", model);
                 }
 
-                Random rnd = new Random();
-                string codigoGenerado = rnd.Next(100000, 999999).ToString();
+                // Solución al aviso S2245: Uso de generador criptográfico seguro
+                string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
                 HttpContext.Session.SetString("Reg_MetodoElegido", model.MetodoSeleccionado);
@@ -273,8 +274,8 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Reg_ReenviosCodigo", reenvios);
 
-            Random rnd = new Random();
-            string codigoGenerado = rnd.Next(100000, 999999).ToString();
+            // Solución al aviso S2245: Uso de generador criptográfico seguro
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
             HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
 
