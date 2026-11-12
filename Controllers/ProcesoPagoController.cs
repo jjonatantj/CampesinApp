@@ -399,8 +399,21 @@ namespace CampesinApp.Controllers
                 return (false, "Configuración de pasarela de pago o medio de pago no disponible.", null);
             }
 
-            // Validación de longitud del token para Openpay (longitud máxima: 25 caracteres)
-            if (tokenTarjeta.Length > 25 || tokenTarjeta.StartsWith("tkn_sandbox_"))
+            // Identificamos si es una tarjeta guardada permanente (customerId|cardId) o un token directo
+            bool esTarjetaGuardada = tokenTarjeta.Contains('|');
+            string tokenOIdTarjeta = tokenTarjeta;
+            string? customerId = null;
+
+            if (esTarjetaGuardada)
+            {
+                var partes = tokenTarjeta.Split('|');
+                if (partes.Length == 2)
+                {
+                    customerId = partes[0].Trim();
+                    tokenOIdTarjeta = partes[1].Trim();
+                }
+            }
+            else if (tokenTarjeta.Length > 25 || tokenTarjeta.StartsWith("tkn_sandbox_"))
             {
                 return (false, "El medio de pago seleccionado corresponde a un registro simulado anterior con un token no reconocido por Openpay. Por favor selecciona tu tarjeta real en el menú desplegable o regístrala nuevamente en Perfil de Pago.", null);
             }
@@ -409,37 +422,62 @@ namespace CampesinApp.Controllers
             {
                 string pais = _configuration["Openpay:Pais"] ?? "CO";
                 string dominio = pais.Equals("MX", StringComparison.OrdinalIgnoreCase) ? "openpay.mx" : "openpay.co";
-                string baseUrl = isSandbox 
-                    ? $"https://sandbox-api.{dominio}/v1/{merchantId}/charges" 
-                    : $"https://api.{dominio}/v1/{merchantId}/charges";
-
+                
                 using var client = new HttpClient();
 
                 var credencialesBytes = Encoding.ASCII.GetBytes($"{privateKey}:");
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(credencialesBytes));
 
-                string telefono = usuario.TelelfonoUsu.ToString();
-                if (telefono.Length < 10)
-                {
-                    telefono = "300" + telefono.PadLeft(7, '0');
-                }
+                string baseUrl;
+                object payload;
 
-                var payload = new
+                if (!string.IsNullOrWhiteSpace(customerId))
                 {
-                    source_id = tokenTarjeta,
-                    method = "card",
-                    amount = monto,
-                    currency = "COP",
-                    description = descripcion,
-                    device_session_id = string.IsNullOrWhiteSpace(deviceSessionId) ? "device_session_default" : deviceSessionId,
-                    customer = new
+                    // Cobro a Tarjeta Permanente de Cliente (no expira tras el primer uso)
+                    baseUrl = isSandbox 
+                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/customers/{customerId}/charges" 
+                        : $"https://api.{dominio}/v1/{merchantId}/customers/{customerId}/charges";
+
+                    payload = new
                     {
-                        name = string.IsNullOrWhiteSpace(usuario.NombreCom) ? "Usuario" : usuario.NombreCom.Trim(),
-                        last_name = string.IsNullOrWhiteSpace(usuario.ApellidoCom) ? "CampesinApp" : usuario.ApellidoCom.Trim(),
-                        email = string.IsNullOrWhiteSpace(usuario.CorreoUsu) ? "comprador@campesinapp.test" : usuario.CorreoUsu.Trim(),
-                        phone_number = telefono
+                        source_id = tokenOIdTarjeta,
+                        method = "card",
+                        amount = monto,
+                        currency = "COP",
+                        description = descripcion,
+                        device_session_id = string.IsNullOrWhiteSpace(deviceSessionId) ? "device_session_default" : deviceSessionId
+                    };
+                }
+                else
+                {
+                    // Cobro directo con token temporal de un solo uso
+                    baseUrl = isSandbox 
+                        ? $"https://sandbox-api.{dominio}/v1/{merchantId}/charges" 
+                        : $"https://api.{dominio}/v1/{merchantId}/charges";
+
+                    string telefono = usuario.TelelfonoUsu.ToString();
+                    if (telefono.Length < 10)
+                    {
+                        telefono = "300" + telefono.PadLeft(7, '0');
                     }
-                };
+
+                    payload = new
+                    {
+                        source_id = tokenOIdTarjeta,
+                        method = "card",
+                        amount = monto,
+                        currency = "COP",
+                        description = descripcion,
+                        device_session_id = string.IsNullOrWhiteSpace(deviceSessionId) ? "device_session_default" : deviceSessionId,
+                        customer = new
+                        {
+                            name = string.IsNullOrWhiteSpace(usuario.NombreCom) ? "Usuario" : usuario.NombreCom.Trim(),
+                            last_name = string.IsNullOrWhiteSpace(usuario.ApellidoCom) ? "CampesinApp" : usuario.ApellidoCom.Trim(),
+                            email = string.IsNullOrWhiteSpace(usuario.CorreoUsu) ? "comprador@campesinapp.test" : usuario.CorreoUsu.Trim(),
+                            phone_number = telefono
+                        }
+                    };
+                }
 
                 var jsonContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(baseUrl, jsonContent);
@@ -645,7 +683,7 @@ namespace CampesinApp.Controllers
             model.ListaMetodosPago = perfiles.Select(p => new SelectListItem
             {
                 Value = p.IdPerfilPago.ToString(),
-                Text = (p.Cvc != null && (p.Cvc.Length > 25 || p.Cvc.StartsWith("tkn_sandbox_")))
+                Text = (p.Cvc != null && !p.Cvc.Contains('|') && (p.Cvc.Length > 25 || p.Cvc.StartsWith("tkn_sandbox_")))
                     ? $"{p.IdEntiFinancNavigation.EntiFinanc} - {p.IdTipoCuentaNavigation.TipoCuenta} (•••• {p.NumCuenta.Substring(Math.Max(0, p.NumCuenta.Length - 4))}) [Prueba anterior - No válido]"
                     : $"{p.IdEntiFinancNavigation.EntiFinanc} - {p.IdTipoCuentaNavigation.TipoCuenta} (•••• {p.NumCuenta.Substring(Math.Max(0, p.NumCuenta.Length - 4))})"
             }).ToList();

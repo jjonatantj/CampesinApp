@@ -328,7 +328,7 @@
                         <label asp-for="Telefono" class="form-label fw-bold small text-dark">Teléfono de Contacto *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-telephone"></i></span>
-                            <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567" maxlength="15" required />
+                            <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567 (7 a 10 dígitos)" minlength="7" maxlength="10" inputmode="numeric" pattern="[0-9]{7,10}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required />
                         </div>
                         <span asp-validation-for="Telefono" class="text-danger small ms-2"></span>
                     </div>
@@ -413,7 +413,7 @@
                         <label asp-for="Capacidad" class="form-label fw-bold small text-dark">Capacidad de Almacenamiento (Kg) *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-box-seam"></i></span>
-                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 20000" required />
+                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 20000" data-val="true" data-val-required="La capacidad estimada es obligatoria." data-val-range="La capacidad debe ser un número positivo mayor o igual a 1 Kg." data-val-range-min="1" data-val-range-max="10000000" required />
                             <span class="input-group-text bg-light border-0 text-muted pe-3 fw-bold">Kg</span>
                         </div>
                         <span asp-validation-for="Capacidad" class="text-danger small ms-2"></span>
@@ -500,6 +500,7 @@
 @section Scripts {
     <!-- Validaciones estándar de ASP.NET Core MVC -->
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Carga de la API de Google Maps JavaScript -->
     @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
@@ -1177,31 +1178,79 @@
             // G. Validación antes del envío del formulario (submit)
             const form = document.getElementById('formPuntoAcopio');
             if (form) {
+                // Función auxiliar para desplazarse suavemente al elemento con error y enfocarlo
+                function enfocarPrimerError(selector, mensaje) {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (typeof el.focus === 'function') {
+                            setTimeout(() => el.focus(), 400);
+                        }
+                    }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Dato Requerido',
+                            text: mensaje,
+                            confirmButtonColor: '#2e7d32',
+                            background: '#f8f9fa',
+                            customClass: { popup: 'rounded-4 shadow-lg' }
+                        });
+                    } else {
+                        alert(mensaje);
+                    }
+                }
+
                 form.addEventListener('submit', function (e) {
                     const dir = construirDireccion();
                     const hor = construirHorario();
                     actualizarDescripcion();
 
-                    // Validación de Dirección generada
-                    if (!dir || dir.trim() === '' || dir.trim() === 'Vereda') {
+                    // 1. Validación de Dirección generada (Urbano o Rural)
+                    const zona = obtenerZonaSeleccionada();
+                    if (zona === 'Rural') {
+                        const inputVereda = document.getElementById('ruralNombreVereda');
+                        if (!inputVereda || !inputVereda.value.trim()) {
+                            e.preventDefault();
+                            enfocarPrimerError('#ruralNombreVereda', 'Por favor ingrese el nombre de la vereda o sector rural donde opera el punto de acopio.');
+                            return false;
+                        }
+                    } else {
+                        const inputVia = document.getElementById('urbanoNumeroVia');
+                        if (!inputVia || !inputVia.value.trim() || !dir || dir.trim() === '') {
+                            e.preventDefault();
+                            enfocarPrimerError('#urbanoNumeroVia', 'Por favor complete el número o nombre de la vía principal para generar la dirección.');
+                            return false;
+                        }
+                    }
+
+                    // 2. Validación de Teléfono (solo números, entre 7 y 10 dígitos)
+                    const telInput = document.getElementById('Telefono');
+                    const telVal = (telInput?.value || '').trim();
+                    if (!telVal || !/^[0-9]{7,10}$/.test(telVal)) {
                         e.preventDefault();
-                        alert('Por favor complete los campos obligatorios para generar la dirección física o vereda del punto de acopio.');
+                        enfocarPrimerError('#Telefono', 'El teléfono debe contener solo números y tener entre 7 y 10 dígitos (mínimo 7 para fijo o 10 para celular).');
                         return false;
                     }
 
-                    // Validación de Horario de atención generado
+                    // 3. Validación de Horario de atención generado
                     if (!hor || hor.trim() === '') {
                         e.preventDefault();
-                        alert('Por favor seleccione al menos un día hábil y las horas de inicio y cierre para el horario de atención.');
+                        enfocarPrimerError('#cardHorarioAtencion', 'Por favor seleccione al menos un día hábil y las horas de inicio y cierre para el horario de atención.');
                         return false;
                     }
 
-                    // Validación de Coordenadas del Mapa (RN-01-CU018)
+                    // 4. Validación de Coordenadas del Mapa (RN-01-CU018)
                     const lat = parseFloat(document.getElementById('latitudHidden').value);
                     const lng = parseFloat(document.getElementById('longitudHidden').value);
                     if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
                         e.preventDefault();
-                        alert('Debe fijar las coordenadas en el mapa interactivo (usando "Mi Ubicación Actual", ubicando la dirección o haciendo clic directamente sobre el mapa).');
+                        const mapDiv = document.getElementById('map');
+                        if (mapDiv) {
+                            mapDiv.style.border = '2px solid #dc3545';
+                            mapDiv.style.borderRadius = '1rem';
+                        }
+                        enfocarPrimerError('#map', 'Debe fijar las coordenadas en el mapa interactivo (usando "Mi Ubicación Actual", ubicando la dirección o haciendo clic directamente sobre el mapa).');
                         return false;
                     }
                 });
@@ -1232,6 +1281,32 @@
             construirHorario();
             actualizarDescripcion();
 
+            // Auto-scroll al primer campo con error de validación (jQuery Validate o ModelState de C#)
+            if (window.jQuery && $.validator) {
+                $('#formPuntoAcopio').on('invalid-form.validate', function (event, validator) {
+                    if (validator.errorList && validator.errorList.length > 0) {
+                        const primerError = validator.errorList[0];
+                        const elemento = $(primerError.element);
+                        if (elemento.length > 0) {
+                            $('html, body').animate({
+                                scrollTop: elemento.offset().top - 120
+                            }, 500);
+                            setTimeout(() => elemento.focus(), 550);
+                        }
+                    }
+                });
+            }
+
+            // Si la página se recargó tras envío con errores del servidor (ModelState)
+            const primerSpanError = document.querySelector('.field-validation-error, .input-validation-error');
+            if (primerSpanError) {
+                primerSpanError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const inputAsociado = primerSpanError.closest('.mb-3')?.querySelector('input, select, textarea');
+                if (inputAsociado && typeof inputAsociado.focus === 'function') {
+                    setTimeout(() => inputAsociado.focus(), 400);
+                }
+            }
+
             // I. Control de tiempo de alertas flotantes (FE-01, FE-02 Y ÉXITO)
             const alertaConexion = document.getElementById('alertaErrorConexion');
             if (alertaConexion) {
@@ -1253,9 +1328,26 @@
 
             const alertaExito = document.getElementById('alertaExito');
             if (alertaExito) {
-                setTimeout(() => {
-                    window.location.href = '@Url.Action("Index", "Perfil")';
-                }, 3000);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Punto de Acopio Registrado!',
+                        text: '@(ViewBag.MensajeExito ?? "Punto de acopio registrado satisfactoriamente.")',
+                        timer: 3500,
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#2e7d32',
+                        background: '#f8f9fa',
+                        customClass: { popup: 'rounded-4 shadow-lg' }
+                    }).then(() => {
+                        window.location.href = '@Url.Action("Index", "Perfil")';
+                    });
+                } else {
+                    setTimeout(() => {
+                        window.location.href = '@Url.Action("Index", "Perfil")';
+                    }, 3000);
+                }
             }
         });
     </script>
