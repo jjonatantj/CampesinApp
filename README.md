@@ -19,7 +19,7 @@ La plataforma está diseñada para satisfacer las necesidades de diferentes acto
 *   **Modelo Estadístico:** El aplicativo calcula precios sugeridos dinámicos integrando precios mayoristas diarios del DANE, datos históricos de 15 días y costos logísticos (fletes, combustible, desgaste, peajes).
 *   **Gestión de Pagos:** El sistema retiene el dinero de la transacción de forma segura y solo lo distribuye automáticamente (al campesino, al transportador y la comisión de la app) cuando ambas partes validan la entrega exitosa y sin novedades.
 *   **Mapas y Puntos de Acopio:** Integración con servicios de mapas para registrar y ubicar geográficamente los puntos de entrega y recepción.
-*   **Arquitectura Segura:** Es un sistema web responsive optimizado para el navegador Chrome, con bases de datos relacionales (MySQL) y encriptación no obsoleta para datos sensibles.
+*   **Arquitectura Segura:** Es un sistema web responsive optimizado para el navegador Chrome, con bases de datos relacionales (SQLServer) y encriptación no obsoleta para datos sensibles.
 *   **Alcance (MVP):** Este repositorio contiene la implementación del 60% de las funcionalidades totales proyectadas para el periodo lectivo.
 
 ## Arquitectura y Tecnologías (Stack Tecnológico)
