@@ -76,7 +76,7 @@ namespace CampesinApp.Services
         }
 
         /// <summary>Lista "Mis Pedidos" (CU-022), con filtro opcional por estado del envío (FA-02-CU023).</summary>
-        public async Task<(List<PedidoResumenDto> Pedidos, int Total)> ListarAsync(UsuarioActual usuario, string? estadoEnvio, int pagina, int tamano)
+        public async Task<(List<PedidoResumenDto> Pedidos, int Total)> ListarAsync(UsuarioActual usuario, string? estadoEnvio, int pagina, int tamano, bool terminados = false)
         {
             var filas = await PedidosVisibles(usuario)
                 .AsNoTracking()
@@ -116,7 +116,10 @@ namespace CampesinApp.Services
                 };
             }).ToList();
 
-            if (!string.IsNullOrWhiteSpace(estadoEnvio))
+            // "Pedidos Terminados" (ya entregados y recibidos) van en su propia pantalla; la lista principal solo trae lo pendiente.
+            pedidos = pedidos.Where(p => EstadosEnvio.Calificables.Contains(p.EstadoEnvio) == terminados).ToList();
+
+            if (!string.IsNullOrWhiteSpace(estadoEnvio) && !terminados)
             {
                 pedidos = pedidos.Where(p => p.EstadoEnvio == estadoEnvio).ToList();
             }

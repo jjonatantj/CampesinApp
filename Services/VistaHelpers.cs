@@ -77,6 +77,26 @@ namespace CampesinApp.Services
             _ => ("bi-bell-fill", "nt-verde", "Notificación")
         };
 
+        /// <summary>
+        /// Pantalla a la que lleva el botón "Ver detalle" de una notificación, según lo que informa: la ubicación abre el
+        /// seguimiento; la asignación abre Mis Viajes (transportador) o el seguimiento; las confirmaciones abren la lista de pedidos.
+        /// Devuelve null si la notificación no está ligada a un pedido.
+        /// </summary>
+        public static (string Url, string Destino)? DestinoDetalleNotificacion(string tipo, int? idDemanda, string rol)
+        {
+            if (idDemanda == null) return null;
+
+            return tipo switch
+            {
+                TiposNotificacion.Ubicacion => ($"/Ubicacion/Seguimiento?idDemanda={idDemanda}", "superpuesta"),
+                TiposNotificacion.Asignacion when rol == "Transportador" => ("/Transporte/MisViajes", "principal"),
+                TiposNotificacion.Asignacion => ($"/Ubicacion/Seguimiento?idDemanda={idDemanda}", "superpuesta"),
+                TiposNotificacion.Llegada or TiposNotificacion.EntregaPendiente => ("/Pedidos/Lista", "principal"),
+                TiposNotificacion.EntregaCompletada or TiposNotificacion.Novedad or TiposNotificacion.Calificacion => ("/Pedidos/Lista?terminados=true", "principal"),
+                _ => ("/Pedidos/Lista", "principal")
+            };
+        }
+
         public static string ClaseEstado(string estado) => estado switch
         {
             EstadosEnvio.EntregadoRecibido => "bg-success",

@@ -142,6 +142,7 @@ namespace CampesinApp.Services
                 .Select(n => new NotificacionDto
                 {
                     IdNotificacion = n.IdNotificacion,
+                    IdDemanda = n.IdDemanda,
                     Tipo = n.Tipo,
                     Mensaje = n.Mensaje,
                     Fecha = n.Fecha,
@@ -165,6 +166,17 @@ namespace CampesinApp.Services
 
             notificacion.Leida = true;
             notificacion.PopupMostrado = true;
+            await _db.SaveChangesAsync();
+        }
+
+        /// <summary>Quita la notificación del usuario (el chulito de "leída"): ya no vuelve a aparecer.</summary>
+        public async Task EliminarAsync(int idUsuario, int idNotificacion)
+        {
+            var notificacion = await _db.Notificacions
+                .FirstOrDefaultAsync(n => n.IdNotificacion == idNotificacion && n.IdUsuario == idUsuario);
+            if (notificacion == null) return;
+
+            _db.Notificacions.Remove(notificacion);
             await _db.SaveChangesAsync();
         }
 

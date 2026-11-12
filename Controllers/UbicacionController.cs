@@ -156,7 +156,11 @@ namespace CampesinApp.Controllers
         {
             var usuario = (await ObtenerUsuarioAsync())!;
             var resultado = await _ubicacion.GuardarAlertaAsync(usuario, idReporte);
-            return resultado.Exitoso ? CerrarModales("todas") : AvisoDeError(resultado);
+            // Mensaje de éxito en la misma ventana; al aceptar se cierra solo ella y se vuelve a la Lista de Pedidos.
+            return resultado.Exitoso
+                ? Aviso("El reporte de ubicación quedó guardado. Puede consultarlo cuando quiera en «Control de Reportes» del pedido.",
+                    TipoAviso.Exito, "Aceptar", "¡Reporte guardado con éxito!")
+                : AvisoDeError(resultado);
         }
 
         [HttpGet]

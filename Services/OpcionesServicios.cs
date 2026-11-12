@@ -13,5 +13,8 @@ namespace CampesinApp.Services
 
         /// <summary>Se configuran en appsettings (Soporte:Telefonos). Sin valor por defecto: el binder sumaría la configuración a él.</summary>
         public string[] Telefonos { get; set; } = Array.Empty<string>();
+
+        /// <summary>Correo oficial de soporte (Soporte:Correo).</summary>
+        public string Correo { get; set; } = string.Empty;
     }
 }

@@ -125,6 +125,8 @@ namespace CampesinApp.Dtos
     {
         public int IdNotificacion { get; set; }
 
+        public int? IdDemanda { get; set; }
+
         public string Tipo { get; set; } = string.Empty;
 
         public string Mensaje { get; set; } = string.Empty;

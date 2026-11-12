@@ -90,7 +90,7 @@ namespace CampesinApp.Controllers
             return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id, pagina));
         }
 
-        /// <summary>Marca una notificación como leída (el botón de cada aviso) y vuelve a pintar la misma página.</summary>
+        /// <summary>El chulito de cada aviso: la da por leída y la elimina, y vuelve a pintar la misma página.</summary>
         [HttpPost]
         public async Task<IActionResult> Leer(int id, int? pagina)
         {
@@ -100,7 +100,7 @@ namespace CampesinApp.Controllers
                 return SinPermiso(null);
             }
 
-            await _notificaciones.MarcarLeidaAsync(usuario.Id, id);
+            await _notificaciones.EliminarAsync(usuario.Id, id);
             return ModalPrincipal("_ListaNotificaciones", await _notificaciones.ListarAsync(usuario.Id, pagina));
         }
 

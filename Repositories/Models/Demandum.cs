@@ -31,6 +31,10 @@ public partial class Demandum
 
     public int? IdPuntoAcopio { get; set; }
 
+    public double? FleteEstimado { get; set; }
+
+    public double? PrecioCampesino { get; set; }
+
     public virtual ICollection<AporteCamp> AporteCamps { get; set; } = new List<AporteCamp>();
 
     public virtual Camion? IdCamionNavigation { get; set; }
