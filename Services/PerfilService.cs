@@ -358,6 +358,7 @@ namespace CampesinApp.Services
             {
                 new() { Texto = "Registro Administrador", Icono = "bi-person-plus", UrlPagina = "/RegistroAdmin" },
                 new() { Texto = "Cargar Datos DANE", Icono = "bi-cloud-upload", UrlPagina = "/ImportarDatos" },
+                new() { Texto = "Demandas", Icono = "bi-card-list", UrlPagina = "/ConsultaOfertadores" },
                 new() { Texto = "Asignar Camión", Icono = "bi-truck-front", UrlPagina = "/AsignacionVehiculo/Index" },
                 new() { Texto = "Gestión de Envíos", Icono = "bi-signpost-split", UrlModal = "/Transporte/Asignar", Estilo = "principal" },
                 new() { Texto = "Generar Reporte de Ubicación", Icono = "bi-geo-alt-fill", UrlPagina = "/Ubicacion/Reportar" },

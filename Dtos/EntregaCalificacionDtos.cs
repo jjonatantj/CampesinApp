@@ -68,6 +68,8 @@ namespace CampesinApp.Dtos
 
         public string[] TelefonosSoporte { get; set; } = Array.Empty<string>();
 
+        public string CorreoSoporte { get; set; } = string.Empty;
+
         /// <summary>Se activa cuando se llega desde un desacuerdo de entrega (FE-01-CU025).</summary>
         public bool PorDesacuerdo { get; set; }
     }

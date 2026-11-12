@@ -7,8 +7,16 @@
         TipoAviso.Error => "aviso-error",
         _ => "aviso-informacion"
     };
+    var icono = Model.Tipo switch
+    {
+        TipoAviso.Exito => "bi-check-lg",
+        TipoAviso.Advertencia => "bi-exclamation-lg",
+        TipoAviso.Error => "bi-x-lg",
+        _ => "bi-info-lg"
+    };
 }
 <div class="modal-body text-center p-4 aviso @clase" role="alertdialog" aria-live="assertive">
+    <div class="aviso-icono"><i class="bi @icono"></i></div>
     @if (!string.IsNullOrEmpty(Model.Titulo))
     {
         <h5 class="mb-2">@Model.Titulo</h5>
