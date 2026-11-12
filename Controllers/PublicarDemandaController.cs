@@ -179,9 +179,25 @@ namespace CampesinApp.Controllers
 
             HttpContext.Session.SetString("DemandaBorrador", JsonSerializer.Serialize(borrador));
 
+            // Verificamos si el comprador ya cuenta con al menos un método de pago registrado
+            bool tienePerfilPago = await _context.PerfilPagos.AnyAsync(p => p.IdUsuario == idUsuarioSesion);
+
+            if (!tienePerfilPago)
+            {
+                return Json(new
+                {
+                    exito = true,
+                    requierePerfilPago = true,
+                    urlPerfilPago = Url.Action("Index", "PerfilPago", new { returnUrl = "ProcesoPago" }),
+                    titulo = "Método de Pago Requerido",
+                    mensaje = "No es posible registrar una demanda si no cuenta con un método de pago registrado. Por favor registre un medio de pago para continuar con su pedido."
+                });
+            }
+
             return Json(new
             {
                 exito = true,
+                requierePerfilPago = false,
                 mensaje = "Pedido validado correctamente. Redirigiendo al pago seguro...",
                 redirectUrl = Url.Action("Index", "ProcesoPago")
             });

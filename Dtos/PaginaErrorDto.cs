@@ -30,5 +30,15 @@ namespace CampesinApp.Dtos
             Consejo = "Por favor, inténtelo de nuevo más tarde.",
             EsDelServidor = true
         };
+
+        public static PaginaErrorDto TiempoAgotado() => new()
+        {
+            Codigo = 504,
+            Titulo = "Tiempo de espera agotado",
+            Mensaje = "CampesinApp no pudo completar la solicitud porque el servidor o servicio intermedio tardó demasiado tiempo en responder (Gateway Timeout).",
+            Detalle = "HTTP ERROR 504",
+            Consejo = "Por favor, espera unos segundos e intenta de nuevo.",
+            EsDelServidor = true
+        };
     }
 }

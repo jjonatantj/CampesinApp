@@ -66,24 +66,25 @@ namespace CampesinApp.Repositories
                 FechaRegistro = DateTime.Now
             };
 
-            // 3. Si el usuario existe en el contexto, lo añadimos a la colección de navegación
-            if (usuario != null)
-            {
-                nuevoPunto.IdUsuarios.Add(usuario);
-            }
-
-            // 4. Guardamos en EF Core:
-            // EF Core inserta primero en 'punto_Acopio', obtiene el id_Punto_Acopio recién generado
-            // y luego inserta el registro correspondiente en la tabla intermedia 'usuario_Punto_Acopio'.
+            // 3. Guardamos en EF Core:
+            // EF Core inserta en 'punto_Acopio' que ya cuenta con la FK directa 'id_Usuario'.
             await _context.PuntoAcopios.AddAsync(nuevoPunto);
             await _context.SaveChangesAsync();
 
-            // Si el usuario no fue cargado en la colección pero tenemos su ID, aseguramos la inserción en la tabla intermedia
-            if (usuario == null && datos.IdUsuario > 0)
+            // 4. Intentamos registrar la relación intermedia en 'usuario_Punto_Acopio' si dicha tabla existe en la BD
+            if (datos.IdUsuario > 0)
             {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"INSERT INTO usuario_Punto_Acopio (id_Usuario, id_Punto_Acopio) VALUES ({datos.IdUsuario}, {nuevoPunto.IdPuntoAcopio})"
-                );
+                try
+                {
+                    await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $"INSERT INTO usuario_Punto_Acopio (id_Usuario, id_Punto_Acopio) VALUES ({datos.IdUsuario}, {nuevoPunto.IdPuntoAcopio})"
+                    );
+                }
+                catch
+                {
+                    // Si la tabla intermedia usuario_Punto_Acopio no fue creada en la base de datos de esta máquina,
+                    // no se interrumpe el flujo ya que la relación principal quedó guardada en punto_Acopio.id_Usuario.
+                }
             }
 
             // Retornamos el ID autoincremental generado

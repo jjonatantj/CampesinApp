@@ -31,7 +31,7 @@ namespace CampesinApp.ViewModels
         public string Direccion { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El teléfono de contacto es obligatorio.")]
-        [StringLength(15, ErrorMessage = "El teléfono no puede superar los 15 dígitos.")]
+        [RegularExpression(@"^[0-9]{7,10}$", ErrorMessage = "El teléfono debe contener entre 7 y 10 dígitos numéricos (mínimo 7 para fijo o 10 para celular).")]
         [Display(Name = "Teléfono de Contacto")]
         public string Telefono { get; set; } = string.Empty;
 

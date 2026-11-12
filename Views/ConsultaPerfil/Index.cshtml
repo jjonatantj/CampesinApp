@@ -23,7 +23,45 @@
     };
 
     string encabezadoCol1 = esComprador ? "Venta" : "Producto";
+    string colorPrincipal = esComprador ? "#0d6efd" : "#2e7d32";
+    string colorFondoSuave = esComprador ? "#e3f2fd" : "#f1f8e9";
+    string colorBordeSuave = esComprador ? "#bbdefb" : "#c8e6c9";
+    string colorHover = esComprador ? "#0b5ed7" : "#1b5e20";
+    string colorFondoHover = esComprador ? "#bbdefb" : "#e8f5e9";
 }
+
+<style>
+    /* Estilos dinámicos para pestañas y controles según el rol (CU-015: Verde Campesino / Azul Comprador) */
+    #perfilTabs .nav-link {
+        color: @colorPrincipal;
+        background-color: @colorFondoSuave;
+        border: 1px solid @colorBordeSuave;
+        transition: all 0.2s ease-in-out;
+    }
+    #perfilTabs .nav-link:hover {
+        background-color: @colorFondoHover;
+        color: @colorHover;
+    }
+    #perfilTabs .nav-link.active {
+        background-color: @colorPrincipal !important;
+        color: #ffffff !important;
+        border-color: @colorPrincipal !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    .paginacion-perfil .page-item.active .page-link {
+        background-color: @colorPrincipal !important;
+        border-color: @colorPrincipal !important;
+        color: #ffffff !important;
+    }
+    .paginacion-perfil .page-link {
+        color: @colorPrincipal;
+        border-color: @colorBordeSuave;
+    }
+    .paginacion-perfil .page-link:hover {
+        background-color: @colorFondoSuave;
+        color: @colorHover;
+    }
+</style>
 
 <div class="container main-container py-4 my-4 rounded-4 pf @temaRol">
 
@@ -49,83 +87,79 @@
         <!-- LADO IZQUIERDO: Avatar, Nombre, Rol, Estado y Volver        -->
         <!-- ---------------------------------------------------------- -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-4 bg-white h-100 position-relative overflow-hidden">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-0 bg-white h-100 position-relative overflow-hidden pf-portada d-flex flex-column">
                 
-                <!-- Decoración visual superior -->
-                <div class="pf-banner position-absolute top-0 start-0 w-100" style="height: 100px;">
+                <!-- Decoración visual superior (idéntica a Perfil/Index.cshtml) -->
+                <div class="pf-banner" style="height: 110px;" aria-hidden="true">
                     <span class="pf-hoja pf-hoja-1"></span>
                     <span class="pf-hoja pf-hoja-2"></span>
+                    <span class="pf-hoja pf-hoja-3"></span>
                 </div>
 
-                <!-- Foto de Perfil o Iniciales -->
-                <div class="d-flex justify-content-center mb-3 position-relative" style="margin-top: 35px;">
+                <div class="text-center px-3 pb-4 d-flex flex-column flex-grow-1">
+                    <!-- Foto de Perfil o Iniciales (idéntico a Perfil/Index.cshtml) -->
                     @if (!string.IsNullOrEmpty(Model.FotoUrl))
                     {
-                        <img src="@Model.FotoUrl" alt="Foto de @Model.NombreCompleto" 
-                             class="rounded-circle shadow border border-4 border-white" 
-                             style="width: 120px; height: 120px; object-fit: cover;" />
+                        <img src="@Model.FotoUrl" alt="Foto de @Model.NombreCompleto" class="pf-avatar mx-auto d-block" 
+                             onerror="this.style.display='none'; document.getElementById('avatarInicialesFallback').classList.remove('d-none');" />
+                        <div id="avatarInicialesFallback" class="pf-avatar pf-avatar-iniciales mx-auto d-none" aria-hidden="true">@Model.Iniciales</div>
                     }
                     else
                     {
-                        <div class="pf-avatar pf-avatar-iniciales shadow border border-4 border-white d-flex align-items-center justify-content-center fw-bold" 
-                             style="width: 120px; height: 120px; font-size: 2.8rem; border-radius: 50%;">
-                            @Model.Iniciales
+                        <div class="pf-avatar pf-avatar-iniciales mx-auto" aria-hidden="true">@Model.Iniciales</div>
+                    }
+
+                    <!-- Nombre y Rol (según Mockup: "NOMBRE: [Nombre]") -->
+                    <small class="text-muted text-uppercase fw-bold d-block mt-2">Nombre:</small>
+                    <h3 class="fw-bold text-dark mb-1">@Model.NombreCompleto</h3>
+                    <p class="text-muted mb-2">
+                        <span class="badge @(esComprador ? "bg-primary" : "bg-success") rounded-pill px-3 py-1">
+                            <i class="bi @iconoRol me-1"></i>@Model.Rol
+                        </span>
+                    </p>
+
+                    <!-- Calificación Resumida en Estrellas -->
+                    <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                        <span class="text-warning fs-5">
+                            <i class="bi bi-star-fill"></i>
+                        </span>
+                        <span class="fw-bold fs-5 text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                        <span class="text-muted small">(@Model.TotalResenas reseñas)</span>
+                    </div>
+
+                    <hr class="my-3 text-muted" />
+
+                    <!-- Regla RN-05: El Administrador puede ver el estado de la cuenta -->
+                    @if (Model.EsAdmin)
+                    {
+                        <div class="p-3 bg-light rounded-4 mb-3 border text-start">
+                            <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                <i class="bi bi-shield-lock me-1"></i> Auditoría Admin (RN-05)
+                            </small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Estado de la Cuenta:</span>
+                                <span class="badge @(Model.EstadoCuenta == "Activo" ? "bg-success" : "bg-danger") rounded-pill px-3 py-1">
+                                    @Model.EstadoCuenta
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.CedulaExacta))
+                            {
+                                <div class="d-flex justify-content-between align-items-center mt-2 small">
+                                    <span class="text-muted">Cédula Oficial:</span>
+                                    <span class="fw-bold text-dark">@Model.CedulaExacta</span>
+                                </div>
+                            }
                         </div>
                     }
-                </div>
 
-                <!-- Nombre y Rol (según Mockup: "NOMBRE: [Nombre]") -->
-                <small class="text-muted text-uppercase fw-bold d-block">Nombre:</small>
-                <h3 class="fw-bold text-dark mb-1">@Model.NombreCompleto</h3>
-                <p class="text-muted mb-2">
-                    <span class="badge @(esComprador ? "bg-primary" : "bg-success") rounded-pill px-3 py-1">
-                        <i class="bi @iconoRol me-1"></i>@Model.Rol
-                    </span>
-                </p>
-
-                <!-- Calificación Resumida en Estrellas -->
-                <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
-                    <span class="text-warning fs-5">
-                        <i class="bi bi-star-fill"></i>
-                    </span>
-                    <span class="fw-bold fs-5 text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
-                    <span class="text-muted small">(@Model.TotalResenas reseñas)</span>
-                </div>
-
-                <hr class="my-3 text-muted" />
-
-                <!-- Regla RN-05: El Administrador puede ver el estado de la cuenta -->
-                @if (Model.EsAdmin)
-                {
-                    <div class="p-3 bg-light rounded-4 mb-3 border text-start">
-                        <small class="text-muted text-uppercase fw-bold d-block mb-1">
-                            <i class="bi bi-shield-lock me-1"></i> Auditoría Admin (RN-05)
-                        </small>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Estado de la Cuenta:</span>
-                            <span class="badge @(Model.EstadoCuenta == "Activo" ? "bg-success" : "bg-danger") rounded-pill px-3 py-1">
-                                @Model.EstadoCuenta
-                            </span>
-                        </div>
-                        @if (!string.IsNullOrEmpty(Model.CedulaExacta))
-                        {
-                            <div class="d-flex justify-content-between align-items-center mt-2 small">
-                                <span class="text-muted">Cédula Oficial:</span>
-                                <span class="fw-bold text-dark">@Model.CedulaExacta</span>
-                            </div>
-                        }
+                    <!-- Botón Volver (Mockups 1, 2 y 3: botón debajo de la foto) -->
+                    <div class="mt-auto pt-3">
+                        <button type="button" class="btn btn-secondary w-100 rounded-pill py-2 fw-semibold shadow-sm" onclick="history.back()">
+                            <i class="bi bi-arrow-left me-1"></i> Volver
+                        </button>
                     </div>
-                }
 
-
-
-                <!-- Botón Volver (Mockups 1, 2 y 3: botón debajo de la foto) -->
-                <div class="mt-auto pt-3">
-                    <button type="button" class="btn btn-secondary w-100 rounded-pill py-2 fw-semibold shadow-sm" onclick="history.back()">
-                        <i class="bi bi-arrow-left me-1"></i> Volver
-                    </button>
                 </div>
-
             </div>
         </div>
 
@@ -267,48 +301,113 @@
                     }
                     else
                     {
-                        <!-- Tabla / Tarjetas organizadas con la semántica del Mockup -->
-                        <div class="table-responsive rounded-4 border mb-3">
-                            <table class="table table-hover align-middle mb-0" id="tablaItemsPestana2">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 35%;">@encabezadoCol1</th>
-                                        <th style="width: 65%;">Descripción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in Model.ItemsPestana2)
-                                    {
-                                        <tr class="fila-producto" data-categoria="@item.Categoria">
-                                            <td>
-                                                <div class="fw-bold fs-6 text-dark mb-1">@item.Nombre</div>
-                                                <span class="badge bg-light text-success border border-success rounded-pill px-2 py-1 small">
-                                                    @item.Variedad
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="row g-2 small">
-                                                    <div class="col-sm-6">
-                                                        <span class="text-muted">Precio estimado:</span>
-                                                        <strong class="text-success fs-6 d-block">$@item.PrecioEstimado.ToString("N0")</strong>
-                                                    </div>
-                                                    <div class="col-sm-6">
-                                                        <span class="text-muted">Unidad de medida:</span>
-                                                        <strong class="text-dark d-block">@item.UnidadMedida</strong>
-                                                    </div>
+                        <!-- Tabla compacta y distribuida según el rol (CU-015: Campesino vs Comprador) -->
+                        <div class="table-responsive rounded-4 border mb-2">
+                            <table class="table table-hover table-sm align-middle mb-0" id="tablaItemsPestana2">
+                                @if (esComprador)
+                                {
+                                    <!-- TABLA HISTORIAL DE COMPRAS/VENTAS PARA COMPRADOR (Mockup 3) -->
+                                    <thead class="table-light text-secondary text-uppercase small">
+                                        <tr>
+                                            <th style="width: 28%;" class="ps-3 py-2">Producto Solicitado</th>
+                                            <th style="width: 14%;" class="py-2 text-center">Cantidad</th>
+                                            <th style="width: 18%;" class="py-2 text-end">Precio / Kg</th>
+                                            <th style="width: 18%;" class="py-2 text-end">Total Compra</th>
+                                            <th style="width: 22%;" class="pe-3 py-2 text-center">Fecha y Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.ItemsPestana2)
+                                        {
+                                            <tr class="fila-producto" data-categoria="@item.Categoria">
+                                                <td class="ps-3 py-2">
+                                                    <div class="fw-bold fs-6 text-dark text-truncate" style="max-width: 190px;" title="@item.Nombre">@item.Nombre</div>
+                                                    <span class="badge bg-light text-primary border border-primary-subtle rounded-pill px-2 py-0 small">
+                                                        @item.Variedad
+                                                    </span>
                                                     @if (!string.IsNullOrWhiteSpace(item.Descripcion))
                                                     {
-                                                        <div class="col-12 mt-1">
-                                                            <span class="text-muted">Detalles:</span>
-                                                            <span class="text-secondary">@item.Descripcion</span>
-                                                        </div>
+                                                        <small class="text-muted d-block text-truncate mt-1" style="max-width: 190px;" title="@item.Descripcion">
+                                                            @item.Descripcion
+                                                        </small>
                                                     }
-                                                </div>
-                                            </td>
+                                                </td>
+                                                <td class="py-2 text-center">
+                                                    <span class="fw-semibold text-dark">@item.Cantidad.ToString("N0")</span>
+                                                    <small class="text-muted d-block">@item.UnidadMedida</small>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <span class="fw-semibold text-secondary">$@item.PrecioEstimado.ToString("N0")</span>
+                                                    <small class="text-muted d-block">por @item.UnidadMedida</small>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <strong class="text-primary fs-6">$@item.Total.ToString("N0")</strong>
+                                                </td>
+                                                <td class="pe-3 py-2 text-center">
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 mb-1 d-inline-block small">
+                                                        <i class="bi bi-clock-history me-1"></i>@item.Estado
+                                                    </span>
+                                                    <small class="text-muted d-block">
+                                                        @(item.Fecha.HasValue ? item.Fecha.Value.ToString("dd/MM/yyyy") : "Reciente")
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                }
+                                else
+                                {
+                                    <!-- TABLA PRODUCTOS CULTIVADOS PARA CAMPESINO (Mockup 2) -->
+                                    <thead class="table-light text-secondary text-uppercase small">
+                                        <tr>
+                                            <th style="width: 30%;" class="ps-3 py-2">Producto Cultivado</th>
+                                            <th style="width: 18%;" class="py-2 text-center">Variedad</th>
+                                            <th style="width: 24%;" class="py-2 text-end">Precio de Referencia</th>
+                                            <th style="width: 28%;" class="pe-3 py-2">Ubicación / Detalles</th>
                                         </tr>
-                                    }
-                                </tbody>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.ItemsPestana2)
+                                        {
+                                            <tr class="fila-producto" data-categoria="@item.Categoria">
+                                                <td class="ps-3 py-2">
+                                                    <div class="fw-bold fs-6 text-dark text-truncate" style="max-width: 210px;" title="@item.Nombre">@item.Nombre</div>
+                                                    @if (!string.IsNullOrWhiteSpace(item.Descripcion))
+                                                    {
+                                                        <small class="text-muted d-block text-truncate mt-1" style="max-width: 210px;" title="@item.Descripcion">
+                                                            @item.Descripcion
+                                                        </small>
+                                                    }
+                                                </td>
+                                                <td class="py-2 text-center">
+                                                    <span class="badge bg-light text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                                                        @item.Variedad
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <strong class="text-success fs-6">$@item.PrecioEstimado.ToString("N0")</strong>
+                                                    <small class="text-muted d-block">por @item.UnidadMedida</small>
+                                                </td>
+                                                <td class="pe-3 py-2">
+                                                    <span class="text-dark small d-block">
+                                                        <i class="bi bi-geo-alt text-success me-1"></i>@(string.IsNullOrWhiteSpace(item.UbicacionCultivo) ? "Predio Campesino" : item.UbicacionCultivo)
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                }
                             </table>
+                        </div>
+
+                        <!-- Controles de paginación de a 6 registros -->
+                        <div id="contenedorPaginacion" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-1">
+                            <small class="text-muted" id="textoPaginacionInfo">Cargando registros...</small>
+                            <nav aria-label="Navegación de registros" class="ms-auto paginacion-perfil">
+                                <ul class="pagination pagination-sm mb-0 gap-1" id="listaPaginacion">
+                                    <!-- Se genera dinámicamente con JavaScript -->
+                                </ul>
+                            </nav>
                         </div>
 
                         <div id="mensajeSinFiltro" class="text-center py-4 text-muted d-none">
@@ -316,11 +415,11 @@
                             No hay registros en la categoría seleccionada.
                         </div>
 
-                        <!-- Botón inferior prominente: "REPUTACIÓN Y CALIFICACIONES" (Mockups 2 y 3) -->
+                        <!-- Botón inferior prominente: "REPUTACIÓN Y CALIFICACIONES" con color según rol -->
                         <div class="mt-4 pt-3 border-top text-center">
                             <button type="button" 
-                                    class="btn btn-success rounded-pill px-5 py-2 fw-bold text-uppercase shadow-sm"
-                                    style="background-color: #2e7d32; border-color: #2e7d32;"
+                                    class="btn rounded-pill px-5 py-2 fw-bold text-uppercase shadow-sm text-white"
+                                    style="background-color: @colorPrincipal; border-color: @colorPrincipal;"
                                     onclick="abrirModalReputacion()">
                                 <i class="bi bi-star-fill me-2"></i> Reputación y Calificaciones
                             </button>
@@ -462,36 +561,132 @@
             document.getElementById('tab-info-btn').classList.add('active');
         } else if (idTab === 'tab-productos') {
             document.getElementById('tab-productos-btn').classList.add('active');
+            paginaActual = 1;
+            actualizarPaginacion();
         }
     }
 
     // -------------------------------------------------------------
-    // FILTRADO DINÁMICO POR CATEGORÍA EN VANILLA JAVASCRIPT (FA-03)
+    // PAGINACIÓN DINÁMICA DE A 6 REGISTROS Y FILTRO POR CATEGORÍA
     // -------------------------------------------------------------
-    function filtrarPorCategoria() {
-        var seleccion = document.getElementById('filtroCategoria').value.toLowerCase();
-        var filas = document.querySelectorAll('.fila-producto');
-        var visibles = 0;
+    const ITEMS_POR_PAGINA = 6;
+    let paginaActual = 1;
 
-        filas.forEach(function(fila) {
-            var cat = (fila.getAttribute('data-categoria') || '').toLowerCase();
-            if (seleccion === 'todas' || cat === seleccion) {
-                fila.classList.remove('d-none');
-                visibles++;
-            } else {
-                fila.classList.add('d-none');
-            }
+    function actualizarPaginacion() {
+        const todasFilas = Array.from(document.querySelectorAll('.fila-producto'));
+        if (todasFilas.length === 0) return;
+
+        const selectCat = document.getElementById('filtroCategoria');
+        const filtro = selectCat ? selectCat.value.toLowerCase() : 'todas';
+
+        const filasFiltradas = todasFilas.filter(function(fila) {
+            const cat = (fila.getAttribute('data-categoria') || '').toLowerCase();
+            return filtro === 'todas' || cat === filtro;
         });
 
-        var aviso = document.getElementById('mensajeSinFiltro');
+        const totalItems = filasFiltradas.length;
+        const totalPaginas = Math.max(1, Math.ceil(totalItems / ITEMS_POR_PAGINA));
+
+        if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+        if (paginaActual < 1) paginaActual = 1;
+
+        // Ocultar todas las filas primero
+        todasFilas.forEach(function(f) {
+            f.classList.add('d-none');
+        });
+
+        // Mostrar solo las filas de la página actual
+        const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+        const fin = Math.min(inicio + ITEMS_POR_PAGINA, totalItems);
+
+        for (let i = inicio; i < fin; i++) {
+            filasFiltradas[i].classList.remove('d-none');
+        }
+
+        // Estado vacío / mensaje de no encontrado
+        const aviso = document.getElementById('mensajeSinFiltro');
+        const contenedorPaginacion = document.getElementById('contenedorPaginacion');
         if (aviso) {
-            if (visibles === 0) {
+            if (totalItems === 0) {
                 aviso.classList.remove('d-none');
+                if (contenedorPaginacion) contenedorPaginacion.classList.add('d-none');
             } else {
                 aviso.classList.add('d-none');
+                if (contenedorPaginacion) contenedorPaginacion.classList.remove('d-none');
             }
         }
+
+        // Texto informativo de paginación
+        const textoInfo = document.getElementById('textoPaginacionInfo');
+        if (textoInfo) {
+            if (totalItems === 0) {
+                textoInfo.textContent = 'Sin registros para mostrar';
+            } else {
+                textoInfo.textContent = `Mostrando ${inicio + 1} a ${fin} de ${totalItems} registros`;
+            }
+        }
+
+        // Generar botones de paginación
+        const listaPag = document.getElementById('listaPaginacion');
+        if (!listaPag) return;
+
+        listaPag.innerHTML = '';
+
+        if (totalItems === 0) {
+            return;
+        }
+
+        // Botón Anterior
+        const liAnt = document.createElement('li');
+        liAnt.className = `page-item ${paginaActual <= 1 ? 'disabled' : ''}`;
+        liAnt.innerHTML = `<button type="button" class="page-link rounded-pill px-3 shadow-none" style="cursor: ${paginaActual <= 1 ? 'default' : 'pointer'};" aria-label="Anterior">&laquo; Anterior</button>`;
+        liAnt.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (paginaActual > 1) {
+                paginaActual--;
+                actualizarPaginacion();
+            }
+        });
+        listaPag.appendChild(liAnt);
+
+        // Botones numéricos
+        for (let p = 1; p <= totalPaginas; p++) {
+            const liNum = document.createElement('li');
+            liNum.className = `page-item ${p === paginaActual ? 'active' : ''}`;
+            liNum.innerHTML = `<button type="button" class="page-link rounded-pill px-3 shadow-none" style="cursor: pointer;">${p}</button>`;
+            const pag = p;
+            liNum.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (paginaActual !== pag) {
+                    paginaActual = pag;
+                    actualizarPaginacion();
+                }
+            });
+            listaPag.appendChild(liNum);
+        }
+
+        // Botón Siguiente
+        const liSig = document.createElement('li');
+        liSig.className = `page-item ${paginaActual >= totalPaginas ? 'disabled' : ''}`;
+        liSig.innerHTML = `<button type="button" class="page-link rounded-pill px-3 shadow-none" style="cursor: ${paginaActual >= totalPaginas ? 'default' : 'pointer'};" aria-label="Siguiente">Siguiente &raquo;</button>`;
+        liSig.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (paginaActual < totalPaginas) {
+                paginaActual++;
+                actualizarPaginacion();
+            }
+        });
+        listaPag.appendChild(liSig);
     }
+
+    function filtrarPorCategoria() {
+        paginaActual = 1;
+        actualizarPaginacion();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        actualizarPaginacion();
+    });
 
     // -------------------------------------------------------------
     // MODAL DE REPUTACIÓN Y CALIFICACIONES (FA-06)

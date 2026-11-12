@@ -32,9 +32,17 @@ namespace CampesinApp.Repositories.Models
         public List<string> RegionesDisponibles { get; set; } = new();
 
         // ==========================================
-        // 3. Resultados de demandas a mostrar en las tarjetas
+        // 3. Resultados de demandas a mostrar en las tarjetas y paginación
         // ==========================================
         public List<Demandum> Demandas { get; set; } = new();
+
+        // Propiedades para la paginación (8 demandas por página = 2 filas de 4 tarjetas)
+        public int PaginaActual { get; set; } = 1;
+        public int TamanoPagina { get; set; } = 8;
+        public int TotalDemandas { get; set; } = 0;
+        public int TotalPaginas => (int)Math.Ceiling((double)TotalDemandas / (TamanoPagina > 0 ? TamanoPagina : 8));
+        public bool TienePaginaAnterior => PaginaActual > 1;
+        public bool TienePaginaSiguiente => PaginaActual < TotalPaginas;
 
         // ==========================================
         // 4. Gestión de Sesión (RN01-CU011: Invitado vs Campesino)
