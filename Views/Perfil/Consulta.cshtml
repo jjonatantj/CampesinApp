@@ -1,0 +1,235 @@
+@model PerfilPublicoDto
+@{
+    ViewData["Title"] = "Perfil de " + Model.NombreCompleto;
+
+    var tema = Model.Rol switch
+    {
+        "Campesino" => "pf-campesino",
+        "Comprador" => "pf-comprador",
+        _ => "pf-transportador"
+    };
+    var iconoRol = Model.Rol switch
+    {
+        "Campesino" => "bi-flower2",
+        "Comprador" => "bi-shop",
+        _ => "bi-truck"
+    };
+    var frase = Model.Rol switch
+    {
+        "Campesino" => "Productor del campo colombiano",
+        "Comprador" => "Comprador directo del campo",
+        _ => "Transportador de la cosecha"
+    };
+    var maxVotos = Math.Max(1, Model.Distribucion.Max());
+    var promedio = Model.PromedioEstrellas;
+    var cultura = System.Globalization.CultureInfo.GetCultureInfo("es-CO");
+}
+
+<div class="container pb-5 pf @tema">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-nav-login text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Volver al inicio</a>
+        <span class="pf-etiqueta"><i class="bi @iconoRol me-1"></i> Perfil de @Model.Rol.ToLowerInvariant()</span>
+    </div>
+
+    @* ----------------------------------------------------------------------------------- portada *@
+    <section class="pf-portada shadow-sm">
+        <div class="pf-banner" aria-hidden="true">
+            <span class="pf-hoja pf-hoja-1"></span><span class="pf-hoja pf-hoja-2"></span><span class="pf-hoja pf-hoja-3"></span>
+        </div>
+        <div class="pf-cabecera">
+            @if (!string.IsNullOrEmpty(Model.FotoUrl))
+            {
+                <img src="@Model.FotoUrl" alt="Foto de @Model.NombreCompleto" class="pf-avatar" />
+            }
+            else
+            {
+                <div class="pf-avatar pf-avatar-iniciales" aria-hidden="true">@Model.Iniciales</div>
+            }
+
+            <div class="pf-identidad">
+                <h1 class="pf-nombre">@Model.NombreCompleto</h1>
+                <p class="pf-frase mb-1">@frase</p>
+                <p class="pf-ubicacion mb-0"><i class="bi bi-geo-alt-fill me-1"></i>@Model.Ubicacion</p>
+            </div>
+
+            <div class="pf-calificacion" title="Calificación promedio">
+                @if (promedio == null)
+                {
+                    <span class="pf-sin-calificar">Sin calificaciones todavía</span>
+                }
+                else
+                {
+                    <span class="pf-promedio">@promedio.Value.ToString("0.0", cultura)</span>
+                    <span class="pf-estrellas" aria-label="@promedio.Value.ToString("0.0", cultura) de 5 estrellas">@VistaHelpers.Estrellas((int)Math.Round(promedio.Value))</span>
+                    <span class="pf-total">@Model.TotalCalificaciones @(Model.TotalCalificaciones == 1 ? "calificación" : "calificaciones")</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    @* ----------------------------------------------------------------------------------- cifras *@
+    <section class="row g-3 mt-1" aria-label="Actividad en CampesinApp">
+        @foreach (var dato in Model.Estadisticas)
+        {
+            <div class="col-6 col-lg-3">
+                <div class="pf-dato">
+                    <span class="pf-dato-icono"><i class="bi @dato.Icono"></i></span>
+                    <div>
+                        <div class="pf-dato-valor">@dato.Valor</div>
+                        <div class="pf-dato-titulo">@dato.Titulo</div>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+
+    <div class="row g-4 mt-1">
+        @* ------------------------------------------------------------------------------- columna izquierda *@
+        <div class="col-lg-5">
+            <section class="pf-tarjeta">
+                <h2 class="pf-titulo"><i class="bi bi-star-fill me-2"></i>Reputación</h2>
+                @if (promedio == null)
+                {
+                    <p class="text-muted mb-0">Todavía no ha recibido calificaciones de otros usuarios.</p>
+                }
+                else
+                {
+                    @for (var estrellas = 5; estrellas >= 1; estrellas--)
+                    {
+                        var votos = Model.Distribucion[estrellas - 1];
+                        var ancho = votos * 100 / maxVotos;
+                        <div class="pf-barra-fila">
+                            <span class="pf-barra-etiqueta">@estrellas <i class="bi bi-star-fill"></i></span>
+                            <div class="pf-barra"><div class="pf-barra-relleno" style="width: @(ancho)%"></div></div>
+                            <span class="pf-barra-valor">@votos</span>
+                        </div>
+                    }
+                }
+            </section>
+
+            @if (Model.Rol == "Campesino")
+            {
+                <section class="pf-tarjeta mt-4">
+                    <h2 class="pf-titulo"><i class="bi bi-geo-alt-fill me-2"></i>Puntos de acopio</h2>
+                    @if (Model.Puntos.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No tiene puntos de acopio asociados.</p>
+                    }
+                    @foreach (var punto in Model.Puntos)
+                    {
+                        <div class="pf-punto">
+                            <div class="fw-bold">@punto.Nombre</div>
+                            <div class="small text-muted">@punto.Direccion</div>
+                            <div class="small"><i class="bi bi-clock me-1"></i>@punto.Horario
+                                @if (punto.AccesoVehicular)
+                                {
+                                    <span class="badge pf-insignia ms-1"><i class="bi bi-truck me-1"></i>Acceso vehicular</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </section>
+            }
+
+            @if (Model.Rol == "Comprador")
+            {
+                <section class="pf-tarjeta mt-4">
+                    <h2 class="pf-titulo"><i class="bi bi-basket2-fill me-2"></i>Lo que suele comprar</h2>
+                    @if (Model.ProductosDeInteres.Count == 0)
+                    {
+                        <p class="text-muted mb-0">Aún no ha publicado pedidos.</p>
+                    }
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var producto in Model.ProductosDeInteres)
+                        {
+                            <span class="badge pf-insignia pf-insignia-grande">@producto</span>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+
+        @* ------------------------------------------------------------------------------- columna derecha *@
+        <div class="col-lg-7">
+            @if (Model.Rol == "Campesino")
+            {
+                <section class="pf-tarjeta">
+                    <h2 class="pf-titulo"><i class="bi bi-basket2-fill me-2"></i>Productos que ofrece</h2>
+                    @if (Model.Productos.Count == 0)
+                    {
+                        <p class="text-muted mb-0">Aún no ha publicado productos.</p>
+                    }
+                    <div class="row g-3">
+                        @foreach (var producto in Model.Productos)
+                        {
+                            <div class="col-sm-6">
+                                <div class="pf-producto">
+                                    <div class="pf-producto-icono"><i class="bi bi-flower3"></i></div>
+                                    <div>
+                                        <div class="fw-bold">@producto.Nombre <span class="text-muted fw-normal">· @producto.Variedad</span></div>
+                                        <div class="small text-muted">@producto.Descripcion</div>
+                                        <div class="small mt-1"><i class="bi bi-pin-map-fill me-1"></i>Cultivo en @producto.Cultivo</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (Model.Rol == "Transportador")
+            {
+                <section class="pf-tarjeta">
+                    <h2 class="pf-titulo"><i class="bi bi-truck-front-fill me-2"></i>Vehículos</h2>
+                    @if (Model.Vehiculos.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No tiene vehículos registrados.</p>
+                    }
+                    <div class="row g-3">
+                        @foreach (var vehiculo in Model.Vehiculos)
+                        {
+                            <div class="col-sm-6">
+                                <div class="pf-vehiculo">
+                                    <div class="pf-placa">@vehiculo.Placa</div>
+                                    <div class="fw-bold mt-2">@vehiculo.Modelo</div>
+                                    <div class="small text-muted">Capacidad de carga: @vehiculo.CapacidadToneladas toneladas</div>
+                                    <div class="mt-2 d-flex flex-wrap gap-1">
+                                        <span class="badge @(vehiculo.PaseAlDia ? "pf-ok" : "pf-alerta")">Pase</span>
+                                        <span class="badge @(vehiculo.SeguroAlDia ? "pf-ok" : "pf-alerta")">Seguro</span>
+                                        <span class="badge @(vehiculo.TecnomecanicaAlDia ? "pf-ok" : "pf-alerta")">Tecnomecánica</span>
+                                    </div>
+                                    @if (vehiculo.DocumentosAlDia)
+                                    {
+                                        <div class="small text-success fw-semibold mt-2"><i class="bi bi-patch-check-fill me-1"></i>Documentos al día</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            <section class="pf-tarjeta @(Model.Rol == "Comprador" ? "" : "mt-4")">
+                <h2 class="pf-titulo"><i class="bi bi-chat-quote-fill me-2"></i>Opiniones de otros usuarios</h2>
+                @if (Model.Opiniones.Count == 0)
+                {
+                    <p class="text-muted mb-0">Todavía no hay opiniones para mostrar.</p>
+                }
+                @foreach (var opinion in Model.Opiniones)
+                {
+                    <article class="pf-opinion">
+                        <div class="pf-opinion-cabecera">
+                            <span class="pf-opinion-autor">@opinion.Autor <span class="pf-opinion-rol">· @opinion.RolAutor</span></span>
+                            @if (opinion.Estrellas >= 1)
+                            {
+                                <span class="pf-estrellas pf-estrellas-chicas" aria-label="@opinion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(opinion.Estrellas)</span>
+                            }
+                        </div>
+                        <p class="mb-1">“@opinion.Texto”</p>
+                        <div class="small text-muted">@Formato.Fecha(opinion.Fecha)</div>
+                    </article>
+                }
+            </section>
+        </div>
+    </div>
+</div>

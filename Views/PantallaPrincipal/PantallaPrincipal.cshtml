@@ -1,0 +1,380 @@
+@model CampesinApp.ViewModels.PantallaPrincipalViewModel
+
+@{
+    ViewData["Title"] = "Pantalla Principal - CampesinApp";
+    Layout = "_LayoutPrivado";
+}
+
+<!-- LIBRERÍAS DE ICONOS Y FUENTE MULISH -->
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+<!-- 1. BARRA SUPERIOR DE NAVEGACIÓN -->
+<nav class="navbar navbar-expand-lg navbar-custom sticky-top mb-4">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" asp-controller="PantallaPrincipal" asp-action="Index">
+            <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="40" height="40" class="rounded-circle me-2 border border-2 border-success" />
+            <span class="brand-title">CampesinApp</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCampesinApp">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarCampesinApp">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                <li class="nav-item">
+                    <a class="nav-link active nav-link-highlight" asp-controller="PantallaPrincipal" asp-action="Index">Inicio</a>
+                </li>
+
+                @if (Model.RolUsuario == "Campesino")
+                {
+                    <li class="nav-item"><a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
+                }
+                else if (Model.RolUsuario == "Comprador")
+                {
+
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
+                }
+                else if (Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
+                {
+
+                    <li class="nav-item"><a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a></li>
+                }
+            </ul>
+
+            <div class="nav-auth-buttons">
+                <span class="badge bg-success text-white px-3 py-2 rounded-pill small">Rol: @Model.RolUsuario</span>
+                <partial name="_AccionesNavPrivada" />
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+
+    @if (Model.RolUsuario == "Administrador")
+    {
+        <form class="card p-2 border-0 shadow-sm rounded-4 bg-white mb-4" data-ajax-form method="get" asp-controller="Transporte" asp-action="Buscar" role="search">
+            <div class="input-group">
+                <span class="input-group-text border-0 bg-transparent text-success"><i class="bi bi-truck"></i></span>
+                <label for="buscarTransporte" class="visually-hidden">Placa del camión o código del pedido</label>
+                <input type="text" id="buscarTransporte" name="texto" class="form-control border-0 shadow-none" placeholder="Placa del camión o código del pedido (PED-0001)" maxlength="20" required />
+                <button type="submit" class="btn btn-nav-register px-4 rounded-pill">Buscar Transporte</button>
+            </div>
+        </form>
+    }
+
+    <!-- 2. ENCABEZADO Y FILTRO DOBLE (TIPO + VARIEDAD DEPENDIENTE) -->
+    <div class="main-container p-4 p-md-5 mb-4 shadow-sm border-0" style="background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); border-radius: 20px;">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-4">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-graph-up-arrow fs-3"></i>
+                    </div>
+                    <div>
+                        <h2 class="brand-title mb-0 fs-3" style="color: #1b5e20;">Precios Sugeridos del Día</h2>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill mt-1 small">
+                            <i class="bi bi-patch-check-fill me-1"></i> Actualizado Modelo DANE
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORMULARIO DE FILTRADO CON TIPO Y VARIEDAD -->
+            <div class="col-lg-8">
+                <form method="get" asp-controller="PantallaPrincipal" asp-action="Index" class="card p-2 border-0 shadow-sm rounded-4 bg-white">
+                    <div class="row g-2 align-items-center">
+
+                        <!-- SELECTOR 1: TIPO DE PRODUCTO -->
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text border-0 bg-transparent text-success pe-1"><i class="bi bi-tags-fill"></i></span>
+                                <select id="ddlTipoProducto" name="categoria" asp-for="CategoriaSeleccionada" asp-items="Model.ListaTiposProducto" class="form-select border-0 shadow-none fw-bold text-dark small" style="cursor: pointer;" onchange="cargarVariedadesFiltro()">
+                                    <option value="">Todos los tipos...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SELECTOR 2: VARIEDAD DEPENDIENTE -->
+                        <div class="col-md-4">
+                            <div class="input-group border-start ps-1">
+                                <span class="input-group-text border-0 bg-transparent text-success pe-1"><i class="bi bi-filter-circle-fill"></i></span>
+                                <select id="ddlVariedad" name="variedad" asp-for="VariedadSeleccionada" asp-items="Model.ListaVariedades" class="form-select border-0 shadow-none fw-semibold text-dark small" style="cursor: pointer;">
+                                    <option value="">Todas las variedades...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- BOTONES DE FILTRAR Y LIMPIAR -->
+                        <div class="col-md-4 d-flex gap-1 justify-content-end">
+                            <button type="submit" class="btn btn-nav-register px-3 rounded-pill w-100 d-flex align-items-center justify-content-center gap-1 shadow-sm small fw-bold">
+                                <i class="bi bi-funnel-fill"></i> Filtrar
+                            </button>
+                            @if (!string.IsNullOrEmpty(Model.CategoriaSeleccionada) || !string.IsNullOrEmpty(Model.VariedadSeleccionada) || !string.IsNullOrEmpty(Model.TerminoBusqueda))
+                            {
+                                <a href="@Url.Action("Index", "PantallaPrincipal")" class="btn btn-outline-secondary rounded-pill px-2 d-flex align-items-center justify-content-center" title="Limpiar filtros">
+                                    <i class="bi bi-x-circle"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TABLA DE PRECIOS SUGERIDOS CON PAGINACIÓN DE 5 EN 5 -->
+    <div class="main-container p-4 mb-5 shadow-lg border-0" style="background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border-radius: 20px;">
+
+        @if (!string.IsNullOrEmpty(Model.MensajeExcepcionPrecios))
+        {
+            <div class="p-4 text-center rounded-4" style="background-color: #fff9e6; border: 1.5px dashed #ffe082;">
+                <i class="bi bi-exclamation-triangle-fill fs-1 text-warning d-block mb-2"></i>
+                <h5 class="fw-bold text-dark mb-1">Servicio de Precios en Actualización</h5>
+                <p class="text-muted mb-0">@Model.MensajeExcepcionPrecios</p>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                <h5 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                    <i class="bi bi-table me-2 text-success"></i> Listado Oficial de Precios
+                </h5>
+                <span class="text-muted small">
+                    Mostrando <strong>@Model.TablaPrecios.Count</strong> registros (Pág. @Model.PaginaActualPrecios de @Model.TotalPaginasPrecios)
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-3" style="border-collapse: separate; border-spacing: 0 8px;">
+                    <thead>
+                        <tr class="text-secondary text-uppercase fs-7" style="border-bottom: 2px solid #e0e0e0;">
+                            <th scope="col" class="pb-3 ps-3">Producto / Variedad</th>
+                            <th scope="col" class="pb-3 text-center">Tipo</th>
+                            <th scope="col" class="pb-3 text-center">Unidad de Medida</th>
+
+                            @if (Model.RolUsuario == "Campesino" || Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
+                            {
+                                <th scope="col" class="pb-3 text-end pe-3">Precio Sugerido Venta</th>
+                            }
+                            @if (Model.RolUsuario == "Comprador" || Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
+                            {
+                                <th scope="col" class="pb-3 text-end pe-3">Precio Sugerido Compra</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TablaPrecios.Count > 0)
+                        {
+                            @foreach (var item in Model.TablaPrecios)
+                            {
+                                <tr class="shadow-sm rounded-3" style="background-color: #ffffff;">
+                                    <td class="py-3 ps-3 rounded-start-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background-color: #f0fdf4; color: #16a34a;">
+                                                <i class="bi bi-basket2-fill"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-bold text-dark fs-6 d-block">@item.Producto</span>
+                                                <small class="text-muted">Variedad: @(string.IsNullOrEmpty(item.Variedad) ? "General" : item.Variedad)</small>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="py-3 text-center">
+                                        <span class="badge bg-light text-success border border-success-subtle fs-8">@item.Categoria</span>
+                                    </td>
+
+                                    <td class="py-3 text-center">
+                                        <span class="badge px-3 py-2 rounded-pill font-monospace fw-bold" style="background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;">
+                                            <i class="bi bi-box-seam me-1"></i> @item.UnidadMedida
+                                        </span>
+                                    </td>
+
+                                    @if (Model.RolUsuario == "Campesino" || Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
+                                    {
+                                        <td class="py-3 text-end pe-3">
+                                            <span class="fs-5 fw-extrabold" style="color: #1b5e20;">
+                                                $@item.PrecioVenta?.ToString("N0") <small class="fs-7 text-muted">COP</small>
+                                            </span>
+                                        </td>
+                                    }
+                                    @if (Model.RolUsuario == "Comprador" || Model.RolUsuario == "Administrador" || Model.RolUsuario == "Transportador")
+                                    {
+                                        <td class="py-3 text-end pe-3 rounded-end-3">
+                                            <span class="fs-5 fw-extrabold text-primary">
+                                                $@item.PrecioCompra?.ToString("N0") <small class="fs-7 text-muted">COP</small>
+                                            </span>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-5 rounded-3 bg-white">
+                                    <i class="bi bi-search-heart fs-1 text-muted d-block mb-2"></i>
+                                    <h6 class="fw-bold text-dark">No se encontraron productos coincidentes</h6>
+                                    <p class="text-muted small mb-3">Intenta cambiar los filtros de categoría o variedad.</p>
+                                    <a href="@Url.Action("Index", "PantallaPrincipal")" class="btn btn-sm btn-nav-register px-3">
+                                        Ver todos los productos
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINACIÓN ESTRICTA DE 5 EN 5 (Basada en tu referencia visual) -->
+            @if (Model.TotalPaginasPrecios > 1)
+            {
+                <nav aria-label="Paginación" class="d-flex flex-column align-items-center mt-4">
+                    <ul class="pagination mb-2 shadow-sm rounded-pill p-1 bg-white border">
+                        <li class="page-item @(Model.PaginaActualPrecios == 1 ? "disabled" : "")">
+                            <a class="page-link border-0 rounded-pill text-success fw-bold px-3" href="@Url.Action("Index", new { pagina = Model.PaginaActualPrecios - 1, categoria = Model.CategoriaSeleccionada, variedad = Model.VariedadSeleccionada })">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        @for (int i = 1; i <= Model.TotalPaginasPrecios; i++)
+                        {
+                            <li class="page-item">
+                                <a class="page-link border-0 rounded-circle mx-1 fw-bold @(Model.PaginaActualPrecios == i ? "bg-success text-white shadow" : "text-dark bg-transparent")" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" href="@Url.Action("Index", new { pagina = i, categoria = Model.CategoriaSeleccionada, variedad = Model.VariedadSeleccionada })">
+                                    @i
+                                </a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PaginaActualPrecios == Model.TotalPaginasPrecios ? "disabled" : "")">
+                            <a class="page-link border-0 rounded-pill text-success fw-bold px-3" href="@Url.Action("Index", new { pagina = Model.PaginaActualPrecios + 1, categoria = Model.CategoriaSeleccionada, variedad = Model.VariedadSeleccionada })">
+                                Siguiente <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                    <small class="text-muted">Página @Model.PaginaActualPrecios de @Model.TotalPaginasPrecios (@Model.TotalRegistrosPrecios ofertas en total)</small>
+                </nav>
+            }
+        }
+    </div>
+
+    <!-- 4. SECCIÓN INFERIOR: SUGERENCIAS DEL APLICATIVO -->
+    <h3 class="brand-title mb-3"><i class="bi bi-grid-1x2-fill text-success me-2"></i>Sugerencias del Aplicativo</h3>
+
+    @if (!Model.HaySugerenciasDisponibles)
+    {
+        <div class="p-5 text-center rounded-4 mb-4" style="background-color: #f8f9fa; border: 2px dashed #6c757d;">
+            <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+            <h5 class="text-muted fw-bold mb-0">Por el momento no hay sugerencias disponibles</h5>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-5">
+
+            <!-- BLOQUE 1: CAMIONES / LOGÍSTICA -->
+            @if (Model.RolUsuario != "Transportador")
+            {
+                <div class="col-lg-6">
+                    <div class="feature-card">
+                        <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-truck me-2"></i>Fletes y Camiones</h5>
+                        <div class="row g-3 mt-1">
+                            @foreach (var camion in Model.Camiones)
+                            {
+                                <div class="col-12">
+                                    <div class="step-card d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-dark">Capacidad: @camion.Capacidad</h6>
+                                            <p class="small text-muted mb-0">Comprador: @camion.NombreComprador</p>
+                                            <p class="small text-muted mb-0">Ruta: <strong>@camion.RutaProyectada</strong></p>
+                                        </div>
+                                        <a href="@Url.Action("ConsultaDatosTransporte", "Transporte", new { id = camion.Id })" class="btn btn-nav-register btn-sm">Ver detalles del flete</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- BLOQUE 2: CAMPESINOS DESTACADOS -->
+            <div class="@(Model.RolUsuario == "Transportador" ? "col-lg-12" : "col-lg-6")">
+                <div class="feature-card">
+                    <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-person-badge me-2"></i>Campesinos Destacados</h5>
+                    <div class="row g-3 mt-1">
+                        @foreach (var camp in Model.CampesinosDestacados)
+                        {
+                            <div class="@(Model.RolUsuario == "Transportador" ? "col-md-6" : "col-12")">
+                                <div class="step-card d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <div class="step-badge me-3">C</div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-dark">@camp.NombreCompleto</h6>
+                                            <small class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>@camp.Ubicacion</small>
+                                        </div>
+                                    </div>
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = camp.Id, rol = "Campesino" })" class="btn btn-nav-login btn-sm">Ver perfil de campesino</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOQUE 3: COMPRADORES MAYORISTAS  -->
+            <div class="col-lg-12">
+                <div class="feature-card">
+                    <h5 class="fw-bold border-bottom pb-2 text-success"><i class="bi bi-building me-2"></i>Compradores Mayoristas</h5>
+                    <div class="row g-3 mt-1">
+                        @foreach (var comp in Model.CompradoresMayoristas)
+                        {
+                            <div class="col-md-6">
+                                <div class="step-card d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-box mb-0 me-3" style="width: 42px; height: 42px; font-size: 1.2rem;">
+                                            <i class="bi bi-shop"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-dark">@comp.NombreComercial</h6>
+                                            <small class="text-success fw-semibold"><i class="bi bi-patch-check-fill me-1"></i>Verificado</small>
+                                        </div>
+                                    </div>
+                                    <a href="@Url.Action("Index", "ConsultaPerfil", new { id = comp.Id, rol = "Comprador" })" class="btn btn-nav-login btn-sm">Ver perfil de comprador</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        function cargarVariedadesFiltro() {
+            var idTipo = $("#ddlTipoProducto").val();
+            var $ddlVariedad = $("#ddlVariedad");
+
+            $ddlVariedad.empty().append('<option value="">Cargando variedades...</option>');
+
+            if (idTipo) {
+                $.getJSON('@Url.Action("ObtenerVariedadesPorTipo", "PublicarDemanda")', { idTipoProducto: idTipo }, function (data) {
+                    $ddlVariedad.empty().append('<option value="">Todas las variedades...</option>');
+                    if (data && data.length > 0) {
+                        $.each(data, function (i, item) {
+                            $ddlVariedad.append($('<option>', { value: item.id, text: item.nombre }));
+                        });
+                    } else {
+                        $ddlVariedad.append('<option value="" disabled>(No hay variedades)</option>');
+                    }
+                });
+            } else {
+                $ddlVariedad.empty().append('<option value="">Todas las variedades...</option>');
+            }
+        }
+    </script>
+}

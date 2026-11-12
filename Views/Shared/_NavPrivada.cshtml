@@ -1,0 +1,40 @@
+@* Barra superior de las pantallas con sesión iniciada que no son la principal (perfil, precios...).
+   Mismo diseño que la barra de la pantalla principal (CU-009). *@
+@{
+    var rol = Context.Session.GetString("RolUsuario") ?? string.Empty;
+}
+<nav class="navbar navbar-expand-lg navbar-custom sticky-top mb-4">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" asp-controller="PantallaPrincipal" asp-action="Index">
+            <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="40" height="40" class="rounded-circle me-2 border border-2 border-success" />
+            <span class="brand-title">CampesinApp</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCampesinApp">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarCampesinApp">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="PantallaPrincipal" asp-action="Index">Inicio</a>
+                </li>
+                @if (rol == "Campesino" || string.IsNullOrEmpty(rol))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="catalogo" asp-action="Index">Catálogo de Demanda</a>
+                    </li>
+                }
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="PuntoAcopio" asp-action="Index">Puntos de Acopio</a>
+                </li>
+            </ul>
+
+            <div class="nav-auth-buttons">
+                <span class="badge bg-success text-white px-3 py-2 rounded-pill small">Rol: @rol</span>
+                <partial name="_AccionesNavPrivada" />
+            </div>
+        </div>
+    </div>
+</nav>
+

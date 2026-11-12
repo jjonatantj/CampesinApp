@@ -1,0 +1,27 @@
+<div class="modal-header border-0 pb-0 justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+        <div class="p-2 rounded-circle" style="background-color: #e8f5e9; color: #2e7d32;">
+            <i class="bi bi-calculator fs-5"></i>
+        </div>
+        <h5 class="modal-title fw-bold fs-5 mb-0" style="color: #1b5e20;">Calcular Estimados Diarios</h5>
+    </div>
+    <button type="button" class="btn-close" data-modal-cerrar="superpuesta" aria-label="Cerrar"></button>
+</div>
+
+<div class="modal-body text-center p-4">
+    <p class="text-secondary mb-3">
+        ¿Deseas ejecutar ahora el procedimiento almacenado <strong>sp_CalcularEstimadosDiarios</strong>?
+    </p>
+    <div class="p-3 mb-4 rounded-3 text-start small border" style="background-color: #f9fbf9; border-color: #c8e6c9 !important;">
+        <i class="bi bi-info-circle-fill text-success me-1"></i>
+        Esta acción ejecutará el modelo estadístico para calcular y actualizar de inmediato los precios sugeridos del día de hoy.
+    </div>
+    <form method="post" asp-controller="Perfil" asp-action="EjecutarCalcularEstimados" data-ajax-form class="d-flex justify-content-center gap-3 m-0">
+        <button type="button" class="btn btn-outline-dark px-4" data-modal-cerrar="superpuesta">
+            Cancelar
+        </button>
+        <button type="submit" class="btn btn-nav-register px-4 shadow-sm">
+            <i class="bi bi-play-fill me-1"></i> Ejecutar ahora
+        </button>
+    </form>
+</div>

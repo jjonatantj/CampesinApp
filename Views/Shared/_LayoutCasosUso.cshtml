@@ -1,0 +1,11 @@
+@* Layout de las pantallas con sesión iniciada de los casos de uso 21-32: usa el layout privado del equipo
+   (_LayoutPrivado) y le suma la barra superior. *@
+@{
+    Layout = "_LayoutPrivado";
+}
+<partial name="_NavPrivada" />
+@RenderBody()
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

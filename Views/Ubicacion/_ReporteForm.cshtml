@@ -1,0 +1,173 @@
+@model ReporteUbicacionDto
+@{
+    var faltanCampos = ViewData["FaltanCampos"] as bool? == true;
+    var errorNegocio = ViewData["ErrorNegocio"] as string;
+    var errorBd = ViewData["ErrorBd"] as string;
+    var accionPrevia = ViewData["AccionPrevia"] as string;
+    // Fechas, origen y destino salen del viaje elegido; solo se muestran (no se escriben).
+    var viajeActual = Model.Viajes.FirstOrDefault(x => x.IdViaje == Model.IdViaje);
+}
+<form method="post" asp-controller="Ubicacion" asp-action="Reportar" data-ajax-form data-reporte-form novalidate>
+    <div class="modal-header">
+        <h5 class="modal-title">Filtros del Reporte</h5>
+    </div>
+    <div class="modal-body">
+        @if (!string.IsNullOrEmpty(errorBd))
+        {
+            <div class="recuadro-error" role="alert">
+                <p class="mb-2">@errorBd</p>
+                <button type="submit" name="accion" value="@(accionPrevia ?? "generar")" class="btn btn-sm btn-outline-dark">Reintentar</button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(errorNegocio))
+        {
+            <div class="recuadro-error" role="alert">@errorNegocio</div>
+        }
+
+        <div class="mb-3">
+            <label for="IdViaje" class="form-label">Viaje</label>
+            <select id="IdViaje" name="IdViaje" data-viajes="@VistaHelpers.ViajesJson(Model.Viajes)" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdViaje))">
+                <option value="">Seleccione el viaje…</option>
+                @foreach (var viaje in Model.Viajes)
+                {
+                    <option value="@viaje.IdViaje" selected="@(Model.IdViaje == viaje.IdViaje)">@viaje.Texto</option>
+                }
+            </select>
+            @if (Model.Viajes.Count == 0)
+            {
+                <div class="mensaje-campo">No tiene viajes activos para reportar.</div>
+            }
+        </div>
+
+        <div class="row g-3 mb-3" data-bloque-fechas>
+            <div class="col-sm-6">
+                <label for="FechaInicialVista" class="form-label">Fecha Inicial</label>
+                <input type="text" id="FechaInicialVista" class="form-control campo-fijo" readonly tabindex="-1"
+                       value="@(viajeActual == null ? string.Empty : Formato.Fecha(viajeActual.FechaInicio))" placeholder="Elija el viaje" />
+                <div class="small text-muted mt-1">Día en que se le asignó el viaje.</div>
+            </div>
+            <div class="col-sm-6">
+                <label for="FechaFinalVista" class="form-label">Fecha Final</label>
+                <input type="text" id="FechaFinalVista" class="form-control campo-fijo" readonly tabindex="-1"
+                       value="@(viajeActual == null ? string.Empty : Formato.Fecha(viajeActual.FechaFinal))" placeholder="Elija el viaje" />
+                <div class="small text-muted mt-1">Fecha de entrega propuesta al asignar el viaje.</div>
+            </div>
+            @* Solo aparece si hoy ya pasó la fecha final propuesta. *@
+            <div class="col-12 @(viajeActual is { Retrasado: true } ? string.Empty : "d-none")" id="bloqueRetraso">
+                <div class="aviso-retraso" role="status">
+                    <i class="bi bi-calendar-x"></i>
+                    <div>
+                        <label for="FechaActualVista" class="form-label mb-0">Fecha actual</label>
+                        <input type="text" id="FechaActualVista" class="form-control campo-fijo" readonly tabindex="-1" value="@Formato.Fecha(DateTime.Today)" />
+                        <div class="small mt-1" id="textoRetraso">@(viajeActual is { Retrasado: true } ? $"El viaje ya pasó la fecha final propuesta ({viajeActual.DiasRetraso} {(viajeActual.DiasRetraso == 1 ? "día" : "días")} de retraso)." : string.Empty)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            var departamentoActual = Model.Municipios.FirstOrDefault(m => m.Nombre == Model.Region)?.Departamento ?? string.Empty;
+        }
+        @* El municipio se toma del punto de acopio donde se encuentra el transportador: no se pide. Se deja oculto porque el mapa lo usa. *@
+        <div class="row g-3 mb-3 d-none" aria-hidden="true">
+            <div class="col-sm-6">
+                <label for="DepartamentoFiltro" class="form-label">Departamento</label>
+                <select id="DepartamentoFiltro" class="form-select" data-filtro-municipios="#Region">
+                    <option value="">Todos los departamentos</option>
+                    @foreach (var departamento in Model.Municipios.Select(m => m.Departamento).Distinct().OrderBy(d => d))
+                    {
+                        <option value="@departamento" selected="@(departamentoActual == departamento)">@departamento</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label for="Region" class="form-label">Municipio</label>
+                <select id="Region" name="Region" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Region))">
+                    <option value="">Seleccione el municipio…</option>
+                    @foreach (var municipio in Model.Municipios)
+                    {
+                        <option value="@municipio.Nombre" data-region="@municipio.Departamento" selected="@(Model.Region == municipio.Nombre)">@municipio.Nombre</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label for="PuntoOrigen" class="form-label">Punto de Origen <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
+                <select id="PuntoOrigen" name="PuntoOrigen" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoOrigen))">
+                    <option value="">Seleccione el punto de origen…</option>
+                    @foreach (var punto in Model.Puntos)
+                    {
+                        <option value="@punto.Nombre" selected="@(Model.PuntoOrigen == punto.Nombre)">@punto.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label for="PuntoDestino" class="form-label">Punto de Destino <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
+                <select id="PuntoDestino" name="PuntoDestino" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoDestino))">
+                    <option value="">Seleccione el punto de destino…</option>
+                    @foreach (var punto in Model.Puntos)
+                    {
+                        <option value="@punto.Nombre" selected="@(Model.PuntoDestino == punto.Nombre)">@punto.Nombre</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <p class="small text-muted mt-n2 mb-3" data-aviso-origen><i class="bi bi-info-circle me-1"></i>El origen y el destino se llenan solos según el viaje que elija.</p>
+
+        <hr />
+        <p class="small text-muted mb-2">La fecha y la hora del reporte se registran automáticamente al enviarlo. Usted solo indica dónde se encuentra: elija el punto en la lista o toque un punto en el mapa.</p>
+
+        <div class="row g-3">
+            <div class="col-sm-7">
+                <label for="Lugar" class="form-label">Lugar donde se encuentra</label>
+                <select id="Lugar" name="Lugar" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Lugar))">
+                    <option value="">Seleccione el lugar…</option>
+                    @foreach (var punto in Model.Puntos)
+                    {
+                        <option value="@punto.Nombre" selected="@(Model.Lugar == punto.Nombre)">@punto.Nombre</option>
+                    }
+                    <option value="@Carretera.Nombre" selected="@(Model.Lugar == Carretera.Nombre)">En carretera (mi ubicación actual)</option>
+                </select>
+                <input type="hidden" id="Latitud" name="Latitud" value="@Model.Latitud" />
+                <input type="hidden" id="Longitud" name="Longitud" value="@Model.Longitud" />
+                <div class="small text-muted mt-1" data-aviso-carretera>Si va "En carretera", el aplicativo toma su ubicación o puede tocar el mapa para marcar dónde va.</div>
+                @if (Model.Puntos.Count == 0)
+                {
+                    <div class="mensaje-campo">No hay puntos de acopio registrados.</div>
+                }
+            </div>
+            <div class="col-sm-5">
+                <label for="Hito" class="form-label">Tipo de reporte</label>
+                <select id="Hito" name="Hito" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Hito))">
+                    <option value="">Seleccione…</option>
+                    @foreach (var hito in Hitos.Todos)
+                    {
+                        <option value="@hito" selected="@(Model.Hito == hito)">@hito</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label">Ubicación en el mapa</label>
+            <div data-mapa="reporte" data-select="#Lugar" data-municipio="#Region" data-origen="#PuntoOrigen" data-destino="#PuntoDestino"
+                 data-puntos="@VistaHelpers.PuntosAcopioJson(Model.Puntos)" data-municipios="@VistaHelpers.MunicipiosJson(Model.Municipios)"
+                 class="mapa-contenedor" aria-label="Mapa del reporte de ubicación"></div>
+            <div class="small text-muted mt-1" data-mapa-estado>Elija el municipio, el origen, el destino y el punto de acopio: sus coordenadas se cargan solas y se dibujan en el mapa.</div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2 mt-4 flex-wrap">
+            <button type="submit" name="accion" value="generar" class="btn btn-primary px-4">Generar Reporte</button>
+            <button type="button" class="btn btn-outline-dark" data-cancelar-reporte data-modal-cerrar="todas" data-redirigir="/Perfil/Index">Cancelar</button>
+            <button type="submit" name="accion" value="llegada" class="btn btn-outline-success" title="Registra el destino final y avisa al comprador">Notificar Llegada</button>
+        </div>
+
+        @if (faltanCampos)
+        {
+            <p class="mensaje-formulario" role="alert">Por favor complete todos los campos obligatorios para generar el reporte</p>
+        }
+    </div>
+</form>

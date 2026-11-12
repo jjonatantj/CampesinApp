@@ -1,0 +1,276 @@
+@model CampesinApp.ViewModels.DetalleDemandaViewModel
+
+@{
+    ViewData["Title"] = $"Detalle Demanda #{Model.IdDemanda} - {Model.NombreProducto}";
+    // Asignación dinámica de Layout según el estado de autenticación (Invitado vs Usuario con sesión)
+    Layout = Model.EsUsuarioAutenticado ? "_LayoutCasosUso" : "_Layout";
+
+    // Lectura del rol del usuario autenticado (desde la sesión o el ViewModel)
+    string? rolUsuario = Context.Session.GetString("RolUsuario") ?? Model.RolUsuario;
+    bool esCampesino = string.Equals(rolUsuario, "Campesino", StringComparison.OrdinalIgnoreCase);
+}
+
+<!-- Librería de iconos Bootstrap ya integrada en el proyecto -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<!-- Contenedor principal con diseño suavizado (.main-container de site.css y esquinas redondeadas) -->
+<div class="container main-container py-4 my-4 rounded-4">
+
+    <!-- ============================================================== -->
+    <!-- BARRA SUPERIOR: ENCABEZADO Y BOTÓN VOLVER (FA01-CU012)          -->
+    <!-- ============================================================== -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-success rounded-pill px-3 py-1 fs-6">Demanda #@Model.IdDemanda</span>
+                <span class="badge bg-secondary rounded-pill px-3 py-1">@Model.EstadoDemanda</span>
+                @if (Model.CantidadFaltante == 0)
+                {
+                    <span class="badge bg-info text-dark rounded-pill px-3 py-1">Demanda Completada</span>
+                }
+            </div>
+            <h1 class="brand-title mb-0">@Model.NombreProducto</h1>
+            <p class="text-muted mb-0">Variedad: <strong class="text-dark">@Model.VariedadProducto</strong></p>
+        </div>
+
+        <!-- Botón Volver al catálogo (FA01-CU012) con diseño redondeado -->
+        <div>
+            <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Catálogo
+            </a>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- CONTENIDO PRINCIPAL: 2 COLUMNAS (INFO PRODUCTO & CONDICIONES)  -->
+    <!-- ============================================================== -->
+    <div class="row g-4">
+
+        <!-- COLUMNA IZQUIERDA: Tarjeta Visual del Producto y Aportes -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden">
+                <!-- Imagen representativa del producto -->
+                <img src="~/images/logo.jpeg" 
+                     alt="Imagen de @Model.NombreProducto" 
+                     class="card-img-top" 
+                     style="height: 240px; object-fit: cover;" />
+
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="card-title text-success fw-bold mb-3">Requisitos de la Demanda</h4>
+                        
+                        <p class="text-secondary mb-3">
+                            @(string.IsNullOrWhiteSpace(Model.Descripcion) ? "El comprador no ha incluido especificaciones adicionales." : Model.Descripcion)
+                        </p>
+
+                        <hr class="my-3 text-muted" />
+
+                        <!-- Progreso de Aportes de Campesinos -->
+                        <h6 class="fw-bold text-dark mb-2">Progreso de Aportes</h6>
+                        <div class="progress rounded-pill mb-2" style="height: 22px;">
+                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated fw-bold rounded-pill" 
+                                 role="progressbar" 
+                                 style="width: @Model.PorcentajeCompletado%;" 
+                                 aria-valuenow="@Model.PorcentajeCompletado" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                @Model.PorcentajeCompletado%
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Aportado: <strong>@Model.CantidadAportada.ToString("N0") Kg</strong></span>
+                            <span>Total: <strong>@Model.CantidadTotal.ToString("N0") Kg</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Datos Rápidos del Comprador -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <small class="text-muted d-block">Publicado por:</small>
+                                <span class="fw-bold text-dark">@Model.CompradorNombreCompleto</span>
+                            </div>
+                            <!-- Botón Modal Ver Comprador (FA02-CU012) -->
+                            <button type="button" 
+                                    class="btn btn-outline-primary rounded-pill btn-sm px-3 fw-bold shadow-sm"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalComprador">
+                                <i class="bi bi-person-badge me-1"></i> Ver Comprador
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: Cantidades, Precios, Logística y Ofertar -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+
+                <div>
+                    <!-- Métricas Principales (Kilos y Precios) -->
+                    <div class="row g-3 mb-4">
+                        <!-- Cantidad Faltante -->
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-warning shadow-sm">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Cantidad Faltante</small>
+                                <div class="fs-2 fw-bold text-dark">
+                                    @Model.CantidadFaltante.ToString("N0") <span class="fs-5 text-muted">Kg</span>
+                                </div>
+                                <small class="text-secondary">De un total de @Model.CantidadTotal.ToString("N0") Kg</small>
+                            </div>
+                        </div>
+
+                        <!-- Precio Propuesto por Kilo -->
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-success shadow-sm">
+                                <small class="text-muted text-uppercase fw-bold d-block mb-1">Pago Neto al Campesino / Kg</small>
+                                <div class="fs-2 fw-bold text-success">
+                                    $@Model.PrecioPropuesto.ToString("N0")
+                                </div>
+                                <small class="text-secondary">Total estimado: $@((Model.CantidadTotal * Model.PrecioPropuesto).ToString("N0"))</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalles Logísticos y de Entrega (Sin emojis genéricos) -->
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-geo-alt-fill text-success me-2"></i>Datos de Entrega y Logística
+                    </h5>
+                    <ul class="list-group list-group-flush mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Departamento y Municipio:</span>
+                            <span class="fw-semibold text-dark">@Model.DepartamentoEntrega - @Model.MunicipioEntrega</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Dirección de Entrega:</span>
+                            <span class="fw-semibold text-dark">@(string.IsNullOrWhiteSpace(Model.DireccionEntrega) ? "Punto de Acopio del Municipio" : Model.DireccionEntrega)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Fecha Límite para Ofertar:</span>
+                            <span class="fw-semibold text-danger">@Model.FechaLimite.ToString("dd/MM/yyyy")</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Fecha Estimada de Entrega:</span>
+                            <span class="fw-semibold text-dark">@Model.FechaEntrega.ToString("dd/MM/yyyy")</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Botones de Acción (Regresar y Ofertar) -->
+                <div class="pt-3 border-top d-flex flex-wrap gap-2 justify-content-end align-items-center">
+                    <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
+                    </a>
+
+                    @* ============================================================== *@
+                    @* REGLA DE RENDERIZADO CONDICIONAL:                              *@
+                    @* El botón "Ofertar" solo se renderiza si el rol es Campesino.   *@
+                    @* Para cualquier otro rol no existe en el DOM.                  *@
+                    @* ============================================================== *@
+                    @if (esCampesino)
+                    {
+                        if (Model.CantidadFaltante <= 0)
+                        {
+                            <button class="btn btn-secondary rounded-pill px-4 py-2 fw-bold text-white shadow-sm disabled" disabled>
+                                Demanda Completa
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-controller="Oferta" asp-action="Registrar" asp-route-idDemanda="@Model.IdDemanda" 
+                               class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
+                               style="background-color: #2e7d32; border-color: #2e7d32;">
+                                Ofertar
+                            </a>
+                        }
+                    }
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: RESUMEN DEL COMPRADOR (FA02-CU012 / BASADO EN CU-031)   -->
+<!-- Adaptado con colores azulados y tarjetas del rol Comprador     -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalComprador" tabindex="-1" aria-labelledby="modalCompradorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden pf pf-comprador">
+            
+            <!-- Banner superior decorativo característico del rol Comprador (CU-031) -->
+            <div class="pf-banner position-relative" style="height: 110px;">
+                <span class="pf-hoja pf-hoja-1"></span>
+                <span class="pf-hoja pf-hoja-2"></span>
+                <span class="pf-hoja pf-hoja-3"></span>
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <!-- Cabecera de identidad del comprador -->
+            <div class="px-4 pb-3 pt-0 position-relative">
+                <div class="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-3" style="margin-top: -45px;">
+                    <!-- Avatar con iniciales estilizado -->
+                    <div class="pf-avatar pf-avatar-iniciales shadow" style="width: 85px; height: 85px; font-size: 2rem;">
+                        @(string.IsNullOrEmpty(Model.CompradorNombreCompleto) ? "C" : Model.CompradorNombreCompleto.Substring(0, 1).ToUpper())
+                    </div>
+                    <!-- Insignia del Rol Comprador -->
+                    <span class="pf-etiqueta">
+                        <i class="bi bi-shop me-1"></i> Comprador Mayorista
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <h4 class="pf-nombre mb-1" id="modalCompradorLabel">@Model.CompradorNombreCompleto</h4>
+                    <p class="pf-frase mb-1">Comprador directo del campo</p>
+                    <p class="pf-ubicacion small mb-0">
+                        <i class="bi bi-geo-alt-fill me-1 text-primary"></i>@Model.CompradorMunicipio
+                    </p>
+                </div>
+
+                <!-- Tarjeta interna con los datos de contacto del comprador -->
+                <div class="card border-0 bg-light rounded-4 p-3 mb-3 shadow-sm">
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="bi bi-person-lines-fill me-1 text-primary"></i> Datos de Contacto
+                    </h6>
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <span class="text-muted"><i class="bi bi-geo-alt me-1"></i> Municipio:</span>
+                            <span class="fw-semibold text-dark">@Model.CompradorMunicipio</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <span class="text-muted"><i class="bi bi-telephone me-1"></i> Teléfono:</span>
+                            <span class="fw-semibold text-dark">@Model.CompradorTelefono</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-2">
+                            <span class="text-muted"><i class="bi bi-envelope me-1"></i> Correo:</span>
+                            <span class="fw-semibold text-dark text-break">@Model.CompradorCorreo</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.CompradorId > 0)
+                {
+                    <div class="text-center mb-1">
+                        <a asp-controller="ConsultaPerfil" asp-action="Index" asp-route-id="@Model.CompradorId" asp-route-rol="Comprador" class="small text-decoration-none fw-bold" style="color: var(--pf-a);">
+                            Ver perfil público completo <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+
+            <!-- Pie de la ventana modal -->
+            <div class="modal-footer bg-light border-0 py-2 px-4 justify-content-end">
+                <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold shadow-sm" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+

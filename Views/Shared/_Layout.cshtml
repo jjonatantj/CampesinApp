@@ -1,5 +1,5 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,43 +7,95 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CampesinApp.styles.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <script src="~/js/conexion.js" asp-append-version="true" defer></script>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">CampesinApp</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+        <!-- BARRA SUPERIOR DE NAVEGACIÓN-->
+        <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="PaginaBienvenida" asp-action="Bienvenida">
+                    <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo Oficial CampesinApp" width="46" height="46" class="rounded-circle shadow-sm" style="object-fit: cover;" />
+                    <span class="brand-title">CampesinApp</span>
+                </a>
+
+                <button class="navbar-toggler border-2 rounded-pill px-3 py-1 shadow-sm d-inline-flex d-lg-none align-items-center justify-content-center" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCampesinApp" aria-controls="navbarCampesinApp"
+                        aria-expanded="false" aria-label="Navegación" style="border-color: #2e7d32; background-color: #ffffff; min-width: 50px; height: 40px;">
+                    <!-- Icono SVG de tres líneas (hamburguesa) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <!-- ENLACES DE LA BARRA DE NAVEGACIÓN -->
+                <div class="collapse navbar-collapse" id="navbarCampesinApp">
+                    <!-- Enlaces centrados de forma armónica -->
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-controller="PaginaBienvenida" asp-action="Bienvenida">Inicio</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link" href="#como-funciona">¿Cómo Funciona?</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#proposito-vision">Propósito y Visión</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#contacto-soporte">Soporte</a>
                         </li>
                     </ul>
+
+                    <!-- BOTONES DE ACCIÓN A LA DERECHA -->
+                    <div class="nav-auth-buttons pt-2 pt-lg-0">
+                        <a asp-controller="InicioSesion" asp-action="Login" class="btn-nav-login" title="Iniciar Sesión">
+                             Iniciar Sesión
+                        </a>
+                        <a asp-controller="RegistroUsuario" asp-action="Index" class="btn-nav-register" title="Registrarse">
+                            Registrarse
+                        </a>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
+    <!-- CONTENEDOR PRINCIPAL DEL CUERPO -->
+    <main role="main" class="pb-4">
         <div class="container">
-            &copy; 2026 - CampesinApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="footer-modern mt-5 border-top py-4 bg-white text-muted">
+        <div class="container">
+            <div class="row align-items-center gy-3">
+                <div class="col-md-6 text-center text-md-start">
+                    <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-1">
+                        <img src="@Url.Content("~/images/logo.jpeg")" alt="Logo CampesinApp" width="28" height="28" class="rounded-circle" />
+                        <span class="fw-bold text-dark fs-6">CampesinApp</span>
+                    </div>
+                    <small class="d-block text-secondary">
+                        Conectando el Campo Colombiano con la Ciudad sin Intermediarios.
+                    </small>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <small class="text-secondary">
+                        &copy; 2026 - CampesinApp &bull; Todos los derechos reservados &bull;
+                        <a href="#contacto-soporte" class="text-decoration-none text-success fw-bold">Canales de Soporte</a>
+                    </small>
+                </div>
+            </div>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

@@ -1,0 +1,58 @@
+@model AsignacionTransporteDto
+@{
+    var faltanCampos = ViewData["FaltanCampos"] as bool? == true;
+    var errorNegocio = ViewData["ErrorNegocio"] as string;
+}
+<form method="post" asp-controller="Transporte" asp-action="Asignar" data-ajax-form novalidate>
+    <div class="modal-header">
+        <h5 class="modal-title">Asignación de Datos de Transporte</h5>
+        <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+    </div>
+    <div class="modal-body">
+        @if (!string.IsNullOrEmpty(errorNegocio))
+        {
+            <div class="recuadro-error" role="alert">@errorNegocio</div>
+        }
+
+        <div class="mb-3">
+            <label for="IdDemanda" class="form-label">Pedido</label>
+            <select id="IdDemanda" name="IdDemanda" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdDemanda))">
+                <option value="">Seleccione un pedido sin transporte…</option>
+                @foreach (var pedido in Model.Pedidos)
+                {
+                    <option value="@pedido.Id" selected="@(Model.IdDemanda == pedido.Id)">@pedido.Texto</option>
+                }
+            </select>
+            @if (Model.Pedidos.Count == 0)
+            {
+                <div class="mensaje-campo">Todos los pedidos ya tienen transporte asignado.</div>
+            }
+        </div>
+
+        <div class="mb-3">
+            <label for="IdCamion" class="form-label">Camión y transportador</label>
+            <select id="IdCamion" name="IdCamion" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.IdCamion))">
+                <option value="">Seleccione el camión registrado…</option>
+                @foreach (var camion in Model.Camiones)
+                {
+                    <option value="@camion.Id" selected="@(Model.IdCamion == camion.Id)">@camion.Texto</option>
+                }
+            </select>
+            @if (Model.Camiones.Count == 0)
+            {
+                <div class="mensaje-campo">No hay camiones registrados de transportadores activos.</div>
+            }
+            <div class="small text-muted mt-1">La placa, el modelo, la capacidad de carga y el teléfono del conductor salen del camión registrado.</div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2 mt-4">
+            <button type="submit" class="btn btn-success px-4">Guardar Datos</button>
+            <button type="button" class="btn btn-outline-dark" data-modal-cerrar="todas" data-redirigir="/Perfil/Index">Cancelar</button>
+        </div>
+
+        @if (faltanCampos)
+        {
+            <p class="mensaje-formulario" role="alert">Por favor complete todos los campos obligatorios del transporte</p>
+        }
+    </div>
+</form>

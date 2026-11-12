@@ -1,0 +1,26 @@
+@* Casos de uso 21-32: acciones de la derecha de la barra superior de las pantallas con sesión iniciada.
+   Campana de notificaciones (CU-021/CU-025), botón "Perfil" (CU-031) y botón de cierre de sesión (CU-032).
+   Se usa tanto en la pantalla principal (CU-009) como en las pantallas de perfil y precios para que sea igual en todos los roles (RN-02-CU032). *@
+@{
+    var rolSesion = Context.Session.GetString("RolUsuario") ?? string.Empty;
+}
+@if (rolSesion == "Transportador")
+{
+    <button type="button" id="icono-camion" class="btn btn-outline-success rounded-circle p-2" style="width: 40px; height: 40px;" data-modal-url="/Transporte/MisViajes" title="Mis viajes" aria-label="Mis viajes">
+        <i class="bi bi-truck"></i>
+    </button>
+}
+
+<button type="button" id="campana" class="btn btn-outline-success position-relative rounded-circle p-2" style="width: 40px; height: 40px;" data-modal-url="/Notificaciones/Lista" title="Notificaciones" aria-label="Notificaciones">
+    <i class="bi bi-bell-fill"></i>
+    <span id="campanaContador" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+</button>
+
+@* Dos botones directos (sin menú desplegable): "Perfil" lleva al perfil y el icono de salida abre la confirmación de cierre de sesión (CU-032). *@
+<a id="botonPerfil" asp-controller="Perfil" asp-action="Index" class="btn btn-nav-register text-decoration-none" title="Perfil de usuario">
+    <i class="bi bi-person-circle me-1"></i> Perfil
+</a>
+
+<button type="button" id="botonCerrarSesion" class="btn btn-outline-danger rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" data-modal-url="/Sesion/Confirmar" title="Cerrar sesión" aria-label="Cerrar sesión">
+    <i class="bi bi-box-arrow-right"></i>
+</button>

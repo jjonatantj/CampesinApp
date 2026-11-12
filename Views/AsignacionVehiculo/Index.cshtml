@@ -1,0 +1,169 @@
+@model CampesinApp.ViewModels.CargasPendientesViewModel
+
+@{
+    ViewData["Title"] = "Cargas Pendientes de Transporte";
+    Layout = "_LayoutCasosUso";
+}
+
+<!-- Librería de iconos Bootstrap integrada en el aplicativo -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<!-- Notificación temporal flotante de 4 segundos (Paso 8: Asignación completa) -->
+@if (TempData["MensajeExito"] != null)
+{
+    <div id="toastExitoCU020" class="alert alert-success alert-dismissible fade show shadow-lg position-fixed top-0 start-50 translate-middle-x mt-4 py-3 px-4 rounded-4" 
+         role="alert" style="z-index: 1090; min-width: 320px; border-left: 6px solid #1b5e20;">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill text-success fs-3 me-3"></i>
+            <div>
+                <strong class="d-block fs-6 text-success">¡Operación Exitosa!</strong>
+                <span class="fs-6 fw-semibold text-dark">@TempData["MensajeExito"]</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+
+    <script>
+        setTimeout(function () {
+            var alerta = document.getElementById('toastExitoCU020');
+            if (alerta) {
+                alerta.classList.remove('show');
+                setTimeout(() => alerta.remove(), 400);
+            }
+        }, 4000);
+    </script>
+}
+
+<!-- Contenedor principal con esquinas redondeadas y estilo suave (.main-container de site.css) -->
+<div class="container main-container py-4 my-4 rounded-4">
+
+    <!-- ============================================================== -->
+    <!-- PARTE SUPERIOR: BOTÓN "REGRESAR" GRIS Y TÍTULO LIMPIO          -->
+    <!-- ============================================================== -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-2">
+        <div>
+            <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Regresar
+            </a>
+        </div>
+    </div>
+
+    <!-- Título centrado descriptivo y natural (sin referencias a códigos técnicos) -->
+    <div class="text-center mb-4">
+        <h1 class="brand-title mb-1">Asignación de Transporte</h1>
+        <p class="text-muted fw-semibold mb-0">
+            Selecciona un pedido de la lista para inspeccionar sus detalles y asignarle un conductor con camión disponible.
+        </p>
+    </div>
+
+    <!-- Alerta de excepción o advertencia si aplica -->
+    @if (TempData["MensajeError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm rounded-4 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-4 me-3"></i>
+                <div>
+                    <strong>Atención:</strong> @TempData["MensajeError"]
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    }
+
+    <!-- ============================================================== -->
+    <!-- PARTE CENTRAL: LISTA DE CARGAS PENDIENTES REDONDEADA           -->
+    <!-- ============================================================== -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
+        @if (Model.Cargas != null && Model.Cargas.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light border-bottom">
+                        <tr>
+                            <th scope="col" class="py-3 text-center" style="width: 140px;">Pedido</th>
+                            <th scope="col" class="py-3">Producto Requerido</th>
+                            <th scope="col" class="py-3 text-center">Cantidad</th>
+                            <th scope="col" class="py-3">Destino</th>
+                            <th scope="col" class="py-3 text-center">Fecha Entrega</th>
+                            <th scope="col" class="py-3">Comprador</th>
+                            <th scope="col" class="py-3 text-center" style="width: 140px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var carga in Model.Cargas)
+                        {
+                            <tr>
+                                <!-- ID de la demanda como hipervínculo -->
+                                <td class="text-center">
+                                    <a asp-action="Detalle" asp-route-id="@carga.IdDemanda" 
+                                       class="badge bg-primary rounded-pill text-decoration-none px-3 py-2 fs-6 shadow-sm"
+                                       title="Ver detalle del pedido #@carga.IdDemanda">
+                                        #@carga.IdDemanda
+                                    </a>
+                                </td>
+
+                                <!-- Nombre del producto como hipervínculo -->
+                                <td>
+                                    <a asp-action="Detalle" asp-route-id="@carga.IdDemanda" 
+                                       class="text-decoration-none fw-bold text-success fs-6"
+                                       title="Ver detalle de @carga.NombreProducto">
+                                        @carga.NombreProducto
+                                    </a>
+                                    <small class="d-block text-muted">Variedad: @carga.Variedad</small>
+                                </td>
+
+                                <!-- Cantidad demandada en Kilos -->
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fw-bold">
+                                        @carga.CantidadKg.ToString("N0") Kg
+                                    </span>
+                                </td>
+
+                                <!-- Destino -->
+                                <td>
+                                    <small class="text-secondary fw-semibold">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>@carga.LugarDestino
+                                    </small>
+                                </td>
+
+                                <!-- Fecha límite de entrega -->
+                                <td class="text-center text-muted fw-semibold">
+                                    @carga.FechaEntrega.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <!-- Comprador -->
+                                <td>
+                                    <span class="fw-semibold text-dark">@carga.NombreComprador</span>
+                                </td>
+
+                                <!-- Botón selector -->
+                                <td class="text-center">
+                                    <a asp-action="Detalle" asp-route-id="@carga.IdDemanda" 
+                                       class="btn btn-outline-success rounded-pill btn-sm px-3 fw-semibold shadow-sm">
+                                        Seleccionar <i class="bi bi-chevron-right ms-1"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <!-- Estado cuando no hay cargas pendientes de camión -->
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-truck fs-1 text-muted"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">No hay cargas pendientes de transporte</h4>
+                <p class="text-muted mb-4">Todas las demandas actuales ya tienen un vehículo asignado o no se encuentran disponibles.</p>
+                <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Regresar al Perfil
+                </a>
+            </div>
+        }
+    </div>
+
+</div>
+

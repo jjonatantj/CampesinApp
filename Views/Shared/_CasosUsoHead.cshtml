@@ -1,0 +1,10 @@
+@* Casos de uso 21-30: token CSRF para las ventanas emergentes, y hoja de estilos de las ventanas emergentes. *@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuracion
+<meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+<meta name="google-maps-key" content="@Configuracion["GoogleMaps:ApiKey"]" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="~/css/campesinapp-casos-uso.css" asp-append-version="true" />
+@* Pantalla de CampesinApp cuando no hay conexión (service worker) y aviso de internet perdido o lento. *@
+<script src="~/js/conexion.js" asp-append-version="true" defer></script>

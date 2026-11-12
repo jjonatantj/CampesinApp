@@ -1,0 +1,125 @@
+@model PerfilDto
+@{
+    ViewData["Title"] = "Perfil de Usuario";
+
+    string Clase(OpcionPerfilDto opcion) => opcion.Estilo switch
+    {
+        "principal" => "btn btn-nav-register",
+        "peligro" => "btn btn-outline-danger rounded-pill",
+        _ => "btn btn-nav-login"
+    };
+}
+
+@* CU-031: tarjeta con los datos del usuario a la izquierda y, al costado derecho, los botones generales y los del rol. *@
+<div class="container pb-4">
+    <div class="main-container p-4 p-md-5 shadow-sm">
+        <div class="d-flex align-items-center mb-4">
+            <div class="p-3 rounded-circle me-3" style="background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-person-gear fs-3"></i>
+            </div>
+            <div>
+                <h1 class="brand-title mb-0 fs-2" style="color: #1b5e20;">Perfil de Usuario</h1>
+                <p class="text-muted mb-0 fw-semibold">Configuración y gestión de tu cuenta</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-5">
+                @{
+                    var tema = Model.Rol switch { "Campesino" => "pf-campesino", "Comprador" => "pf-comprador", "Transportador" => "pf-transportador", _ => "pf-admin" };
+                }
+                <div class="pf @tema h-100">
+                    <div class="pf-portada shadow-sm h-100">
+                        <div class="pf-banner" style="height: 110px;" aria-hidden="true">
+                            <span class="pf-hoja pf-hoja-1"></span><span class="pf-hoja pf-hoja-2"></span><span class="pf-hoja pf-hoja-3"></span>
+                        </div>
+                        <div class="text-center px-3 pb-4">
+                            @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                            {
+                                <img src="@Model.FotoUrl" alt="Foto de @Model.Nombres" class="pf-avatar mx-auto d-block" />
+                            }
+                            else
+                            {
+                                <div class="pf-avatar pf-avatar-iniciales mx-auto" aria-hidden="true">@Model.Iniciales</div>
+                            }
+                            <h2 class="pf-nombre fs-3 mt-2">@Model.Nombres @Model.Apellidos</h2>
+                            <span class="badge pf-insignia pf-insignia-grande mb-3">@Model.Rol</span>
+
+                            <dl class="text-start mb-0 small">
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-envelope me-1"></i>Correo</dt><dd class="mb-0 text-break text-end">@Model.Correo</dd></div>
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-telephone me-1"></i>Teléfono</dt><dd class="mb-0">@Model.Telefono</dd></div>
+                                <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-person-vcard me-1"></i>Identificación</dt><dd class="mb-0">@Model.Cedula</dd></div>
+                                @if (!string.IsNullOrEmpty(Model.Municipio))
+                                {
+                                    <div class="d-flex justify-content-between border-top py-2"><dt class="text-muted fw-semibold"><i class="bi bi-geo-alt me-1"></i>Municipio</dt><dd class="mb-0">@Model.Municipio</dd></div>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <h2 class="h6 text-uppercase text-secondary fw-bold mb-2">Mi cuenta</h2>
+                <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Opciones generales">
+                    @foreach (var opcion in Model.OpcionesGenerales)
+                    {
+                        @Boton(opcion, Clase(opcion))
+                    }
+                </div>
+
+                <h2 class="h6 text-uppercase text-secondary fw-bold mb-2">Opciones de @Model.Rol.ToLowerInvariant()</h2>
+                <div class="d-flex flex-wrap gap-2" role="group" aria-label="Opciones del rol">
+                    @foreach (var opcion in Model.OpcionesRol)
+                    {
+                        @Boton(opcion, Clase(opcion))
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+            <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-nav-register text-decoration-none px-4">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+@functions {
+    // Cada botón abre una ventana emergente, navega a una página o, si su módulo aún no existe, avisa que no está disponible.
+    Microsoft.AspNetCore.Html.IHtmlContent Boton(OpcionPerfilDto opcion, string clase)
+    {
+        var icono = $"<i class=\"bi {opcion.Icono} me-1\"></i>";
+        var texto = opcion.Texto?.Trim() ?? "";
+
+        // Enlace garantizado para "Puntos de acopio" hacia la consulta en mapas (CU-019)
+        string? urlPagina = opcion.UrlPagina;
+        if (string.Equals(texto, "Puntos de acopio", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(texto, "Punto de acopio", StringComparison.OrdinalIgnoreCase))
+        {
+            urlPagina = "/PuntoAcopio/Index";
+        }
+        else if (string.Equals(texto, "Registrar Punto de Acopio", StringComparison.OrdinalIgnoreCase))
+        {
+            urlPagina = "/PuntoAcopio/Registrar";
+        }
+        else if (string.Equals(texto, "Perfil de pago", StringComparison.OrdinalIgnoreCase))
+        {
+            urlPagina = "/PerfilPago";
+        }
+
+        string html;
+        if (urlPagina != null)
+        {
+            html = $"<a class=\"{clase} text-decoration-none\" href=\"{System.Net.WebUtility.HtmlEncode(urlPagina)}\">{icono}{System.Net.WebUtility.HtmlEncode(opcion.Texto)}</a>";
+        }
+        else
+        {
+            var destino = opcion.UrlModal ?? "/Perfil/Proximamente?opcion=" + Uri.EscapeDataString(opcion.Texto);
+            html = $"<button type=\"button\" class=\"{clase}\" data-modal-url=\"{System.Net.WebUtility.HtmlEncode(destino)}\">{icono}{System.Net.WebUtility.HtmlEncode(opcion.Texto)}</button>";
+        }
+        return new Microsoft.AspNetCore.Html.HtmlString(html);
+    }
+}
+

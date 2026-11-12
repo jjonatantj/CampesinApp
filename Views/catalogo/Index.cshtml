@@ -1,0 +1,481 @@
+@model CampesinApp.Repositories.Models.CatalogoDemandaViewModel
+
+@{
+    ViewData["Title"] = "Catálogo de Demanda";
+    // Seleccionar el Layout según si el usuario está autenticado o es invitado
+    Layout = Model.EsUsuarioAutenticado ? "_LayoutCasosUso" : "_Layout";
+
+    // Lectura del rol desde la sesión HTTP y el ViewModel
+    string? rolUsuario = Context.Session.GetString("RolUsuario") ?? Model.RolUsuario;
+    bool esComprador = string.Equals(rolUsuario, "Comprador", StringComparison.OrdinalIgnoreCase);
+    // Validación lógica: si el rol es diferente a Comprador (ej. Invitado o Campesino), mostrar exclusivamente "Ver detalle"
+    string textoBoton = esComprador ? "Ver Detalle / Responder" : "Ver detalle";
+}
+
+<!-- Iconos de Bootstrap para la vista -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<!-- Contenedor principal con clase global .main-container de site.css y esquinas redondeadas -->
+<div class="container main-container py-4 my-4 rounded-4">
+
+    <!-- ============================================================== -->
+    <!-- FLUJO DE EXCEPCIÓN: FE-01-CU011 (Error en Base de Datos)       -->
+    <!-- ============================================================== -->
+    @if (Model.TieneErrorConexion)
+    {
+        <div class="card border-danger shadow-sm my-4 text-center rounded-4 overflow-hidden">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="mb-0 fw-bold">⚠️ Error de Base de Datos</h5>
+            </div>
+            <div class="card-body py-4 px-3">
+                <p class="card-text fs-5 text-secondary mb-4">
+                    @(Model.MensajeError ?? "No fue posible cargar el catálogo de demanda. Intente más tarde")
+                </p>
+                <!-- Botón Aceptar: Redirecciona a la pantalla principal o bienvenida según la sesión -->
+                @if (Model.EsUsuarioAutenticado)
+                {
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        Aceptar
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        Aceptar
+                    </a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ============================================================== -->
+        <!-- ALERTA TEMPORAL DE ERROR (FE01-CU012: Error o Demanda No Encontrada) -->
+        <!-- ============================================================== -->
+        @if (TempData["MensajeError"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4 rounded-4" role="alert">
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 me-2">⚠️</span>
+                    <div>
+                        <strong>Aviso:</strong> @TempData["MensajeError"]
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+
+        <!-- ============================================================== -->
+        <!-- ENCABEZADO Y BOTÓN REGRESAR (Paso 2 del CU-011)                -->
+        <!-- ============================================================== -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h1 class="brand-title mb-1">Catálogo de Demanda</h1>
+                <p class="text-muted mb-0" style="font-weight: 500;">
+                    Consulta los productos requeridos por compradores y mayoristas por camión de carga.
+                </p>
+            </div>
+            <!-- Botón regresar con estilo redondeado (rounded-pill) en la parte superior derecha -->
+            <div>
+                @if (Model.EsUsuarioAutenticado)
+                {
+                    <a asp-controller="PantallaPrincipal" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="PaginaBienvenida" asp-action="Bienvenida" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- BARRA DE FILTROS: Tipo de Producto, Variedad, Depto y Municipio -->
+        <!-- ============================================================== -->
+        <div class="card rounded-4 border-0 shadow-sm p-4 mb-4 bg-white">
+            <form method="get" asp-controller="catalogo" asp-action="Index" class="row g-3 align-items-end" id="formFiltrosCatalogo">
+                <!-- Al enviar nuevos filtros siempre se reinicia a la página 1 -->
+                <input type="hidden" name="pagina" value="1" />
+                
+                <!-- 1. Desplegable Tipo de Producto -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectTipoProducto" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-basket me-1 text-success"></i> Tipo de Producto
+                    </label>
+                    <select id="selectTipoProducto" name="idTipoProducto" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">-- Todos los productos --</option>
+                        @foreach (var prod in Model.TiposProductoDisponibles)
+                        {
+                            <option value="@prod.IdTipoProducto" selected="@(prod.IdTipoProducto == Model.IdTipoProductoSeleccionado)">
+                                @prod.Producto
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 2. Desplegable Variedad (Depende de Tipo de Producto) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectVariedad" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-tags me-1 text-success"></i> Variedad
+                    </label>
+                    <select id="selectVariedad" name="idVariedad" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">@(Model.VariedadesDisponibles.Any() ? "-- Todas las variedades --" : "-- Seleccione un producto --")</option>
+                        @foreach (var v in Model.VariedadesDisponibles)
+                        {
+                            <option value="@v.IdVariedad" selected="@(v.IdVariedad == Model.IdVariedadSeleccionada)">
+                                @v.VariedadProd
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 3. Desplegable Departamento -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectDepartamento" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-map me-1 text-success"></i> Departamento
+                    </label>
+                    <select id="selectDepartamento" name="idDepartamento" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">-- Todos los departamentos --</option>
+                        @foreach (var depto in Model.DepartamentosDisponibles)
+                        {
+                            <option value="@depto.IdDepartamento" selected="@(depto.IdDepartamento == Model.IdDepartamentoSeleccionado)">
+                                @depto.Departamento1
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 4. Desplegable Municipio (Depende de Departamento) -->
+                <div class="col-lg-3 col-md-6">
+                    <label for="selectMunicipio" class="form-label fw-bold text-dark small">
+                        <i class="bi bi-geo-alt me-1 text-success"></i> Municipio
+                    </label>
+                    <select id="selectMunicipio" name="idMunicipio" class="form-select rounded-pill px-3 py-2 border-secondary-subtle">
+                        <option value="">@(Model.MunicipiosDisponibles.Any() ? "-- Todos los municipios --" : "-- Seleccione un departamento --")</option>
+                        @foreach (var mun in Model.MunicipiosDisponibles)
+                        {
+                            <option value="@mun.IdMunicipio" selected="@(mun.IdMunicipio == Model.IdMunicipioSeleccionado)">
+                                @mun.Municipio1
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- 5. Botones Consultar y Limpiar Filtros -->
+                <div class="col-12 d-flex justify-content-end align-items-center gap-2 pt-2 border-top mt-3">
+                    @if (Model.TieneFiltrosActivos)
+                    {
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold shadow-sm d-flex align-items-center gap-1" title="Limpiar todos los filtros">
+                            <i class="bi bi-arrow-counterclockwise"></i> Limpiar filtros
+                        </a>
+                    }
+                    <button type="submit" class="btn btn-success rounded-pill fw-bold text-white px-5 py-2 shadow-sm d-flex align-items-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        <i class="bi bi-search"></i> Consultar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- REJILLA DE TARJETAS (Paso 4 del CU-011)                        -->
+        <!-- ============================================================== -->
+        @if (Model.Demandas != null && Model.Demandas.Any())
+        {
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+                @foreach (var item in Model.Demandas)
+                {
+                    var urlDetalle = Url.Action("Detalle", "catalogo", new { id = item.IdDemanda });
+                    var nombreProducto = item.IdTipoProductoNavigation?.Producto ?? "Producto agrícola";
+                    var variedad = item.IdVariedadNavigation?.VariedadProd ?? "Estándar";
+                    var munDestino = item.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.Municipio1 
+                                     ?? item.IdUsuarioNavigation?.IdMunicipioNavigation?.Municipio1;
+                    var deptoDestino = item.IdPuntoAcopioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1
+                                       ?? item.IdUsuarioNavigation?.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1;
+
+                    <div class="col">
+                        <!-- Tarjeta de demanda interactiva con clases globales .product-card de site.css -->
+                        <div class="product-card h-100 shadow-sm border-0 js-card-demanda position-relative" 
+                             data-url="@urlDetalle" 
+                             style="cursor: pointer;" 
+                             role="region" 
+                             aria-label="Demanda de @nombreProducto">
+                            
+                            <!-- 1. Imagen del producto interactiva: hacer clic redirige a CU-012 -->
+                            <a href="@urlDetalle" 
+                               class="product-img-box d-block overflow-hidden position-relative text-decoration-none" 
+                               style="height: 180px; padding: 0;"
+                               title="Hacer clic para ver el detalle de @nombreProducto (CU-012)">
+                                <img src="~/images/logo.jpeg" 
+                                     alt="Imagen de @nombreProducto" 
+                                     class="w-100 h-100" 
+                                     style="object-fit: cover;" />
+                                <span class="category-pill position-absolute top-0 end-0 m-2 badge bg-white text-success shadow-sm rounded-pill px-3 py-1 fw-bold" style="border: 1px solid rgba(46, 125, 50, 0.2);">
+                                    <i class="bi bi-eye-fill me-1"></i> Ver detalle
+                                </span>
+                            </a>
+
+                            <div class="product-body p-3 d-flex flex-column justify-content-between flex-grow-1">
+                                <div>
+                                    <!-- Nombre del producto y Variedad -->
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="product-title text-success fw-bold mb-0">
+                                            @nombreProducto
+                                        </h5>
+                                        <span class="badge bg-light text-success border border-success-subtle rounded-pill px-2 py-1 small" style="font-size: 0.75rem;">
+                                            @variedad
+                                        </span>
+                                    </div>
+
+                                    <!-- Metadatos de la demanda -->
+                                    <div class="demand-meta small text-muted mb-3">
+                                        <div class="demand-meta-item d-flex justify-content-between align-items-center mb-1">
+                                            <span><i class="bi bi-box-seam me-1 text-success"></i> Demanda:</span>
+                                            <span class="fw-bold text-dark">@item.CantidadDeman Kilos</span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(munDestino))
+                                        {
+                                            <div class="demand-meta-item d-flex justify-content-between align-items-center mb-1">
+                                                <span><i class="bi bi-geo-alt me-1 text-success"></i> Destino:</span>
+                                                <span class="fw-semibold text-secondary text-end">
+                                                    @munDestino@(string.IsNullOrEmpty(deptoDestino) ? "" : $", {deptoDestino}")
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Caja de precio propuesta (.price-box de site.css) -->
+                                    <div class="price-box mb-3">
+                                        <span class="price-label">Valor neto por kg</span>
+                                        <p class="price-value">$@((item.PrecioCampesino ?? item.PrecioDeman).ToString("N0"))</p>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Botón de acción interactivo (redirige a CU-012). Texto condicional según rol -->
+                                <div class="pt-2">
+                                    <a href="@urlDetalle" 
+                                       class="btn btn-success rounded-pill w-100 fw-bold text-white shadow-sm py-2 d-flex align-items-center justify-content-center gap-2"
+                                       style="background-color: #2e7d32; border-color: #2e7d32;"
+                                       title="@textoBoton">
+                                       <span>@textoBoton</span>
+                                       <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- PAGINACIÓN DE CATÁLOGO (CUANDO HAY MÁS DE 8 PRODUCTOS)          -->
+            <!-- Muestra flechas anterior/siguiente y los números de página      -->
+            <!-- ============================================================== -->
+            @if (Model.TotalPaginas > 1)
+            {
+                <nav aria-label="Navegación de páginas del catálogo" class="mt-4 mb-3 d-flex flex-column align-items-center">
+                    <ul class="pagination pagination-md shadow-sm rounded-pill p-1 bg-white border align-items-center mb-2">
+                        <!-- Botón / Flecha Izquierda: Página Anterior -->
+                        <li class="page-item @(!Model.TienePaginaAnterior ? "disabled" : "")">
+                            <a class="page-link rounded-pill border-0 px-3 py-2 fw-semibold @(!Model.TienePaginaAnterior ? "text-muted" : "text-success")" 
+                               asp-controller="catalogo" 
+                               asp-action="Index" 
+                               asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                               asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                               asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                               asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                               asp-route-pagina="@(Model.PaginaActual - 1)"
+                               tabindex="@(!Model.TienePaginaAnterior ? "-1" : "0")"
+                               aria-disabled="@(!Model.TienePaginaAnterior ? "true" : "false")"
+                               title="Página anterior">
+                                <i class="bi bi-chevron-left me-1"></i> Anterior
+                            </a>
+                        </li>
+
+                        <!-- Números de Página -->
+                        @for (int p = 1; p <= Model.TotalPaginas; p++)
+                        {
+                            var esActiva = (p == Model.PaginaActual);
+                            <li class="page-item @(esActiva ? "active" : "")">
+                                <a class="page-link rounded-circle border-0 mx-1 text-center fw-bold @(esActiva ? "text-white" : "text-success")" 
+                                   style="@(esActiva ? "background-color: #2e7d32; border-color: #2e7d32; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" : "min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;")"
+                                   asp-controller="catalogo" 
+                                   asp-action="Index" 
+                                   asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                                   asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                                   asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                                   asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                                   asp-route-pagina="@p"
+                                   title="Página @p">
+                                    @p
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Botón / Flecha Derecha: Página Siguiente -->
+                        <li class="page-item @(!Model.TienePaginaSiguiente ? "disabled" : "")">
+                            <a class="page-link rounded-pill border-0 px-3 py-2 fw-semibold @(!Model.TienePaginaSiguiente ? "text-muted" : "text-success")" 
+                               asp-controller="catalogo" 
+                               asp-action="Index" 
+                               asp-route-idTipoProducto="@Model.IdTipoProductoSeleccionado"
+                               asp-route-idVariedad="@Model.IdVariedadSeleccionada"
+                               asp-route-idDepartamento="@Model.IdDepartamentoSeleccionado"
+                               asp-route-idMunicipio="@Model.IdMunicipioSeleccionado"
+                               asp-route-pagina="@(Model.PaginaActual + 1)"
+                               tabindex="@(!Model.TienePaginaSiguiente ? "-1" : "0")"
+                               aria-disabled="@(!Model.TienePaginaSiguiente ? "true" : "false")"
+                               title="Página siguiente">
+                                Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <span class="text-muted small">
+                        Página @Model.PaginaActual de @Model.TotalPaginas (@Model.TotalDemandas ofertas en total)
+                    </span>
+                </nav>
+            }
+        }
+        else
+        {
+            <!-- ============================================================== -->
+            <!-- FLUJO DE EXCEPCIÓN: FE-02-CU011 (Filtración sin resultados)     -->
+            <!-- ============================================================== -->
+            <div class="w-100 my-2">
+                <div class="alert alert-warning shadow-sm w-100 py-3 px-4 rounded-4 border-0 d-flex flex-wrap align-items-center justify-content-between gap-3" id="alertaSinResultados">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-search fs-3 text-warning"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">No se encontraron ofertas para los criterios seleccionados</h6>
+                            <small class="text-muted d-block">
+                                Intenta consultar con otros filtros o limpiar la búsqueda.
+                                <span class="ms-2"><i class="bi bi-clock me-1"></i>Restableciendo filtros en <strong id="contadorSegundosSinResultados">4</strong>s...</span>
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <a asp-controller="catalogo" asp-action="Index" class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold text-white shadow-sm d-flex align-items-center gap-1" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="bi bi-arrow-clockwise"></i> Limpiar filtros
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // =========================================================================
+            // 1. CASCADA: TIPO DE PRODUCTO -> VARIEDADES (AJAX)
+            // =========================================================================
+            const selectProd = document.getElementById('selectTipoProducto');
+            const selectVar = document.getElementById('selectVariedad');
+
+            if (selectProd && selectVar) {
+                selectProd.addEventListener('change', function () {
+                    const idProducto = this.value;
+                    selectVar.innerHTML = '<option value="">Cargando variedades...</option>';
+
+                    if (!idProducto) {
+                        selectVar.innerHTML = '<option value="">-- Seleccione un producto --</option>';
+                        return;
+                    }
+
+                    fetch('@Url.Action("ObtenerVariedades", "catalogo")?idTipoProducto=' + idProducto)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectVar.innerHTML = '<option value="">-- Todas las variedades --</option>';
+                            if (data && data.length > 0) {
+                                data.forEach(v => {
+                                    const opt = document.createElement('option');
+                                    opt.value = v.id;
+                                    opt.textContent = v.nombre;
+                                    selectVar.appendChild(opt);
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            selectVar.innerHTML = '<option value="">Error al cargar variedades</option>';
+                        });
+                });
+            }
+
+            // =========================================================================
+            // 2. CASCADA: DEPARTAMENTO -> MUNICIPIOS (AJAX)
+            // =========================================================================
+            const selectDepto = document.getElementById('selectDepartamento');
+            const selectMun = document.getElementById('selectMunicipio');
+
+            if (selectDepto && selectMun) {
+                selectDepto.addEventListener('change', function () {
+                    const idDepto = this.value;
+                    selectMun.innerHTML = '<option value="">Cargando municipios...</option>';
+
+                    if (!idDepto) {
+                        selectMun.innerHTML = '<option value="">-- Seleccione un departamento --</option>';
+                        return;
+                    }
+
+                    fetch('@Url.Action("ObtenerMunicipios", "catalogo")?idDepartamento=' + idDepto)
+                        .then(response => response.json())
+                        .then(data => {
+                            selectMun.innerHTML = '<option value="">-- Todos los municipios --</option>';
+                            if (data && data.length > 0) {
+                                data.forEach(m => {
+                                    const opt = document.createElement('option');
+                                    opt.value = m.id;
+                                    opt.textContent = m.nombre;
+                                    selectMun.appendChild(opt);
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            selectMun.innerHTML = '<option value="">Error al cargar municipios</option>';
+                        });
+                });
+            }
+
+            // =========================================================================
+            // 3. INTERACTIVIDAD DE TARJETAS DE DEMANDA
+            // =========================================================================
+            const cards = document.querySelectorAll('.js-card-demanda');
+            cards.forEach(card => {
+                card.addEventListener('click', function (e) {
+                    if (!e.target.closest('a, button')) {
+                        const url = this.getAttribute('data-url');
+                        if (url) {
+                            window.location.href = url;
+                        }
+                    }
+                });
+            });
+
+            // =========================================================================
+            // 4. TEMPORIZADOR DE 4 SEGUNDOS PARA LIMPIAR FILTROS CUANDO NO HAY RESULTADOS
+            // =========================================================================
+            const alertaSinResultados = document.getElementById('alertaSinResultados');
+            const contadorSegundos = document.getElementById('contadorSegundosSinResultados');
+            if (alertaSinResultados && contadorSegundos) {
+                let segundos = 4;
+                const timer = setInterval(function () {
+                    segundos--;
+                    if (contadorSegundos) {
+                        contadorSegundos.textContent = segundos;
+                    }
+                    if (segundos <= 0) {
+                        clearInterval(timer);
+                        window.location.href = '@Url.Action("Index", "catalogo")';
+                    }
+                }, 1000);
+            }
+        });
+    </script>
+}
+

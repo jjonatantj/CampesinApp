@@ -1,0 +1,58 @@
+@model ObservacionesPedidoDto
+@* CU-026, "Ver Observaciones": consulta de la calificación y los comentarios guardados en la tabla observacion. *@
+<div class="modal-header">
+    <h5 class="modal-title">Observaciones y Calificación</h5>
+    <span class="text-muted small">@Model.CodigoPedido</span>
+</div>
+<div class="modal-body">
+    <div class="mb-3">
+        <span class="form-label d-block fw-bold">Calificación del comprador</span>
+        @if (Model.Estrellas >= 1)
+        {
+            <span class="estrellas-fijas" aria-label="@Model.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(Model.Estrellas)</span>
+            <span class="small text-muted">@Model.Estrellas de 5</span>
+        }
+        else
+        {
+            <span class="text-muted">Todavía no ha calificado.</span>
+        }
+    </div>
+
+    @if (Model.HayNovedad)
+    {
+        <div class="recuadro-error mb-3" role="alert">
+            <strong>Novedad en la entrega:</strong> @Model.DetalleNovedad
+            @if (!string.IsNullOrEmpty(Model.Evidencia))
+            {
+                <div class="mt-2"><a href="@Model.Evidencia" target="_blank" rel="noopener">Ver fotografía de evidencia</a></div>
+            }
+        </div>
+    }
+
+    <div class="mb-3">
+        <span class="form-label d-block fw-bold">Comentario del comprador</span>
+        @if (string.IsNullOrWhiteSpace(Model.ComentarioComprador))
+        {
+            <span class="text-muted">Sin comentario.</span>
+        }
+        else
+        {
+            <p class="mb-0">“@Model.ComentarioComprador”</p>
+        }
+    </div>
+
+    <div class="mb-0">
+        <span class="form-label d-block fw-bold">Observación del transportador</span>
+        @if (string.IsNullOrWhiteSpace(Model.ComentarioTransportador))
+        {
+            <span class="text-muted">Sin observación.</span>
+        }
+        else
+        {
+            <p class="mb-0">“@Model.ComentarioTransportador”</p>
+        }
+    </div>
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="superpuesta">Cerrar</button>
+</div>

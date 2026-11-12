@@ -1,0 +1,39 @@
+@model CampesinApp.Dtos.ResultadoOperacion
+@{
+    var esExitoso = Model.Exitoso;
+}
+
+<div class="modal-body text-center p-4">
+    @if (esExitoso)
+    {
+        <div class="p-3 rounded-circle d-inline-flex mb-3" style="background-color: #e8f5e9; color: #2e7d32;">
+            <i class="bi bi-check-circle-fill fs-1"></i>
+        </div>
+        <h4 class="fw-bold fs-5 mb-2" style="color: #1b5e20;">¡Cálculo Completado con Éxito!</h4>
+        <p class="text-secondary small mb-4">@Model.Mensaje</p>
+        <div class="d-flex justify-content-center">
+            <button type="button" class="btn btn-nav-register px-4 shadow-sm" data-modal-cerrar="superpuesta">
+                <i class="bi bi-check2 me-1"></i> Aceptar
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="p-3 rounded-circle d-inline-flex mb-3" style="background-color: #ffebee; color: #c62828;">
+            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+        </div>
+        <h4 class="fw-bold fs-5 mb-2 text-danger">Error al Ejecutar</h4>
+        <div class="alert alert-danger text-start small mb-4">
+            @Model.Mensaje
+        </div>
+        <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-outline-dark px-4" data-modal-cerrar="superpuesta">
+                Cerrar
+            </button>
+            <button type="button" class="btn btn-danger px-4" data-modal-url="/Perfil/ConfirmarCalcularEstimados">
+                Reintentar
+            </button>
+        </div>
+    }
+</div>
+

@@ -1,0 +1,48 @@
+@model ListaNotificacionesDto
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-bell-fill me-2"></i>Notificaciones</h5>
+    @if (Model.NoLeidas > 0)
+    {
+        <span class="badge rounded-pill bg-danger ms-2">@Model.NoLeidas sin leer</span>
+    }
+    <button type="button" class="btn-close ms-auto" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    @if (Model.Notificaciones.Count == 0)
+    {
+        <div class="vacio-cp">
+            <i class="bi bi-bell-slash"></i>
+            <p>No tienes notificaciones.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="lista-notificaciones">
+            @foreach (var notificacion in Model.Notificaciones)
+            {
+                var datos = VistaHelpers.DatosNotificacion(notificacion.Tipo);
+                var detalle = VistaHelpers.DestinoDetalleNotificacion(notificacion.Tipo, notificacion.IdDemanda, Context.Session.GetString("RolUsuario") ?? string.Empty);
+                <li class="notificacion-item @(notificacion.Leida ? "leida" : "nueva")">
+                    <span class="notificacion-icono @datos.Clase"><i class="bi @datos.Icono"></i></span>
+                    <div class="notificacion-cuerpo">
+                        <div class="notificacion-titulo">@datos.Titulo</div>
+                        <div class="notificacion-mensaje">@notificacion.Mensaje</div>
+                        <div class="notificacion-hora" title="@Formato.FechaHora(notificacion.Fecha)"><i class="bi bi-clock"></i> @Formato.Relativo(notificacion.Fecha)</div>
+                        @if (detalle != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-success notificacion-detalle" data-modal-url="@detalle.Value.Url" data-modal-destino="@detalle.Value.Destino"><i class="bi bi-box-arrow-up-right me-1"></i>Ver detalle</button>
+                        }
+                    </div>
+                    <button type="button" class="notificacion-leer" title="Marcar como leída (se elimina)" aria-label="Marcar como leída y eliminar"
+                            data-modal-post="/Notificaciones/Leer?id=@notificacion.IdNotificacion&pagina=@Model.Paginacion.Pagina"><i class="bi bi-check2"></i></button>
+                </li>
+            }
+        </ul>
+    }
+
+    <partial name="_Paginacion" model="Model.Paginacion" />
+</div>
+<div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-outline-dark btn-sm" data-modal-post="/Notificaciones/MarcarLeidas?pagina=@Model.Paginacion.Pagina"><i class="bi bi-check2-all me-1"></i>Marcar todas como leídas</button>
+    <button type="button" class="btn btn-dark btn-sm" data-modal-cerrar="">Cerrar</button>
+</div>

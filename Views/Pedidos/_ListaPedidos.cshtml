@@ -1,0 +1,88 @@
+@model ListaPedidosDto
+@{
+    var puedeVerUbicacion = Model.Usuario.Rol is RolUsuario.Campesino or RolUsuario.Comprador or RolUsuario.Administrador;
+}
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi @(Model.Terminados ? "bi-check2-circle" : "bi-box-seam") me-2"></i>@(Model.Terminados ? "Pedidos Terminados" : "Lista de Pedidos")</h5>
+    <button type="button" class="btn-close" data-modal-cerrar="" aria-label="Cerrar"></button>
+</div>
+<div class="modal-body">
+    @if (Model.Terminados)
+    {
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <p class="small text-muted mb-0">Pedidos ya entregados y recibidos, del más reciente al más antiguo.</p>
+            <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Pedidos/Lista" data-modal-destino="principal"><i class="bi bi-arrow-left me-1"></i>Volver a Lista de Pedidos</button>
+        </div>
+    }
+    else
+    {
+        <form method="get" asp-controller="Pedidos" asp-action="Lista" data-ajax-form class="barra-filtro mb-3">
+            <label for="filtroEstado" class="visually-hidden">Estado del envío</label>
+            <select id="filtroEstado" name="estado" class="form-select form-select-sm">
+                <option value="">Todos los estados</option>
+                @foreach (var estado in EstadosEnvio.Todos.Where(e => !EstadosEnvio.Calificables.Contains(e)))
+                {
+                    <option value="@estado" selected="@(Model.EstadoFiltro == estado)">@estado</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+        </form>
+        <div class="text-end mb-3">
+            <button type="button" class="btn btn-sm btn-success" data-modal-url="/Pedidos/Lista?terminados=true" data-modal-destino="principal"><i class="bi bi-check2-circle me-1"></i>Pedidos Terminados</button>
+        </div>
+    }
+
+    @if (Model.Pedidos.Count == 0)
+    {
+        <div class="vacio-cp">
+            <i class="bi bi-inbox"></i>
+            <p>@(Model.Terminados ? "Aún no hay pedidos terminados." : "No hay pedidos para mostrar" + (string.IsNullOrEmpty(Model.EstadoFiltro) ? "." : " con ese estado."))</p>
+        </div>
+    }
+
+    @foreach (var pedido in Model.Pedidos)
+    {
+        <div class="bloque-pedido">
+            <div class="pedido-cabecera">
+                <div class="pedido-titulo">
+                    <span class="pedido-codigo">@pedido.Codigo</span>
+                    <strong>@pedido.Producto</strong>
+                </div>
+                <span class="badge @VistaHelpers.ClaseEstado(pedido.EstadoEnvio)">@pedido.EstadoEnvio</span>
+            </div>
+            <div class="pedido-datos">
+                <span><i class="bi bi-box-seam"></i>Cantidad: @pedido.Cantidad</span>
+                <span><i class="bi bi-cash-coin"></i>Precio: @Formato.Moneda(pedido.PrecioUnitario)</span>
+                <span><i class="bi bi-calendar-event"></i>Entrega: @Formato.Fecha(pedido.FechaEntrega)</span>
+                <span><i class="bi bi-person"></i>Comprador: @pedido.NombreComprador</span>
+            </div>
+            <div class="pedido-destino"><i class="bi bi-geo-alt-fill"></i>Destino: @pedido.DireccionFinal</div>
+
+            <div class="acciones">
+                @if (puedeVerUbicacion)
+                {
+                    <button type="button" class="btn btn-sm btn-success" data-modal-url="/Ubicacion/Seguimiento?idDemanda=@pedido.IdDemanda">Seguimiento de Pedido</button>
+                    <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Ubicacion/Guardados?idDemanda=@pedido.IdDemanda">Control de Reportes</button>
+                }
+                <button type="button" class="btn btn-sm btn-success" data-modal-url="/Transporte/Detalle?idDemanda=@pedido.IdDemanda">Consultar Datos de Transporte</button>
+                @if (pedido.PuedeValidarEntrega)
+                {
+                    <button type="button" class="btn btn-sm btn-warning" data-modal-url="/Entrega/Validar?idDemanda=@pedido.IdDemanda">Validar Entrega</button>
+                }
+                @if (pedido.PuedeCalificar)
+                {
+                    <button type="button" class="btn btn-sm btn-dark" data-modal-url="/Calificacion/Formulario?idDemanda=@pedido.IdDemanda">Calificar</button>
+                }
+                else if (pedido.PuedeVerObservaciones)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-dark" data-modal-url="/Calificacion/Ver?idDemanda=@pedido.IdDemanda">Ver Observaciones</button>
+                }
+            </div>
+        </div>
+    }
+
+    <partial name="_Paginacion" model="Model.Paginacion" />
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="">Cerrar</button>
+</div>

@@ -1,0 +1,46 @@
+@model HistorialTransaccionesDto
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>Historial de Transacciones</h5>
+</div>
+<div class="modal-body">
+    <form method="get" asp-controller="Historial" asp-action="Transacciones" data-ajax-form class="barra-filtro mb-3" role="search">
+        <div class="campo-busqueda">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="text" name="busqueda" value="@Model.Busqueda" class="form-control form-control-sm" maxlength="20"
+                   placeholder="Código o ID del pedido (PED-0001)" aria-label="Buscar por código o ID del pedido" />
+        </div>
+        <button type="submit" class="btn btn-sm btn-dark" aria-label="Buscar"><i class="bi bi-search me-1"></i>Buscar</button>
+    </form>
+
+    @if (Model.Transacciones.Count == 0)
+    {
+        <div class="vacio-cp">
+            <i class="bi bi-receipt-cutoff"></i>
+            <p>@(string.IsNullOrWhiteSpace(Model.Busqueda) ? "Aún no tienes compras o ventas registradas" : "No se encontró ninguna transacción con ese código.")</p>
+        </div>
+    }
+
+    @foreach (var transaccion in Model.Transacciones)
+    {
+        <div class="bloque-pedido d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div>
+                <div class="pedido-titulo">
+                    <span class="pedido-codigo">@transaccion.Codigo</span>
+                    <strong>@transaccion.Producto</strong>
+                </div>
+                <div class="pedido-datos">
+                    <span><i class="bi bi-box-seam"></i>@transaccion.Cantidad unidades</span>
+                    <span><i class="bi bi-cash-coin"></i>@Formato.Moneda(transaccion.Valor)</span>
+                    <span><i class="bi bi-calendar-event"></i>@Formato.Fecha(transaccion.Fecha)</span>
+                </div>
+                <span class="badge @VistaHelpers.ClaseEstado(transaccion.Estado)">@transaccion.Estado</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-dark" data-modal-url="/Historial/Detalle?idDemanda=@transaccion.IdDemanda"><i class="bi bi-eye me-1"></i>Ver Detalle</button>
+        </div>
+    }
+
+    <partial name="_Paginacion" model="Model.Paginacion" />
+</div>
+<div class="modal-footer justify-content-center">
+    <a class="btn btn-dark" href="/Perfil/Index"><i class="bi bi-arrow-left me-1"></i>Regresar al perfil</a>
+</div>

@@ -1,0 +1,53 @@
+@model DetalleTransaccionDto
+@{
+    var t = Model.Transaccion;
+}
+<div class="modal-header">
+    <h5 class="modal-title">Detalle de la Transacción</h5>
+    <span class="text-muted small">@t.Codigo</span>
+</div>
+<div class="modal-body">
+    <dl class="row">
+        <dt class="col-5">Producto</dt>
+        <dd class="col-7">@t.Producto</dd>
+        <dt class="col-5">Cantidad</dt>
+        <dd class="col-7">@t.Cantidad</dd>
+        <dt class="col-5">Valor</dt>
+        <dd class="col-7">@Formato.Moneda(t.Valor)</dd>
+        <dt class="col-5">Comprador</dt>
+        <dd class="col-7">@t.Comprador</dd>
+        <dt class="col-5">Vendedor(es)</dt>
+        <dd class="col-7">@t.Vendedores</dd>
+        <dt class="col-5">Transportador</dt>
+        <dd class="col-7">@t.Transportador · @Model.TelefonoTransportador · Placa @Model.Placa</dd>
+        <dt class="col-5">Fecha de entrega</dt>
+        <dd class="col-7">@Formato.FechaHora(t.Fecha)</dd>
+        <dt class="col-5">Estado</dt>
+        <dd class="col-7"><span class="badge @VistaHelpers.ClaseEstado(t.Estado)">@t.Estado</span></dd>
+    </dl>
+
+    <h6>Calificaciones registradas</h6>
+    @if (Model.Calificaciones.Count == 0)
+    {
+        <p class="text-muted mb-0">Aún no hay calificaciones para este pedido.</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var calificacion in Model.Calificaciones)
+            {
+                <li class="list-group-item">
+                    @if (calificacion.Estrellas >= 1)
+                    {
+                        <span class="estrellas-fijas" aria-label="@calificacion.Estrellas de 5 estrellas">@VistaHelpers.Estrellas(calificacion.Estrellas)</span>
+                    }
+                    <span class="small">@calificacion.Evaluador → @calificacion.Evaluado</span>
+                    <div class="small text-muted">@calificacion.Comentario</div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+<div class="modal-footer justify-content-center">
+    <button type="button" class="btn btn-dark" data-modal-cerrar="superpuesta">Cerrar</button>
+</div>

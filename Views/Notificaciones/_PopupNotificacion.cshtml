@@ -1,0 +1,9 @@
+@model NotificacionDto
+@{
+    var clase = Model.Tipo == TiposNotificacion.EntregaCompletada ? "aviso-exito" : "aviso-informacion";
+}
+<div class="modal-body text-center p-4 aviso @clase" role="alertdialog" aria-live="assertive">
+    <p class="aviso-mensaje fw-semibold mb-1">@Model.Mensaje</p>
+    <p class="small text-muted">@Formato.FechaHora(Model.Fecha)</p>
+    <button type="button" class="btn btn-dark" data-modal-post="/Notificaciones/PopupMostrado?id=@Model.IdNotificacion">Aceptar</button>
+</div>

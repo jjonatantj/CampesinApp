@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 190" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdeeb8"/><stop offset="1" stop-color="#a9dc8f"/></linearGradient>
+    <linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9bd878"/><stop offset="1" stop-color="#6dbd52"/></linearGradient>
+    <linearGradient id="h3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63b64b"/><stop offset="1" stop-color="#3f9a3c"/></linearGradient>
+  </defs>
+  <path d="M0 96C90 50 200 70 300 88C380 102 430 78 460 66V190H0Z" fill="url(#h1)"/>
+  <path d="M0 126C100 86 232 106 332 118C402 126 440 108 460 100V190H0Z" fill="url(#h2)"/>
+  <path d="M0 156C124 116 270 136 460 104V190H0Z" fill="url(#h3)"/>
+  <!-- surcos del cultivo -->
+  <g fill="none" stroke="#7cc65e" stroke-width="3" opacity=".55" stroke-linecap="round">
+    <path d="M0 170C130 132 280 150 460 120"/>
+    <path d="M0 182C140 146 290 164 460 136"/>
+    <path d="M40 190C170 160 300 176 460 152"/>
+  </g>
+  <!-- hojas de los costados -->
+  <g>
+    <path d="M24 190C4 160 6 118 34 92C52 124 50 164 24 190Z" fill="#2e7d32"/>
+    <path d="M24 190C28 156 30 128 34 92" fill="none" stroke="#7cc65e" stroke-width="2.5"/>
+    <path d="M44 190C40 166 58 140 84 134C86 160 70 184 44 190Z" fill="#43a047"/>
+    <path d="M436 190C456 160 454 118 426 92C408 124 410 164 436 190Z" fill="#2e7d32"/>
+    <path d="M436 190C432 156 430 128 426 92" fill="none" stroke="#7cc65e" stroke-width="2.5"/>
+    <path d="M416 190C420 166 402 140 376 134C374 160 390 184 416 190Z" fill="#43a047"/>
+  </g>
+  <!-- cerca -->
+  <g stroke="#2e6b2c" stroke-width="4" stroke-linecap="round">
+    <path d="M356 186v-34M376 186v-34M396 186v-34"/>
+    <path d="M350 160h52M350 174h52"/>
+  </g>
+</svg>

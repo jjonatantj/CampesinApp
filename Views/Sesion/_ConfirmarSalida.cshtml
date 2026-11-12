@@ -1,0 +1,9 @@
+@* CU-032, paso 4: ventana de seguridad al cerrar sesión. "Sí, salir" envía el formulario (POST /Sesion/Salir) y "Cancelar" solo cierra la ventana. *@
+<div class="modal-body text-center p-4">
+    <i class="bi bi-box-arrow-right fs-1 text-success d-block mb-2" aria-hidden="true"></i>
+    <p class="fw-bold fs-5 mb-4" id="confirmarSalidaTitulo">¿Estás seguro de que deseas cerrar sesión?</p>
+    <form method="post" asp-controller="Sesion" asp-action="Salir" class="d-flex justify-content-center gap-3 m-0">
+        <button type="button" class="btn btn-outline-dark px-4" data-modal-cerrar="superpuesta">Cancelar</button>
+        <button type="submit" class="btn btn-dark px-4">Sí, salir</button>
+    </form>
+</div>
