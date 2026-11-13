@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
@@ -214,8 +215,8 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
-                Random rnd = new Random();
-                string codigoGenerado = rnd.Next(100000, 999999).ToString();
+                // Código de 6 dígitos con generador criptográficamente seguro (no se puede adivinar a partir de códigos anteriores).
+                string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
                 HttpContext.Session.SetString("Rec_MetodoElegido", model.MetodoSeleccionado);
@@ -337,8 +338,8 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Rec_ReenviosCodigo", reenvios);
 
-            Random rnd = new Random();
-            string codigoGenerado = rnd.Next(100000, 999999).ToString();
+            // Código de 6 dígitos con generador criptográficamente seguro.
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
             HttpContext.Session.SetString("Rec_Expiracion", fechaExpiracion.ToString("o"));
 

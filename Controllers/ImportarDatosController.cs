@@ -125,6 +125,15 @@ namespace CampesinApp.Controllers
             if (idUsuario == null)
                 return RedirectToAction("Login", "InicioSesion");
 
+            // Validación en el servidor: los archivos son obligatorios aunque el navegador no lo haya comprobado.
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorImportacion"] =
+                    "Debes adjuntar los archivos del DANE y Corabastos.";
+
+                return View("ImportarDatos", model);
+            }
+
             if (model.ArchivoDane == null ||
                 model.ArchivoCorabastos == null)
             {
