@@ -220,7 +220,7 @@
                         {
                             <div class="alert alert-success border-2 rounded-3 p-3 my-3 shadow-sm text-center" style="background-color: #f0fdf4;">
                                 <span class="d-block small text-success fw-bold mb-1"><i class="bi bi-whatsapp"></i> CÓDIGO WHATSAPP SIMULADO:</span>
-                                <span class="fs-3 fw-bold text-dark tracking-widest">@ViewBag.CodigoWhatsappSimulado</span>
+                                <span class="fs-3 fw-bold text-dark tracking-widest">@(ViewBag.CodigoTelefonoSimulado ?? ViewBag.CodigoWhatsappSimulado)</span>
                             </div>
                         }
                         else
@@ -269,7 +269,7 @@
 @section Scripts {
     <script src="~/js/MostrarContraseña.js" asp-append-version="true"></script>
     <script src="~/js/FotoPerfil.js" asp-append-version="true"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25" integrity="sha384-nLoOnA/BDh8A/jxqtckg4DumuCGOBYUnNJLZdQz/zfYNp3wcjGSoWTAzgko06G/2" crossorigin="anonymous"></script>
 
     <script>
         const pasoActual = @Model.Paso;

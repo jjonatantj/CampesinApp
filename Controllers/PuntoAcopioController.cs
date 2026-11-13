@@ -194,6 +194,12 @@ namespace CampesinApp.Controllers
                 ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo o usar 'Mi Ubicación Actual' para fijar las coordenadas geográficas.");
             }
 
+            // Validación de Horario de Atención: debe contar con al menos un día y hora de atención
+            if (string.IsNullOrWhiteSpace(model.HorarioAtencion))
+            {
+                ModelState.AddModelError("HorarioAtencion", "Debe seleccionar al menos un día disponible para el horario de atención.");
+            }
+
             // 3. REGLA DE NEGOCIO RN-02-CU018: Acceso vehicular habilitado por defecto
             model.AccesoVehicular = true;
 
@@ -231,7 +237,10 @@ namespace CampesinApp.Controllers
                         idUsuario > 0 ? idUsuario : (int?)null
                     );
                 }
-                catch { }
+                catch (Exception)
+                {
+                    // Fallo no crítico en auditoría; se preserva la respuesta del controlador
+                }
 
                 ViewBag.MensajeErrorConexion = "No fue posible verificar la información del punto de acopio. Por favor intente nuevamente en unos momentos.";
                 await CargarListasDesplegablesAsync(model);
@@ -277,7 +286,10 @@ namespace CampesinApp.Controllers
                         idUsuario > 0 ? idUsuario : (int?)null
                     );
                 }
-                catch { }
+                catch (Exception)
+                {
+                    // Fallo no crítico en auditoría; se preserva la respuesta del controlador
+                }
 
                 ViewBag.RegistroExitoso = true;
                 ViewBag.MensajeExito = $"Punto de acopio '{model.NombrePunto}' registrado satisfactoriamente (ID #{idPuntoGenerado}).";
@@ -298,7 +310,10 @@ namespace CampesinApp.Controllers
                         idUsuario > 0 ? idUsuario : (int?)null
                     );
                 }
-                catch { }
+                catch (Exception)
+                {
+                    // Fallo no crítico en auditoría; se preserva la respuesta del controlador
+                }
 
                 ViewBag.MensajeErrorConexion = "No fue posible registrar el punto de acopio debido a un problema interno del servicio. Por favor intente más tarde o comuníquese con el administrador.";
                 await CargarListasDesplegablesAsync(model);

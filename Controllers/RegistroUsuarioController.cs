@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
+using System.Security.Cryptography;
 
 namespace CampesinApp.Controllers
 {
@@ -130,8 +131,7 @@ namespace CampesinApp.Controllers
                     return View("RegistroUsuario", model);
                 }
 
-                Random rnd = new Random();
-                string codigoGenerado = rnd.Next(100000, 999999).ToString();
+                string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
                 HttpContext.Session.SetString("Reg_MetodoElegido", model.MetodoSeleccionado);
@@ -142,7 +142,8 @@ namespace CampesinApp.Controllers
 
                 if (model.MetodoSeleccionado == "telefono")
                 {
-                    HttpContext.Session.SetString("Reg_CodigoWhatsAppSimulado", codigoGenerado);
+                    HttpContext.Session.SetString("Reg_CodigoTelefonoSimulado", codigoGenerado);
+                    ViewBag.CodigoTelefonoSimulado = codigoGenerado;
                     ViewBag.CodigoWhatsappSimulado = codigoGenerado;
                 }
                 else
@@ -174,14 +175,17 @@ namespace CampesinApp.Controllers
                 }
 
                 string codigoReal = (metodo == "telefono")
-                    ? HttpContext.Session.GetString("Reg_CodigoWhatsAppSimulado")!
+                    ? HttpContext.Session.GetString("Reg_CodigoTelefonoSimulado")!
                     : HttpContext.Session.GetString("Reg_CodigoCorreo")!;
 
                 int reenviosActuales = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
                 ViewBag.ReenviosRestantes = 3 - reenviosActuales;
-                if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoReal;
+                if (metodo == "telefono")
+                {
+                    ViewBag.CodigoTelefonoSimulado = codigoReal;
+                    ViewBag.CodigoWhatsappSimulado = codigoReal;
+                }
 
-                // 1. PRIMERO VALIDAR SI EL CÓDIGO ES INCORRECTO
                 if (model.CodigoVerificacion != codigoReal)
                 {
                     int intentos = HttpContext.Session.GetInt32("Reg_IntentosCodigo") ?? 0;
@@ -201,7 +205,6 @@ namespace CampesinApp.Controllers
                     return View("RegistroUsuario", model);
                 }
 
-                // 2. SEGUNDO VALIDAR SI EL CÓDIGO YA EXPIRÓ (Solo si el código ingresado fue correcto)
                 DateTime fechaExpiracion = DateTime.Parse(expiracionStr);
                 if (DateTime.Now > fechaExpiracion)
                 {
@@ -273,15 +276,14 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Reg_ReenviosCodigo", reenvios);
 
-            Random rnd = new Random();
-            string codigoGenerado = rnd.Next(100000, 999999).ToString();
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
             HttpContext.Session.SetString("Reg_Expiracion", fechaExpiracion.ToString("o"));
 
             if (metodo == "telefono")
             {
-                HttpContext.Session.SetString("Reg_CodigoWhatsAppSimulado", codigoGenerado);
-                TempData["MensajeReenvio"] = "Se ha generado un nuevo código simulado por WhatsApp.";
+                HttpContext.Session.SetString("Reg_CodigoTelefonoSimulado", codigoGenerado);
+                TempData["MensajeReenvio"] = "Se ha generado un nuevo código simulado por teléfono.";
             }
             else
             {
@@ -300,7 +302,11 @@ namespace CampesinApp.Controllers
                 Telefono = telefono ?? "",
                 MetodoSeleccionado = metodo
             };
-            if (metodo == "telefono") ViewBag.CodigoWhatsappSimulado = codigoGenerado;
+            if (metodo == "telefono")
+            {
+                ViewBag.CodigoTelefonoSimulado = codigoGenerado;
+                ViewBag.CodigoWhatsappSimulado = codigoGenerado;
+            }
 
             return View("RegistroUsuario", model);
         }

@@ -40,6 +40,22 @@ namespace CampesinApp.Controllers
 
             // FE-01-CU026: la ventana se mantiene bloqueada hasta que estrellas (comprador) y comentario estén completos.
             var requiereEstrellas = usuario.Rol == RolUsuario.Comprador;
+            if (!requiereEstrellas)
+            {
+                ModelState.Remove(nameof(dto.Estrellas));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var primerError = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m))
+                    ?? "Debe seleccionar las estrellas y completar el comentario obligatorio para continuar";
+
+                return await ReMostrarFormularioAsync(usuario, dto, primerError);
+            }
+
             if (string.IsNullOrWhiteSpace(dto.Comentario) || (requiereEstrellas && dto.Estrellas is < 1 or > 5))
             {
                 return await ReMostrarFormularioAsync(usuario, dto, "Debe seleccionar las estrellas y completar el comentario obligatorio para continuar");

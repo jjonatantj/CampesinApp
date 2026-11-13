@@ -16,7 +16,6 @@ namespace CampesinApp.Controllers
     /// La pantalla "Sin conexión a internet" es distinta: la muestra el service worker (wwwroot/sw.js).
     /// </summary>
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    [IgnoreAntiforgeryToken]
     public class ErrorController : Controller
     {
         private readonly ILogService _log;
@@ -42,7 +41,7 @@ namespace CampesinApp.Controllers
 
                 Response.StatusCode = StatusCodes.Status504GatewayTimeout;
 
-                if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+                if (Request.EsPeticionAjax())
                 {
                     return new EmptyResult();
                 }
@@ -66,7 +65,7 @@ namespace CampesinApp.Controllers
             Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
 
             // Las ventanas emergentes (AJAX) reciben solo el código; modales.js muestra su aviso.
-            if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+            if (Request.EsPeticionAjax())
             {
                 return new EmptyResult();
             }
