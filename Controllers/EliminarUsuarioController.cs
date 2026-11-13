@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
@@ -88,7 +89,8 @@ namespace CampesinApp.Controllers
                 return View("EliminarUsuario", model);
             }
 
-            string codigoGenerado = new Random().Next(100000, 999999).ToString();
+            // Generador criptográficamente seguro (CSPRNG) para códigos de verificación (Regla SonarQube S2245)
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
             HttpContext.Session.SetString("Eliminar_Codigo", codigoGenerado);
@@ -126,7 +128,8 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Eliminar_ReenviosCodigo", reenvios);
 
-            string codigoGenerado = new Random().Next(100000, 999999).ToString();
+            // Generador criptográficamente seguro (CSPRNG) para códigos de verificación (Regla SonarQube S2245)
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
             HttpContext.Session.SetString("Eliminar_Codigo", codigoGenerado);

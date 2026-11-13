@@ -413,10 +413,12 @@ namespace CampesinApp.Controllers
                     StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                // Extraer los valores monetarios de la fila.
+                // Extraer los valores monetarios de la fila (con timeout para prevenir ReDoS - Regla SonarQube S6444).
                 var precios = Regex.Matches(
                     texto,
-                    @"\$\s*([\d.,]+)"
+                    @"\$\s*([\d.,]+)",
+                    RegexOptions.None,
+                    TimeSpan.FromMilliseconds(250)
                 );
 
                 if (precios.Count < 3)
@@ -527,8 +529,8 @@ namespace CampesinApp.Controllers
                 .Normalize(NormalizationForm.FormC)
                 .ToLowerInvariant();
 
-            // Unificar espacios repetidos.
-            limpio = Regex.Replace(limpio, @"\s+", " ").Trim();
+            // Unificar espacios repetidos (con timeout de protección ReDoS).
+            limpio = Regex.Replace(limpio, @"\s+", " ", RegexOptions.None, TimeSpan.FromMilliseconds(250)).Trim();
 
             return limpio;
         }
