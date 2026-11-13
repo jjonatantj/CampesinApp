@@ -16,7 +16,6 @@ namespace CampesinApp.Controllers
     /// La pantalla "Sin conexión a internet" es distinta: la muestra el service worker (wwwroot/sw.js).
     /// </summary>
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    [IgnoreAntiforgeryToken]
     public class ErrorController : Controller
     {
         private readonly ILogService _log;

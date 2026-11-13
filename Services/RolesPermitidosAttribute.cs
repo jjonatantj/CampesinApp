@@ -35,7 +35,7 @@ namespace CampesinApp.Services
             }
 
             // Navegación normal (pantallas completas): sin sesión va al inicio de sesión; sin permiso, a una pantalla de aviso.
-            if (!string.Equals(context.HttpContext.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+            if (!context.HttpContext.Request.EsPeticionAjax()
                 && context.HttpContext.Request.Method == HttpMethods.Get)
             {
                 if (usuario == null)

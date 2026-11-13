@@ -13,7 +13,9 @@ EmailService.Initialize(builder.Configuration);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // 1. Agregar servicios MVC al contenedor
-builder.Services.AddControllersWithViews();
+// Protección CSRF para todo el aplicativo: toda petición que cambia datos (POST, PUT, DELETE) debe traer el token antiforgery.
+// Los formularios con asp-action lo incluyen solos y las ventanas emergentes lo envían en la cabecera (modales.js).
+builder.Services.AddControllersWithViews(opciones => opciones.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute()));
 
 // 2. REGISTRAR EL DbContext
 var connectionString = builder.Configuration.GetConnectionString("Test");

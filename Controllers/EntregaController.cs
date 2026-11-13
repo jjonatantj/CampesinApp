@@ -53,6 +53,23 @@ namespace CampesinApp.Controllers
         public async Task<IActionResult> Confirmar(ConfirmarRecepcionDto dto)
         {
             var usuario = (await ObtenerUsuarioAsync())!;
+
+            // Validación en el servidor (la del navegador se puede saltar): si los datos no cumplen las reglas del DTO
+            // (por ejemplo, observación de más de 500 caracteres), se vuelve a mostrar el formulario con el aviso.
+            if (!ModelState.IsValid)
+            {
+                var formulario = await _entregas.ObtenerValidacionAsync(usuario, dto.IdDemanda);
+                if (!formulario.Exitoso)
+                {
+                    return AvisoDeError(formulario, recargarPrincipalUrl: "/Pedidos/Lista");
+                }
+
+                ViewData["Error"] = "Revise los datos: elija una respuesta válida y escriba una observación de máximo 500 caracteres.";
+                ViewData["RespuestaPrevia"] = dto.Respuesta;
+                ViewData["ObservacionPrevia"] = dto.Observacion;
+                return ModalSuperpuesto("_ValidarEntrega", formulario.Datos);
+            }
+
             var resultado = await _entregas.ConfirmarRecepcionAsync(usuario, dto);
             if (!resultado.Exitoso)
             {
