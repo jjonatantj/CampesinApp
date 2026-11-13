@@ -6,7 +6,7 @@
 }
 
 <!-- Librería de iconos Bootstrap integrada en el proyecto -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" integrity="sha384-Ay26V7L8bsJTsX9Sxclnvsn+hkdiwRnrjZJXqKmkIDobPgIIWBOVguEcQQLDuhfN" crossorigin="anonymous">
 
 <div class="container py-4 my-4">
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
@@ -378,10 +378,10 @@
                 })
                 .catch(error => {
                     console.error('Error al consultar puntos:', error);
-                    // Caso FE-03-CU019: Error de conexión o base de datos
+                    // Caso FE-03-CU019: Error al cargar información de puntos de acopio
                     if (badgeContador) badgeContador.textContent = 'Error al cargar';
                     if (textoAlerta) {
-                        textoAlerta.innerHTML = '<i class="bi bi-wifi-off me-1"></i> <strong>Error de conexión:</strong> Error al obtener la información actualizada de los puntos de acopio. Intente nuevamente.';
+                        textoAlerta.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1"></i> <strong>Aviso del Sistema:</strong> No fue posible obtener la información actualizada de los puntos de acopio. Por favor intente nuevamente más tarde.';
                     }
                     if (alerta) alerta.classList.remove('d-none');
                 });

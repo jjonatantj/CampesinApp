@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using CampesinApp.Repositories;
+using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Dtos;
+using CampesinApp.Services;
 
 namespace CampesinApp.Controllers
 {
@@ -15,21 +17,21 @@ namespace CampesinApp.Controllers
     /// Controlador para la gestión de Puntos de Acopio:
     /// - CU-018: Registro de Puntos de Acopio (Formulario y Georreferenciación).
     /// - CU-019: Revisar Puntos de Acopio (Mapas interactivos y filtros por Tipo [Campesino/Comprador], Departamento y Municipio).
-    /// 
-    /// REGLAS ARQUITECTÓNICAS:
-    /// 1. NO accede directamente al DbContext. Utiliza exclusivamente IPuntoAcopioRepository.
-    /// 2. Aplica las reglas de negocio (RN-01 y RN-02) y flujos de excepción.
-    /// 3. Aplica la seguridad de sesión en todos los métodos protegidos.
     /// </summary>
     public class PuntoAcopioController : Controller
     {
         private readonly IPuntoAcopioRepository _puntoAcopioRepo;
         private readonly IConfiguration _configuration;
+        private readonly ILogService _logService;
 
-        public PuntoAcopioController(IPuntoAcopioRepository puntoAcopioRepo, IConfiguration configuration)
+        public PuntoAcopioController(
+            IPuntoAcopioRepository puntoAcopioRepo, 
+            IConfiguration configuration,
+            ILogService logService)
         {
             _puntoAcopioRepo = puntoAcopioRepo;
             _configuration = configuration;
+            _logService = logService;
         }
 
         // =========================================================================
@@ -192,11 +194,14 @@ namespace CampesinApp.Controllers
                 ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo o usar 'Mi Ubicación Actual' para fijar las coordenadas geográficas.");
             }
 
-            // 3. REGLA DE NEGOCIO RN-02-CU018: Acceso vehicular accesible para camión
-            if (!model.AccesoVehicular)
+            // Validación de Horario de Atención: debe contar con al menos un día y hora de atención
+            if (string.IsNullOrWhiteSpace(model.HorarioAtencion))
             {
-                ModelState.AddModelError("AccesoVehicular", "El punto de acopio debe contar obligatoriamente con acceso vehicular accesible para camiones.");
+                ModelState.AddModelError("HorarioAtencion", "Debe seleccionar al menos un día disponible para el horario de atención.");
             }
+
+            // 3. REGLA DE NEGOCIO RN-02-CU018: Acceso vehicular habilitado por defecto
+            model.AccesoVehicular = true;
 
             // 4. Validar integridad del formulario
             if (!ModelState.IsValid)
@@ -220,9 +225,21 @@ namespace CampesinApp.Controllers
                     return View(model);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
+                // Registramos el detalle técnico en log_Sistema para auditoría técnica
+                try
+                {
+                    await _logService.RegistrarAsync(
+                        NivelesLog.Error,
+                        "CU-018 Validación Duplicado",
+                        $"Error al verificar duplicado de punto de acopio (Usuario ID #{idUsuario}): {ex.Message} | Detalle interno: {ex.InnerException?.Message}",
+                        idUsuario > 0 ? idUsuario : (int?)null
+                    );
+                }
+                catch { }
+
+                ViewBag.MensajeErrorConexion = "No fue posible verificar la información del punto de acopio. Por favor intente nuevamente en unos momentos.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
@@ -249,12 +266,24 @@ namespace CampesinApp.Controllers
                     Latitud = model.Latitud.Value,
                     Longitud = model.Longitud.Value,
                     Capacidad = model.Capacidad,
-                    AccesoVehicular = model.AccesoVehicular,
+                    AccesoVehicular = true,
                     TipoAcopio = tipoAcopioFinal,
                     Descripcion = string.IsNullOrWhiteSpace(model.Descripcion) ? null : model.Descripcion.Trim()
                 };
 
                 int idPuntoGenerado = await _puntoAcopioRepo.GuardarPuntoAcopioAsync(nuevoPuntoDto);
+
+                // Auditoría de registro exitoso en log_Sistema
+                try
+                {
+                    await _logService.RegistrarAsync(
+                        NivelesLog.Info,
+                        "CU-018 Registro Punto de Acopio",
+                        $"Punto de acopio '{model.NombrePunto}' (ID #{idPuntoGenerado}) registrado satisfactoriamente por el usuario ID #{idUsuario}.",
+                        idUsuario > 0 ? idUsuario : (int?)null
+                    );
+                }
+                catch { }
 
                 ViewBag.RegistroExitoso = true;
                 ViewBag.MensajeExito = $"Punto de acopio '{model.NombrePunto}' registrado satisfactoriamente (ID #{idPuntoGenerado}).";
@@ -263,9 +292,21 @@ namespace CampesinApp.Controllers
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                ViewBag.MensajeErrorConexion = "No fue posible conectar con el servicio de CampesinApp, por favor verifique su conexión a internet e intente de nuevo.";
+                // Registramos el detalle técnico en log_Sistema para auditoría técnica
+                try
+                {
+                    await _logService.RegistrarAsync(
+                        NivelesLog.Error,
+                        "CU-018 Registro Punto de Acopio",
+                        $"Error al registrar punto de acopio (Usuario ID #{idUsuario}): {ex.Message} | Detalle interno: {ex.InnerException?.Message}",
+                        idUsuario > 0 ? idUsuario : (int?)null
+                    );
+                }
+                catch { }
+
+                ViewBag.MensajeErrorConexion = "No fue posible registrar el punto de acopio debido a un problema interno del servicio. Por favor intente más tarde o comuníquese con el administrador.";
                 await CargarListasDesplegablesAsync(model);
                 return View(model);
             }

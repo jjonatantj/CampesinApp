@@ -6,7 +6,7 @@
 }
 
 <!-- Librería de iconos Bootstrap integrada en el proyecto -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" integrity="sha384-Ay26V7L8bsJTsX9Sxclnvsn+hkdiwRnrjZJXqKmkIDobPgIIWBOVguEcQQLDuhfN" crossorigin="anonymous">
 
 <div class="container py-4 my-4">
     <div class="main-container p-4 p-md-5 rounded-4 shadow-sm">
@@ -30,13 +30,13 @@
         <!-- MENSAJES DE NOTIFICACIÓN TEMPORALES (FE-01, FE-02 Y ÉXITO)     -->
         <!-- ============================================================== -->
 
-        <!-- FE-01-CU018: Error de conexión a la BD o Internet (6 segundos) -->
+        <!-- FE-01-CU018: Notificación de error en servicio o base de datos (6 segundos) -->
         @if (ViewBag.MensajeErrorConexion != null)
         {
             <div id="alertaErrorConexion" class="alert alert-danger shadow-sm border-0 rounded-4 d-flex align-items-center mb-4" role="alert">
-                <i class="bi bi-wifi-off fs-4 me-3 text-danger"></i>
+                <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-danger"></i>
                 <div class="flex-grow-1">
-                    <strong>Error de Conexión:</strong> @ViewBag.MensajeErrorConexion
+                    <strong>Aviso del Sistema:</strong> @ViewBag.MensajeErrorConexion
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
             </div>
@@ -310,15 +310,17 @@
                                 </div>
                             </div>
 
-                            <!-- Botón para Zona Urbana: Geocodifica la dirección con Google Geocoder -->
-                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm text-white" id="btnGeocodificarDireccion" style="background-color: #2e7d32; border-color: #2e7d32;">
-                                <i class="bi bi-geo-alt-fill me-1"></i> Ubicar en Mapa
-                            </button>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <!-- Botón para Zona Urbana: Geocodifica la dirección con Google Geocoder -->
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm text-white" id="btnGeocodificarDireccion" style="background-color: #2e7d32; border-color: #2e7d32;">
+                                    <i class="bi bi-geo-alt-fill me-1"></i> Ubicar en Mapa
+                                </button>
 
-                            <!-- Botón para Zona Rural: Obtiene el GPS del dispositivo sin alterar la vereda escrita -->
-                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm fw-semibold" id="btnUbicacionActualRural" style="display: none;">
-                                <i class="bi bi-crosshair me-1"></i> Usar mi Ubicación Actual
-                            </button>
+                                <!-- Botón de GPS "Mi Ubicación Actual" reubicado aquí (mismo funcionamiento) -->
+                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm fw-semibold" id="btnUbicacionActualGPS" title="Centrar mapa en la posición GPS de tu teléfono o computador">
+                                    <i class="bi bi-crosshair me-1"></i> Mi Ubicación Actual
+                                </button>
+                            </div>
                         </div>
                         <span asp-validation-for="Direccion" class="text-danger small mt-1 ps-4 d-block"></span>
                     </div>
@@ -328,7 +330,7 @@
                         <label asp-for="Telefono" class="form-label fw-bold small text-dark">Teléfono de Contacto *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-telephone"></i></span>
-                            <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567" maxlength="15" required />
+                            <input asp-for="Telefono" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 3101234567 (7 a 10 dígitos)" minlength="7" maxlength="10" inputmode="numeric" pattern="[0-9]{7,10}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required />
                         </div>
                         <span asp-validation-for="Telefono" class="text-danger small ms-2"></span>
                     </div>
@@ -341,13 +343,13 @@
                             <i class="bi bi-clock-fill text-success me-1"></i> Horario de Atención *
                         </label>
 
-                        <div class="card border rounded-4 p-3 bg-white shadow-sm">
+                        <div class="card border rounded-4 p-3 bg-white shadow-sm" id="cardHorarioAtencion">
                             <small class="text-muted fw-semibold mb-2 d-block">
-                                Seleccione los días hábiles de atención:
+                                Seleccione los días hábiles de atención: *
                             </small>
 
                             <!-- Días Hábiles (Lunes a Domingo) tipo toggle buttons -->
-                            <div class="d-flex flex-wrap gap-1 mb-3" id="grupoDiasSemana">
+                            <div class="d-flex flex-wrap gap-1 mb-2" id="grupoDiasSemana">
                                 <div>
                                     <input type="checkbox" class="btn-check dia-horario-check" id="checkDiaLun" value="Lun" data-index="0" checked autocomplete="off">
                                     <label class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-semibold" for="checkDiaLun">Lun</label>
@@ -378,6 +380,11 @@
                                 </div>
                             </div>
 
+                            <!-- Mensaje de validación en letra rojita si no se selecciona ningún día -->
+                            <span id="errorDiasSemana" class="text-danger small mb-3 d-none" style="font-size: 0.85rem;">
+                                <i class="bi bi-exclamation-circle me-1"></i> Debe seleccionar al menos un día disponible para el horario de atención.
+                            </span>
+
                             <!-- Inputs nativos de reloj para Hora de Inicio y Hora de Cierre -->
                             <div class="row g-2 mb-2">
                                 <div class="col-6">
@@ -404,7 +411,7 @@
                                 <small class="text-muted d-block" style="font-size: 0.75rem;">Horario estructurado para la base de datos:</small>
                                 <strong id="textoHorarioGenerado" class="text-success small font-monospace">Lun-Vie: 08:00 - 17:00</strong>
                             </div>
-                            <span asp-validation-for="HorarioAtencion" class="text-danger small mt-1 d-block"></span>
+                            <span asp-validation-for="HorarioAtencion" id="errorHorarioAtencion" class="text-danger small mt-1 d-block"></span>
                         </div>
                     </div>
 
@@ -413,25 +420,14 @@
                         <label asp-for="Capacidad" class="form-label fw-bold small text-dark">Capacidad de Almacenamiento (Kg) *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-box-seam"></i></span>
-                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 20000" required />
+                            <input asp-for="Capacidad" type="number" step="0.01" min="1" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="Ej: 20000" data-val="true" data-val-required="La capacidad estimada es obligatoria." data-val-range="La capacidad debe ser un número positivo mayor o igual a 1 Kg." data-val-range-min="1" data-val-range-max="10000000" required />
                             <span class="input-group-text bg-light border-0 text-muted pe-3 fw-bold">Kg</span>
                         </div>
                         <span asp-validation-for="Capacidad" class="text-danger small ms-2"></span>
                     </div>
 
-                    <!-- 8. Acceso Vehicular (RN-02-CU018) con bordes redondeados -->
-                    <div class="card p-3 border-success-subtle bg-light rounded-4 mb-3 shadow-sm">
-                        <div class="form-check form-switch mb-0">
-                            <input asp-for="AccesoVehicular" class="form-check-input" type="checkbox" id="checkAccesoVehicular" role="switch" checked>
-                            <label class="form-check-label fw-bold text-dark ms-2" for="checkAccesoVehicular">
-                                <i class="bi bi-truck text-success me-1"></i> Cuenta con acceso vehicular para camión
-                            </label>
-                        </div>
-                        <small class="text-muted ms-4 mt-1 d-block">
-                            Requisito logístico obligatorio para maniobras de cargue y descargue de cosecha.
-                        </small>
-                        <span asp-validation-for="AccesoVehicular" class="text-danger small ms-4"></span>
-                    </div>
+                    <!-- 8. Acceso Vehicular por defecto habilitado (RN-02-CU018) -->
+                    <input type="hidden" asp-for="AccesoVehicular" value="true" />
 
                 </div>
 
@@ -442,14 +438,9 @@
                     <div class="sticky-top" style="top: 1.5rem; z-index: 10;">
                         <h5 class="fw-bold text-success mb-3 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <span><i class="bi bi-map-fill me-1"></i> Ubicación Geográfica en el Mapa</span>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold shadow-sm" id="btnUbicacionActualMapa" title="Centrar mapa en la posición GPS de tu teléfono o computador">
-                                    <i class="bi bi-crosshair me-1"></i> Mi Ubicación Actual
-                                </button>
-                                <span class="badge bg-success text-dark small fw-normal py-1 px-2 rounded-pill">
-                                    <i class="bi bi-globe-americas me-1"></i> Vista Satelital
-                                </span>
-                            </div>
+                            <span class="badge bg-success text-dark small fw-normal py-1 px-2 rounded-pill">
+                                <i class="bi bi-globe-americas me-1"></i> Vista Satelital
+                            </span>
                         </h5>
 
                         <!-- Contenedor del Mapa de Google Maps redondeado en Vista Satelital -->
@@ -500,6 +491,7 @@
 @section Scripts {
     <!-- Validaciones estándar de ASP.NET Core MVC -->
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-nLoOnA/BDh8A/jxqtckg4DumuCGOBYUnNJLZdQz/zfYNp3wcjGSoWTAzgko06G/2" crossorigin="anonymous"></script>
 
     <!-- Carga de la API de Google Maps JavaScript -->
     @if (!string.IsNullOrEmpty(Model.GoogleMapsApiKey))
@@ -823,15 +815,13 @@
             const bloqueUrbano = document.getElementById('bloqueDireccionUrbana');
             const bloqueRural = document.getElementById('bloqueDireccionRural');
             const btnGeocodificar = document.getElementById('btnGeocodificarDireccion');
-            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
 
             if (zona === 'Rural') {
                 bloqueUrbano.style.display = 'none';
                 bloqueRural.style.display = 'block';
 
-                // En zona rural se oculta el botón de geocodificar de maps y se activa "Usar mi Ubicación Actual"
+                // En zona rural se oculta el botón de geocodificar dirección por vía/calle
                 if (btnGeocodificar) btnGeocodificar.style.display = 'none';
-                if (btnUbicacionRural) btnUbicacionRural.style.display = 'inline-block';
 
                 const valUrbano = document.getElementById('urbanoIndicacionExtra')?.value || '';
                 const ruralExtra = document.getElementById('ruralIndicacionExtra');
@@ -844,7 +834,6 @@
 
                 // En zona urbana se reactiva el botón "Ubicar en Mapa"
                 if (btnGeocodificar) btnGeocodificar.style.display = 'inline-block';
-                if (btnUbicacionRural) btnUbicacionRural.style.display = 'none';
 
                 const valRural = document.getElementById('ruralIndicacionExtra')?.value || '';
                 const urbanoExtra = document.getElementById('urbanoIndicacionExtra');
@@ -911,12 +900,23 @@
         function construirHorario() {
             const checkboxes = Array.from(document.querySelectorAll('.dia-horario-check'));
             const seleccionados = checkboxes.filter(cb => cb.checked);
+            const errorDias = document.getElementById('errorDiasSemana');
+            const errorHorario = document.getElementById('errorHorarioAtencion');
+            const cardHorario = document.getElementById('cardHorarioAtencion');
 
             if (seleccionados.length === 0) {
                 document.getElementById('inputHorarioAtencion').value = '';
                 const textoVisual = document.getElementById('textoHorarioGenerado');
                 if (textoVisual) textoVisual.textContent = 'Ningún día seleccionado';
                 return '';
+            }
+
+            // Si hay al menos un día seleccionado, limpiamos mensajes de validación
+            if (errorDias) errorDias.classList.add('d-none');
+            if (errorHorario) errorHorario.textContent = '';
+            if (cardHorario) {
+                cardHorario.classList.remove('border-danger');
+                cardHorario.style.borderColor = '';
             }
 
             const horaIni = document.getElementById('inputHoraInicio')?.value || '08:00';
@@ -1109,20 +1109,31 @@
                 });
             }
 
-            // Botones de "Mi Ubicación Actual" (GPS) tanto en el mapa como en la zona rural
-            const btnUbicacionMapa = document.getElementById('btnUbicacionActualMapa');
-            if (btnUbicacionMapa) {
-                btnUbicacionMapa.addEventListener('click', obtenerUbicacionActualGPS);
-            }
-
-            const btnUbicacionRural = document.getElementById('btnUbicacionActualRural');
-            if (btnUbicacionRural) {
-                btnUbicacionRural.addEventListener('click', obtenerUbicacionActualGPS);
+            // Botón de "Mi Ubicación Actual" (GPS) ubicado en el contenedor de dirección
+            const btnUbicacionGPS = document.getElementById('btnUbicacionActualGPS') 
+                                 || document.getElementById('btnUbicacionActualMapa') 
+                                 || document.getElementById('btnUbicacionActualRural');
+            if (btnUbicacionGPS) {
+                btnUbicacionGPS.addEventListener('click', obtenerUbicacionActualGPS);
             }
 
             // E. Inputs del Horario de Atención
             document.querySelectorAll('.dia-horario-check').forEach(cb => {
-                cb.addEventListener('change', construirHorario);
+                cb.addEventListener('change', function () {
+                    construirHorario();
+                    const cantSeleccionados = document.querySelectorAll('.dia-horario-check:checked').length;
+                    const errorDias = document.getElementById('errorDiasSemana');
+                    const errorHorario = document.getElementById('errorHorarioAtencion');
+                    const cardHorario = document.getElementById('cardHorarioAtencion');
+                    if (cantSeleccionados > 0) {
+                        if (errorDias) errorDias.classList.add('d-none');
+                        if (errorHorario) errorHorario.textContent = '';
+                        if (cardHorario) {
+                            cardHorario.classList.remove('border-danger');
+                            cardHorario.style.borderColor = '';
+                        }
+                    }
+                });
             });
             const inputHoraIni = document.getElementById('inputHoraInicio');
             const inputHoraFin = document.getElementById('inputHoraCierre');
@@ -1177,31 +1188,99 @@
             // G. Validación antes del envío del formulario (submit)
             const form = document.getElementById('formPuntoAcopio');
             if (form) {
+                // Función auxiliar para desplazarse suavemente al elemento con error y enfocarlo
+                function enfocarPrimerError(selector, mensaje) {
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (typeof el.focus === 'function') {
+                            setTimeout(() => el.focus(), 400);
+                        }
+                    }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Dato Requerido',
+                            text: mensaje,
+                            confirmButtonColor: '#2e7d32',
+                            background: '#f8f9fa',
+                            customClass: { popup: 'rounded-4 shadow-lg' }
+                        });
+                    } else {
+                        alert(mensaje);
+                    }
+                }
+
                 form.addEventListener('submit', function (e) {
                     const dir = construirDireccion();
                     const hor = construirHorario();
                     actualizarDescripcion();
 
-                    // Validación de Dirección generada
-                    if (!dir || dir.trim() === '' || dir.trim() === 'Vereda') {
+                    // 1. Validación de Dirección generada (Urbano o Rural)
+                    const zona = obtenerZonaSeleccionada();
+                    if (zona === 'Rural') {
+                        const inputVereda = document.getElementById('ruralNombreVereda');
+                        if (!inputVereda || !inputVereda.value.trim()) {
+                            e.preventDefault();
+                            enfocarPrimerError('#ruralNombreVereda', 'Por favor ingrese el nombre de la vereda o sector rural donde opera el punto de acopio.');
+                            return false;
+                        }
+                    } else {
+                        const inputVia = document.getElementById('urbanoNumeroVia');
+                        if (!inputVia || !inputVia.value.trim() || !dir || dir.trim() === '') {
+                            e.preventDefault();
+                            enfocarPrimerError('#urbanoNumeroVia', 'Por favor complete el número o nombre de la vía principal para generar la dirección.');
+                            return false;
+                        }
+                    }
+
+                    // 2. Validación de Teléfono (solo números, entre 7 y 10 dígitos)
+                    const telInput = document.getElementById('Telefono');
+                    const telVal = (telInput?.value || '').trim();
+                    if (!telVal || !/^[0-9]{7,10}$/.test(telVal)) {
                         e.preventDefault();
-                        alert('Por favor complete los campos obligatorios para generar la dirección física o vereda del punto de acopio.');
+                        enfocarPrimerError('#Telefono', 'El teléfono debe contener solo números y tener entre 7 y 10 dígitos (mínimo 7 para fijo o 10 para celular).');
                         return false;
                     }
 
-                    // Validación de Horario de atención generado
-                    if (!hor || hor.trim() === '') {
+                    // 3. Validación de Horario de atención generado (CU-018: Al menos un día seleccionado)
+                    const diasSeleccionados = document.querySelectorAll('.dia-horario-check:checked');
+                    if (diasSeleccionados.length === 0 || !hor || hor.trim() === '') {
                         e.preventDefault();
-                        alert('Por favor seleccione al menos un día hábil y las horas de inicio y cierre para el horario de atención.');
+                        const errorDias = document.getElementById('errorDiasSemana');
+                        const errorHorario = document.getElementById('errorHorarioAtencion');
+                        const cardHorario = document.getElementById('cardHorarioAtencion');
+
+                        if (errorDias) {
+                            errorDias.classList.remove('d-none');
+                        }
+                        if (errorHorario) {
+                            errorHorario.textContent = 'Debe seleccionar al menos un día disponible para el horario de atención.';
+                        }
+                        if (cardHorario) {
+                            cardHorario.classList.add('border-danger');
+                            cardHorario.style.borderColor = '#dc3545';
+                            cardHorario.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+
+                        const primerCheck = document.getElementById('checkDiaLun');
+                        if (primerCheck) {
+                            setTimeout(() => primerCheck.focus(), 300);
+                        }
                         return false;
                     }
 
-                    // Validación de Coordenadas del Mapa (RN-01-CU018)
+                    // 4. Validación de Coordenadas del Mapa (RN-01-CU018)
                     const lat = parseFloat(document.getElementById('latitudHidden').value);
                     const lng = parseFloat(document.getElementById('longitudHidden').value);
                     if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
                         e.preventDefault();
-                        alert('Debe fijar las coordenadas en el mapa interactivo (usando "Mi Ubicación Actual", ubicando la dirección o haciendo clic directamente sobre el mapa).');
+                        const mapDiv = document.getElementById('map');
+                        if (mapDiv) {
+                            mapDiv.style.border = '2px solid #dc3545';
+                            mapDiv.style.borderRadius = '1rem';
+                        }
+                        enfocarPrimerError('#map', 'Debe fijar las coordenadas en el mapa interactivo (usando "Mi Ubicación Actual", ubicando la dirección o haciendo clic directamente sobre el mapa).');
                         return false;
                     }
                 });
@@ -1232,6 +1311,44 @@
             construirHorario();
             actualizarDescripcion();
 
+            // Auto-scroll al primer campo con error de validación (jQuery Validate o ModelState de C#)
+            if (window.jQuery && $.validator) {
+                $('#formPuntoAcopio').on('invalid-form.validate', function (event, validator) {
+                    const cantDias = document.querySelectorAll('.dia-horario-check:checked').length;
+                    if (cantDias === 0) {
+                        const errorDias = document.getElementById('errorDiasSemana');
+                        const errorHorario = document.getElementById('errorHorarioAtencion');
+                        const cardHorario = document.getElementById('cardHorarioAtencion');
+                        if (errorDias) errorDias.classList.remove('d-none');
+                        if (errorHorario) errorHorario.textContent = 'Debe seleccionar al menos un día disponible para el horario de atención.';
+                        if (cardHorario) {
+                            cardHorario.classList.add('border-danger');
+                            cardHorario.style.borderColor = '#dc3545';
+                        }
+                    }
+                    if (validator.errorList && validator.errorList.length > 0) {
+                        const primerError = validator.errorList[0];
+                        const elemento = $(primerError.element);
+                        if (elemento.length > 0) {
+                            $('html, body').animate({
+                                scrollTop: elemento.offset().top - 120
+                            }, 500);
+                            setTimeout(() => elemento.focus(), 550);
+                        }
+                    }
+                });
+            }
+
+            // Si la página se recargó tras envío con errores del servidor (ModelState)
+            const primerSpanError = document.querySelector('.field-validation-error, .input-validation-error');
+            if (primerSpanError) {
+                primerSpanError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const inputAsociado = primerSpanError.closest('.mb-3')?.querySelector('input, select, textarea');
+                if (inputAsociado && typeof inputAsociado.focus === 'function') {
+                    setTimeout(() => inputAsociado.focus(), 400);
+                }
+            }
+
             // I. Control de tiempo de alertas flotantes (FE-01, FE-02 Y ÉXITO)
             const alertaConexion = document.getElementById('alertaErrorConexion');
             if (alertaConexion) {
@@ -1253,9 +1370,26 @@
 
             const alertaExito = document.getElementById('alertaExito');
             if (alertaExito) {
-                setTimeout(() => {
-                    window.location.href = '@Url.Action("Index", "Perfil")';
-                }, 3000);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Punto de Acopio Registrado!',
+                        text: '@(ViewBag.MensajeExito ?? "Punto de acopio registrado satisfactoriamente.")',
+                        timer: 3500,
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#2e7d32',
+                        background: '#f8f9fa',
+                        customClass: { popup: 'rounded-4 shadow-lg' }
+                    }).then(() => {
+                        window.location.href = '@Url.Action("Index", "Perfil")';
+                    });
+                } else {
+                    setTimeout(() => {
+                        window.location.href = '@Url.Action("Index", "Perfil")';
+                    }, 3000);
+                }
             }
         });
     </script>

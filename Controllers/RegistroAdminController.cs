@@ -5,6 +5,7 @@ using CampesinApp.ViewModels;
 using CampesinApp.Services;
 using System.Linq;
 using System;
+using System.Security.Cryptography; // <-- Espacio de nombres necesario para la seguridad
 
 namespace CampesinApp.Controllers
 {
@@ -79,7 +80,9 @@ namespace CampesinApp.Controllers
                 long.TryParse(model.Telefono, out long telefonoLong);
                 int idMunicipioDefecto = _context.Municipios.Select(m => m.IdMunicipio).FirstOrDefault();
 
-                string passwordTemporal = "Admin" + new Random().Next(1000, 9999);
+                // Solución al aviso S2245: Uso de generador criptográfico seguro
+                int randomPin = RandomNumberGenerator.GetInt32(1000, 10000);
+                string passwordTemporal = "Admin" + randomPin;
 
                 var nuevoAdmin = new Usuario
                 {

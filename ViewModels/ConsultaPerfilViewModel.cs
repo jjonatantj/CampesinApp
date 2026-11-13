@@ -64,7 +64,11 @@ namespace CampesinApp.ViewModels
         public string UnidadMedida { get; set; } = "Kg";
         public string? Descripcion { get; set; }
         public string? ImagenUrl { get; set; }
+        public int Cantidad { get; set; }
+        public decimal Total { get; set; }
+        public string? UbicacionCultivo { get; set; }
         public DateTime? Fecha { get; set; }
+        public string Estado { get; set; } = "Completada";
     }
 
     /// <summary>

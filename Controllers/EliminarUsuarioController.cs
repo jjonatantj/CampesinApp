@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
 using CampesinApp.Services;
@@ -66,6 +67,12 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SolicitarCodigo(EliminarUsuarioViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                model.CodigoEnviado = false;
+                return View("EliminarUsuario", model);
+            }
+
             int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
             if (idUsuario == null) return RedirectToAction("Login", "InicioSesion");
 
@@ -82,7 +89,8 @@ namespace CampesinApp.Controllers
                 return View("EliminarUsuario", model);
             }
 
-            string codigoGenerado = new Random().Next(100000, 999999).ToString();
+            // Generador criptográficamente seguro (CSPRNG) para códigos de verificación (Regla SonarQube S2245)
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
             HttpContext.Session.SetString("Eliminar_Codigo", codigoGenerado);
@@ -120,7 +128,8 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Eliminar_ReenviosCodigo", reenvios);
 
-            string codigoGenerado = new Random().Next(100000, 999999).ToString();
+            // Generador criptográficamente seguro (CSPRNG) para códigos de verificación (Regla SonarQube S2245)
+            string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
             HttpContext.Session.SetString("Eliminar_Codigo", codigoGenerado);
@@ -152,6 +161,24 @@ namespace CampesinApp.Controllers
 
             model.Correo = usuario.CorreoUsu;
             model.CodigoEnviado = true;
+
+            // En este segundo paso solo se envía y valida el Código de Verificación;
+            // la contraseña ya fue verificada en el Paso 1 (SolicitarCodigo), por lo que se remueve de ModelState.
+            ModelState.Remove(nameof(model.Contrasena));
+
+            if (string.IsNullOrWhiteSpace(model.CodigoVerificacion))
+            {
+                ModelState.AddModelError("CodigoVerificacion", "Por favor ingrese el código de verificación.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                int reenviosActuales = HttpContext.Session.GetInt32("Eliminar_ReenviosCodigo") ?? 0;
+                ViewBag.ReenviosRestantes = 3 - reenviosActuales;
+                ViewBag.MensajeCodigoEnviado = "Ingrese el código enviado a su correo.";
+                ViewBag.SegundosRestantes = ObtenerSegundosRestantesExpiracion();
+                return View("EliminarUsuario", model);
+            }
 
             string? codigoSesion = HttpContext.Session.GetString("Eliminar_Codigo");
             string? expiracionStr = HttpContext.Session.GetString("Eliminar_Expiracion");
@@ -189,7 +216,7 @@ namespace CampesinApp.Controllers
             }
 
             bool tieneDemandasActivas = await _context.Demanda
-                .AnyAsync(d => d.IdUsuario == idUsuario.Value && (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2));
+                .AnyAsync(d => d.IdUsuario == idUsuario.Value && (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2 || d.IdEstadoDeman == 3));
 
             if (tieneDemandasActivas)
             {

@@ -210,7 +210,7 @@ namespace CampesinApp.Controllers
 
                     if (MapeoDane.TryGetValue(
                         nombreVariedad,
-                        out string nombreDane))
+                        out string? nombreDane)) // <-- Cambiado a string?
                     {
                         string claveDane = NormalizarTexto(nombreDane);
 
@@ -228,7 +228,7 @@ namespace CampesinApp.Controllers
 
                     if (MapeoCorabastos.TryGetValue(
                         nombreVariedad,
-                        out string nombreCorabastos))
+                        out string? nombreCorabastos)) // <-- Cambiado a string?
                     {
                         precioCora = ExtraerPrecioPorLinea(
                             contenidoCora,
@@ -249,8 +249,6 @@ namespace CampesinApp.Controllers
 
                             Variedad = variedad.VariedadProd,
 
-                            // El ViewModel actual utiliza decimal no nullable.
-                            // Por eso se muestra 0 cuando no existe el dato.
                             PrecioDane = precioDane ?? 0m,
 
                             PrecioCorabastos = precioCora ?? 0m
@@ -353,7 +351,6 @@ namespace CampesinApp.Controllers
         // LEER PDF DE CORABASTOS
         // ---------------------------------------------------------
 
-
         private async Task<string> LeerPdfCorabastos(IFormFile archivo)
         {
             using var memoryStream = new MemoryStream();
@@ -391,7 +388,6 @@ namespace CampesinApp.Controllers
         // EXTRAER PRECIO EXACTO DE UNA LÍNEA DEL PDF
         // ---------------------------------------------------------
 
-
         private decimal? ExtraerPrecioPorLinea(
             string contenidoArchivo,
             string nombreProducto)
@@ -417,10 +413,12 @@ namespace CampesinApp.Controllers
                     StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                // Extraer los valores monetarios de la fila.
+                // Extraer los valores monetarios de la fila (con timeout para prevenir ReDoS - Regla SonarQube S6444).
                 var precios = Regex.Matches(
                     texto,
-                    @"\$\s*([\d.,]+)"
+                    @"\$\s*([\d.,]+)",
+                    RegexOptions.None,
+                    TimeSpan.FromMilliseconds(250)
                 );
 
                 if (precios.Count < 3)
@@ -447,7 +445,6 @@ namespace CampesinApp.Controllers
 
             return null;
         }
-
 
         // ---------------------------------------------------------
         // CONVERTIR VALORES DEL EXCEL A DECIMAL
@@ -532,8 +529,8 @@ namespace CampesinApp.Controllers
                 .Normalize(NormalizationForm.FormC)
                 .ToLowerInvariant();
 
-            // Unificar espacios repetidos.
-            limpio = Regex.Replace(limpio, @"\s+", " ").Trim();
+            // Unificar espacios repetidos (con timeout de protección ReDoS).
+            limpio = Regex.Replace(limpio, @"\s+", " ", RegexOptions.None, TimeSpan.FromMilliseconds(250)).Trim();
 
             return limpio;
         }
@@ -551,6 +548,13 @@ namespace CampesinApp.Controllers
 
             if (idUsuario == null)
                 return RedirectToAction("Login", "InicioSesion");
+
+            // Validación agregada para cumplir con la regla csharpsquid:S6967[cite: 5]
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorImportacion"] = "Los datos del modelo no son válidos.";
+                return View("ImportarDatos", model);
+            }
 
             try
             {

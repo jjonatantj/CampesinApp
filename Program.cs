@@ -24,6 +24,8 @@ builder.Services.AddDbContext<Campesinapp3Context>(options =>
            .ConfigureWarnings(w => w.Ignore(SqlServerEventId.SavepointsDisabledBecauseOfMARS)));
 
 // 3. REGISTRAR LOS REPOSITORIOS
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<CampesinApp.Services.ILogisticaFleteService, CampesinApp.Services.LogisticaFleteService>();
 builder.Services.AddScoped<UsuariosRepository>();
 builder.Services.AddScoped<PantallaPrincipalRepository>();
 builder.Services.AddScoped<PaginaBienvenidaRepository>();

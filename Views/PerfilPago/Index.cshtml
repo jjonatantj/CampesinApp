@@ -44,11 +44,18 @@
         <!-- Resumen de validaciones de C# / ModelState -->
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger shadow-sm rounded-4 mb-4">
+            <div class="alert alert-danger shadow-sm rounded-4 mb-4" id="resumenErroresServidor">
                 <h6 class="fw-bold mb-1"><i class="bi bi-x-circle me-1"></i> Por favor verifique los siguientes campos:</h6>
                 <div asp-validation-summary="All" class="small mb-0"></div>
             </div>
         }
+
+        <!-- ALERTA DINÁMICA DE VALIDACIÓN (Diseño oficial CampesinApp con icono y estilo rounded-4) -->
+        <div id="alertaErrorFrontend" class="alert alert-danger shadow-sm border-0 rounded-4 d-none d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
+            <div class="flex-grow-1" id="mensajeErrorFrontend"></div>
+            <button type="button" class="btn-close" id="btnCerrarAlertaFrontend" aria-label="Cerrar"></button>
+        </div>
 
         <!-- ============================================================== -->
         <!-- FORMULARIO DE REGISTRO (CU-014)                                -->
@@ -56,8 +63,9 @@
         <form asp-controller="PerfilPago" asp-action="Guardar" method="post" id="formPerfilPago" novalidate autocomplete="off">
             @Html.AntiForgeryToken()
 
-            <!-- CAMPOS OCULTOS DE SESIÓN Y TOKENIZACIÓN OPENPAY -->
+            <!-- CAMPESINAPP: CAMPOS OCULTOS DE SESIÓN Y TOKENIZACIÓN OPENPAY -->
             <input type="hidden" asp-for="IdUsuario" />
+            <input type="hidden" asp-for="ReturnUrl" />
             <input type="hidden" id="tokenOpenpay" name="TokenOpenpay" />
             <input type="hidden" id="deviceSessionId" name="DeviceSessionId" />
 
@@ -85,24 +93,26 @@
                     <!-- 2. Entidad Financiera -->
                     <div class="mb-3">
                         <label asp-for="IdEntiFinanc" class="form-label fw-bold small text-dark">Entidad Financiera *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupBanco">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-bank"></i></span>
                             <select asp-for="IdEntiFinanc" asp-items="Model.ListaEntidadesFinancieras" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectBanco" required>
                                 <option value="">-- Seleccione una entidad bancaria --</option>
                             </select>
                         </div>
+                        <span class="text-danger small ms-2 d-none fw-semibold" id="errorBanco"></span>
                         <span asp-validation-for="IdEntiFinanc" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 3. Modalidad de Pago -->
                     <div class="mb-3">
                         <label asp-for="IdTipoPago" class="form-label fw-bold small text-dark">Modalidad de Pago *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupTipoPago">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-cash-stack"></i></span>
                             <select asp-for="IdTipoPago" asp-items="Model.ListaTiposPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoPago" required>
                                 <option value="">-- Seleccione modalidad de pago --</option>
                             </select>
                         </div>
+                        <span class="text-danger small ms-2 d-none fw-semibold" id="errorTipoPago"></span>
                         <span asp-validation-for="IdTipoPago" class="text-danger small ms-2"></span>
                     </div>
                 </div>
@@ -118,33 +128,36 @@
                     <!-- 4. Tipo de Cuenta (Ahorros / Corriente) -->
                     <div class="mb-3">
                         <label asp-for="IdTipoCuenta" class="form-label fw-bold small text-dark">Tipo de Cuenta *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupTipoCuenta">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-card-checklist"></i></span>
                             <select asp-for="IdTipoCuenta" asp-items="Model.ListaTiposCuenta" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoCuenta" required>
                                 <option value="">-- Seleccione tipo de cuenta --</option>
                             </select>
                         </div>
+                        <span class="text-danger small ms-2 d-none fw-semibold" id="errorTipoCuenta"></span>
                         <span asp-validation-for="IdTipoCuenta" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 5. Número de Cuenta o Tarjeta -->
                     <div class="mb-3">
                         <label asp-for="NumCuenta" class="form-label fw-bold small text-dark">Número de Cuenta o Tarjeta *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupNumCuenta">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-credit-card"></i></span>
-                            <input asp-for="NumCuenta" id="numeroCuenta" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" maxlength="19" placeholder="Ej: 4111 1111 1111 1111" required />
+                            <input asp-for="NumCuenta" id="numeroCuenta" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" maxlength="19" placeholder="Ej: 4111 1111 1111 1111" inputmode="numeric" required />
                         </div>
+                        <span class="text-danger small ms-2 d-none fw-semibold" id="errorNumCuenta"></span>
                         <span asp-validation-for="NumCuenta" class="text-danger small ms-2"></span>
                     </div>
 
                     <!-- 6. Código CVC -->
                     <div class="mb-3">
                         <label asp-for="Cvc" class="form-label fw-bold small text-dark">Código de Seguridad (CVC) *</label>
-                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
+                        <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupCvc">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-lock-fill"></i></span>
-                            <input asp-for="Cvc" id="codigoCvc" type="password" maxlength="4" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="123" required />
+                            <input asp-for="Cvc" id="codigoCvc" type="password" maxlength="4" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="123" inputmode="numeric" required />
                         </div>
                         <small class="text-muted ms-2" style="font-size: 0.75rem;">3 o 4 dígitos al reverso de la tarjeta o clave dinámica.</small>
+                        <span class="text-danger small ms-2 d-none fw-semibold" id="errorCvc"></span>
                         <span asp-validation-for="Cvc" class="text-danger small ms-2 d-block"></span>
                     </div>
                 </div>
@@ -155,10 +168,19 @@
             <!-- BOTONES DE ACCIÓN: Volver y Guardar con estilo rounded-pill    -->
             <!-- ============================================================== -->
             <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top flex-wrap gap-2">
-                <!-- Botón Volver -->
-                <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Volver
-                </a>
+                <!-- Botón Volver contextual -->
+                @if (Model.ReturnUrl == "ProcesoPago" || ViewBag.VieneDeDemanda == true)
+                {
+                    <a asp-controller="PublicarDemanda" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Volver a Demanda
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Perfil" asp-action="Index" class="btn btn-secondary px-4 py-2 fw-semibold rounded-pill shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </a>
+                }
 
                 <!-- Botón Guardar -->
                 <button type="button" class="btn btn-success px-5 py-2 fw-bold rounded-pill text-white shadow-sm" id="btnGuardar" style="background-color: #2e7d32; border-color: #2e7d32;">
@@ -224,6 +246,37 @@
     </div>
 </div>
 
+<!-- ============================================================== -->
+<!-- MODAL DE PROCESO EXITOSO CON TEMPORIZADOR DE 4 SEGUNDOS       -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalProcesoExitoso" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalExitoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content text-center p-4 rounded-4 shadow border-0 bg-white">
+            <div class="modal-body p-3">
+                <div class="mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm"
+                         style="width: 85px; height: 85px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 3.2rem;"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-2" style="color: #1b5e20;">¡Proceso Exitoso!</h3>
+                <p class="fs-5 text-dark fw-semibold mb-3">
+                    @(ViewBag.MensajeExito ?? "Perfil de pago registrado con éxito.")
+                </p>
+                <div class="alert alert-light border rounded-pill d-inline-block px-4 py-2 text-muted small mb-4">
+                    <i class="bi bi-clock me-1 text-success"></i> Redirigiendo en <strong id="contadorSegundosExito" class="text-success fs-6">4</strong> segundos...
+                </div>
+                <div>
+                    <a href="@(ViewBag.UrlDestinoExito ?? Url.Action("Index", "Perfil"))" class="btn btn-success rounded-pill px-5 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #2e7d32; border-color: #2e7d32;">
+                        <span>Continuar</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <!-- Scripts oficiales de Openpay (Soporte para Colombia resources.openpay.co y México js.openpay.mx) -->
     @if ((ViewBag.OpenpayPais ?? "CO") == "CO")
@@ -239,59 +292,115 @@
 
     <script type="text/javascript">
         document.addEventListener("DOMContentLoaded", function () {
+            // Control automático de la ventana emergente de proceso exitoso (temporizador de 4 segundos)
+            const esRegistroExitoso = @(ViewBag.RegistroExitoso == true ? "true" : "false");
+            if (esRegistroExitoso) {
+                const modalExitoElem = document.getElementById("modalProcesoExitoso");
+                if (modalExitoElem) {
+                    const modalExito = new bootstrap.Modal(modalExitoElem);
+                    modalExito.show();
+
+                    let segundos = 4;
+                    const contador = document.getElementById("contadorSegundosExito");
+                    const urlDestino = "@(ViewBag.UrlDestinoExito ?? Url.Action("Index", "Perfil"))";
+
+                    const intervalo = setInterval(function () {
+                        segundos--;
+                        if (contador) contador.textContent = segundos;
+                        if (segundos === 0) {
+                            clearInterval(intervalo);
+                            window.location.href = urlDestino;
+                        }
+                    }, 1000);
+                }
+            }
             const merchantId = "@merchantId";
             const publicKey = "@publicKey";
             const isSandbox = @(isSandbox ? "true" : "false");
 
-            // Función para traducir cualquier mensaje de error de Openpay a un español formal
+            // Función para traducir cualquier mensaje de error de Openpay a un español formal y comprensible
             function traducirErrorOpenpay(error) {
                 if (!error || !error.data) {
                     return "No fue posible conectar con la pasarela de pagos. Por favor verifique su conexión a internet.";
                 }
 
                 const codigo = error.data.error_code || error.status;
-                const descripcionIngles = (error.data.description || "").toLowerCase();
+                const desc = (error.data.description || "").toLowerCase();
 
-                // 1. Error de credenciales o Merchant ID inválido
-                if (codigo === 1002 || descripcionIngles.includes("api key") || descripcionIngles.includes("merchant id")) {
-                    return "Las credenciales de la pasarela de pagos (ID de comercio o Llave pública) no son válidas o no corresponden a la cuenta configurada. Verifique las credenciales en appsettings.json.";
+                // 1. Errores sobre el número de tarjeta (card_number, card number, luhn, etc.)
+                if (desc.includes("card_number") || desc.includes("card number") || desc.includes("luhn") || codigo === 2004) {
+                    if (desc.includes("length") || desc.includes("longitud")) {
+                        return "La cantidad de dígitos del número de tarjeta no es válida para la entidad seleccionada. Verifique que no le falten ni sobren dígitos.";
+                    }
+                    if (desc.includes("required") || desc.includes("obligatorio")) {
+                        return "El número de tarjeta es obligatorio para continuar.";
+                    }
+                    return "El número de tarjeta ingresado no es válido o no existe. Por favor verifique los dígitos de su tarjeta.";
                 }
 
-                // 2. Errores de formato de datos
-                if (codigo === 1001) {
-                    return "Uno o más campos del formulario no cumplen con el formato requerido por la entidad financiera.";
+                // 2. Errores sobre el código CVC / CVV (cvv2, cvc, cvv)
+                if (desc.includes("cvv") || desc.includes("cvc") || codigo === 2006 || codigo === 2009) {
+                    if (desc.includes("4") || (document.getElementById("numeroCuenta")?.value || "").trim().startsWith("3")) {
+                        return "Para tarjetas American Express (AMEX), el código CVC debe tener exactamente 4 dígitos (ubicado en el frente de la tarjeta).";
+                    }
+                    if (desc.includes("required")) {
+                        return "El código de seguridad (CVC) es obligatorio.";
+                    }
+                    return "El código de seguridad (CVC) no es válido para este tipo de tarjeta. Debe tener 3 dígitos (o 4 dígitos si es American Express).";
                 }
 
-                // 3. Errores específicos de tarjeta y CVC
-                if (codigo === 2004 || descripcionIngles.includes("card number")) {
-                    return "El número de tarjeta o cuenta ingresado no es válido. Verifique los dígitos.";
+                // 3. Errores sobre el nombre del titular (holder_name)
+                if (desc.includes("holder") || desc.includes("name") || desc.includes("titular")) {
+                    return "El nombre del titular de la cuenta no cumple con el formato requerido. Debe contener nombre y apellido.";
                 }
-                if (codigo === 2005 || descripcionIngles.includes("expiration")) {
+
+                // 4. Errores sobre fecha de vencimiento (expiration)
+                if (desc.includes("expir") || codigo === 2005) {
                     return "La fecha de vencimiento de la tarjeta es anterior a la fecha actual o inválida.";
                 }
-                if (codigo === 2006 || descripcionIngles.includes("cvv") || descripcionIngles.includes("cvc")) {
-                    return "El código de seguridad (CVC) no es correcto. Debe ingresar 3 o 4 dígitos.";
+
+                // 5. Errores de credenciales de pasarela (código 1002)
+                if (codigo === 1002 || desc.includes("api key") || desc.includes("merchant id") || desc.includes("credential")) {
+                    return "Las credenciales de la pasarela de pagos no son válidas o no corresponden a la cuenta configurada. Verifique appsettings.json.";
                 }
 
-                // 4. Errores de fondos y estado bancario
+                // 6. Errores específicos por código de Openpay
+                if (codigo === 1000) {
+                    return "Ocurrió un error interno en la pasarela de pagos. Por favor intente más tarde.";
+                }
+                if (codigo === 1001) {
+                    return "Uno o más campos de la tarjeta no cumplen con el formato bancario requerido. Por favor revise el número de tarjeta y el código CVC.";
+                }
+                if (codigo === 1003) {
+                    return "La pasarela de pagos no se encuentra disponible temporalmente. Intente nuevamente en unos minutos.";
+                }
+                if (codigo === 1004) {
+                    return "Se superó el límite de intentos de validación. Por favor espere un momento e intente de nuevo.";
+                }
+                if (codigo === 2007) {
+                    return "En modo de prueba (sandbox) solo se admiten números de tarjeta de prueba válidos.";
+                }
+                if (codigo === 2008) {
+                    return "La tarjeta seleccionada no es admitida para este tipo de operación.";
+                }
                 if (codigo === 3001) {
-                    return "La transacción fue rechazada por la entidad bancaria emisora.";
+                    return "La transacción fue rechazada por la entidad bancaria emisora. Verifique el estado de su tarjeta.";
                 }
                 if (codigo === 3002) {
-                    return "La tarjeta se encuentra vencida o inactiva.";
+                    return "La tarjeta ingresada se encuentra vencida o inactiva.";
                 }
                 if (codigo === 3003) {
-                    return "Fondos insuficientes en la cuenta bancaria para realizar la validación.";
+                    return "Fondos insuficientes en la cuenta bancaria para realizar la verificación.";
                 }
                 if (codigo === 3004) {
-                    return "La tarjeta ingresada ha sido reportada como extraviada o bloqueada.";
+                    return "La tarjeta ingresada ha sido reportada como extraviada o bloqueada por la entidad financiera.";
                 }
-                if (codigo === 3005) {
-                    return "La transacción ha sido rechazada por los sistemas de prevención de fraude.";
+                if (codigo === 3005 || codigo === 3006) {
+                    return "La transacción ha sido rechazada por los sistemas de seguridad y prevención de fraude bancario.";
                 }
 
-                // Mensaje genérico en español por defecto
-                return "Ocurrió un error al validar los datos bancarios con la pasarela. Por favor intente nuevamente o consulte con su entidad bancaria.";
+                // 7. Mensaje seguro en español por defecto (NUNCA mostrar texto en inglés al usuario)
+                return "Los datos bancarios ingresados no pudieron ser verificados por la entidad financiera. Por favor confirme que el número de tarjeta y el código CVC sean correctos.";
             }
 
             // Inicialización estricta de Openpay con tus credenciales
@@ -311,29 +420,168 @@
                 }
             }
 
+            // Si la página se recargó con errores del servidor, desplazarse suavemente
+            const alertaServidor = document.getElementById("resumenErroresServidor");
+            if (alertaServidor) {
+                alertaServidor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
             const btnGuardar = document.getElementById("btnGuardar");
             const btnConfirmar = document.getElementById("btnConfirmarPasarela");
             const modalConfirmacion = new bootstrap.Modal(document.getElementById("modalConfirmarRegistro"));
             const form = document.getElementById("formPerfilPago");
 
-            // Paso 3 y 4 del CU-014: Validar datos y mostrar modal de confirmación
+            // Elementos de la alerta oficial de CampesinApp
+            const alertaFrontend = document.getElementById("alertaErrorFrontend");
+            const mensajeFrontend = document.getElementById("mensajeErrorFrontend");
+            const btnCerrarAlerta = document.getElementById("btnCerrarAlertaFrontend");
+
+            if (btnCerrarAlerta) {
+                btnCerrarAlerta.addEventListener("click", function () {
+                    alertaFrontend.classList.add("d-none");
+                });
+            }
+
+            // Funciones auxiliares para marcar y limpiar errores con estilos de CampesinApp
+            function marcarError(inputGroup, errorSpan, mensaje) {
+                if (inputGroup) {
+                    inputGroup.classList.add("border-danger");
+                }
+                if (errorSpan) {
+                    errorSpan.textContent = mensaje;
+                    errorSpan.classList.remove("d-none");
+                }
+            }
+
+            function limpiarError(inputGroup, errorSpan) {
+                if (inputGroup) {
+                    inputGroup.classList.remove("border-danger");
+                }
+                if (errorSpan) {
+                    errorSpan.textContent = "";
+                    errorSpan.classList.add("d-none");
+                }
+            }
+
+            function limpiarTodosErrores() {
+                if (alertaFrontend) alertaFrontend.classList.add("d-none");
+                limpiarError(document.getElementById("groupBanco"), document.getElementById("errorBanco"));
+                limpiarError(document.getElementById("groupTipoPago"), document.getElementById("errorTipoPago"));
+                limpiarError(document.getElementById("groupTipoCuenta"), document.getElementById("errorTipoCuenta"));
+                limpiarError(document.getElementById("groupNumCuenta"), document.getElementById("errorNumCuenta"));
+                limpiarError(document.getElementById("groupCvc"), document.getElementById("errorCvc"));
+            }
+
+            // Limpieza inmediata mientras el usuario escribe o interactúa
+            document.getElementById("selectBanco")?.addEventListener("change", function () {
+                if (this.value) limpiarError(document.getElementById("groupBanco"), document.getElementById("errorBanco"));
+            });
+            document.getElementById("selectTipoPago")?.addEventListener("change", function () {
+                if (this.value) limpiarError(document.getElementById("groupTipoPago"), document.getElementById("errorTipoPago"));
+            });
+            document.getElementById("selectTipoCuenta")?.addEventListener("change", function () {
+                if (this.value) limpiarError(document.getElementById("groupTipoCuenta"), document.getElementById("errorTipoCuenta"));
+            });
+            document.getElementById("numeroCuenta")?.addEventListener("input", function () {
+                const val = this.value.trim().replace(/\s+/g, '').replace(/-/g, '');
+                if (val && /^[0-9]+$/.test(val) && val.length >= 8 && val.length <= 19) {
+                    limpiarError(document.getElementById("groupNumCuenta"), document.getElementById("errorNumCuenta"));
+                }
+            });
+            document.getElementById("codigoCvc")?.addEventListener("input", function () {
+                const val = this.value.trim();
+                if (val && /^[0-9]{3,4}$/.test(val)) {
+                    limpiarError(document.getElementById("groupCvc"), document.getElementById("errorCvc"));
+                }
+            });
+
+            // Paso 3 y 4 del CU-014: Validar datos numéricos y campos requeridos antes de abrir el modal
             btnGuardar.addEventListener("click", function () {
+                limpiarTodosErrores();
+
                 const selectBanco = document.getElementById("selectBanco");
                 const selectTipoCuenta = document.getElementById("selectTipoCuenta");
                 const selectTipoPago = document.getElementById("selectTipoPago");
                 const inputNumCuenta = document.getElementById("numeroCuenta");
                 const inputCvc = document.getElementById("codigoCvc");
 
-                if (!selectBanco.value || !selectTipoCuenta.value || !selectTipoPago.value || !inputNumCuenta.value.trim() || !inputCvc.value.trim()) {
-                    alert("Por favor diligencie todos los campos requeridos antes de guardar.");
-                    return;
+                let esValido = true;
+                let primerElementoError = null;
+
+                // 1. Validar Entidad Financiera
+                if (!selectBanco || !selectBanco.value || selectBanco.value === "" || selectBanco.value === "0") {
+                    marcarError(document.getElementById("groupBanco"), document.getElementById("errorBanco"), "Por favor seleccione una entidad financiera.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = selectBanco;
+                }
+
+                // 2. Validar Modalidad de Pago
+                if (!selectTipoPago || !selectTipoPago.value || selectTipoPago.value === "" || selectTipoPago.value === "0") {
+                    marcarError(document.getElementById("groupTipoPago"), document.getElementById("errorTipoPago"), "Por favor seleccione la modalidad de pago.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = selectTipoPago;
+                }
+
+                // 3. Validar Tipo de Cuenta
+                if (!selectTipoCuenta || !selectTipoCuenta.value || selectTipoCuenta.value === "" || selectTipoCuenta.value === "0") {
+                    marcarError(document.getElementById("groupTipoCuenta"), document.getElementById("errorTipoCuenta"), "Por favor seleccione el tipo de cuenta.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = selectTipoCuenta;
+                }
+
+                // 4. Validar Número de Cuenta o Tarjeta (Obligatorio y estrictamente numérico)
+                const valorCuenta = inputNumCuenta ? inputNumCuenta.value.trim().replace(/\s+/g, '').replace(/-/g, '') : '';
+                if (!valorCuenta) {
+                    marcarError(document.getElementById("groupNumCuenta"), document.getElementById("errorNumCuenta"), "Por favor ingrese el número de cuenta o tarjeta.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputNumCuenta;
+                } else if (!/^[0-9]+$/.test(valorCuenta)) {
+                    marcarError(document.getElementById("groupNumCuenta"), document.getElementById("errorNumCuenta"), "El número de cuenta o tarjeta debe contener únicamente dígitos numéricos (sin letras ni símbolos).");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputNumCuenta;
+                } else if (valorCuenta.length < 8 || valorCuenta.length > 19) {
+                    marcarError(document.getElementById("groupNumCuenta"), document.getElementById("errorNumCuenta"), "El número de cuenta o tarjeta debe tener entre 8 y 19 dígitos.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputNumCuenta;
+                }
+
+                // 5. Validar Código CVC (Obligatorio y estrictamente numérico de 3 o 4 dígitos)
+                const valorCvc = inputCvc ? inputCvc.value.trim() : '';
+
+                if (!valorCvc) {
+                    marcarError(document.getElementById("groupCvc"), document.getElementById("errorCvc"), "Por favor ingrese el código de seguridad (CVC).");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputCvc;
+                } else if (!/^[0-9]+$/.test(valorCvc)) {
+                    marcarError(document.getElementById("groupCvc"), document.getElementById("errorCvc"), "El código CVC debe contener únicamente números.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputCvc;
+                } else if (valorCvc.length < 3 || valorCvc.length > 4) {
+                    marcarError(document.getElementById("groupCvc"), document.getElementById("errorCvc"), "El código CVC debe tener 3 o 4 dígitos numéricos.");
+                    esValido = false;
+                    if (!primerElementoError) primerElementoError = inputCvc;
+                }
+
+                // 6. Si hubo errores: mostrar alerta de CampesinApp y auto-desplazar hacia el primer campo con error
+                if (!esValido) {
+                    if (mensajeFrontend && alertaFrontend) {
+                        mensajeFrontend.innerHTML = `<strong>Campos requeridos o inválidos:</strong> Por favor revise y corrija los campos señalados en rojo antes de continuar.`;
+                        alertaFrontend.classList.remove("d-none");
+                    }
+
+                    if (primerElementoError) {
+                        primerElementoError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (typeof primerElementoError.focus === 'function') {
+                            primerElementoError.focus();
+                        }
+                    }
+                    return; // Detener: NO abrir el modal de confirmación
                 }
 
                 // Cargar datos en el modal de confirmación
                 document.getElementById("modalBanco").textContent = selectBanco.options[selectBanco.selectedIndex].text;
                 document.getElementById("modalTipoCuenta").textContent = selectTipoCuenta.options[selectTipoCuenta.selectedIndex].text;
 
-                const valorCuenta = inputNumCuenta.value.trim().replace(/\s+/g, '');
                 const cuentaVisible = valorCuenta.length > 4 ? "•••• " + valorCuenta.slice(-4) : valorCuenta;
                 document.getElementById("modalNumCuenta").textContent = cuentaVisible;
 
@@ -349,7 +597,7 @@
                 btnConfirmar.disabled = true;
                 btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verificando...';
 
-                const numCuentaLimpio = document.getElementById("numeroCuenta").value.trim().replace(/\s+/g, '');
+                const numCuentaLimpio = document.getElementById("numeroCuenta").value.trim().replace(/\s+/g, '').replace(/-/g, '');
                 const cvcLimpio = document.getElementById("codigoCvc").value.trim();
 
                 const datosTarjeta = {
@@ -360,6 +608,16 @@
                     "cvv2": cvcLimpio
                 };
 
+                // Verificación de disponibilidad de la librería OpenPay
+                if (!window.OpenPay || !OpenPay.token) {
+                    btnConfirmar.disabled = false;
+                    btnConfirmar.textContent = "Confirmar";
+                    const alerta = document.getElementById("alertaErrorPasarela");
+                    alerta.classList.remove("d-none");
+                    document.getElementById("textoErrorPasarela").textContent = "No fue posible conectar con el servicio de pagos. Por favor verifique su conexión a internet.";
+                    return;
+                }
+
                 // Petición directa a la pasarela Openpay
                 OpenPay.token.create(
                     datosTarjeta,
@@ -367,11 +625,12 @@
                         // ÉXITO: Openpay validó la tarjeta y emitió el Token real
                         const tokenId = response.data.id;
                         document.getElementById("tokenOpenpay").value = tokenId;
-                        document.getElementById("codigoCvc").value = "•••"; // Limpiamos el CVC por seguridad
+                        document.getElementById("codigoCvc").value = cvcLimpio;
                         form.submit();
                     },
                     function (error) {
                         // ERROR: Openpay rechazó la petición
+                        console.error("Openpay Error detallado:", error);
                         btnConfirmar.disabled = false;
                         btnConfirmar.textContent = "Confirmar";
 
