@@ -144,6 +144,7 @@ namespace CampesinApp.Controllers
                 {
                     HttpContext.Session.SetString("Reg_CodigoTelefonoSimulado", codigoGenerado);
                     ViewBag.CodigoTelefonoSimulado = codigoGenerado;
+                    ViewBag.CodigoWhatsappSimulado = codigoGenerado;
                 }
                 else
                 {
@@ -179,7 +180,11 @@ namespace CampesinApp.Controllers
 
                 int reenviosActuales = HttpContext.Session.GetInt32("Reg_ReenviosCodigo") ?? 0;
                 ViewBag.ReenviosRestantes = 3 - reenviosActuales;
-                if (metodo == "telefono") ViewBag.CodigoTelefonoSimulado = codigoReal;
+                if (metodo == "telefono")
+                {
+                    ViewBag.CodigoTelefonoSimulado = codigoReal;
+                    ViewBag.CodigoWhatsappSimulado = codigoReal;
+                }
 
                 if (model.CodigoVerificacion != codigoReal)
                 {
@@ -297,7 +302,11 @@ namespace CampesinApp.Controllers
                 Telefono = telefono ?? "",
                 MetodoSeleccionado = metodo
             };
-            if (metodo == "telefono") ViewBag.CodigoTelefonoSimulado = codigoGenerado;
+            if (metodo == "telefono")
+            {
+                ViewBag.CodigoTelefonoSimulado = codigoGenerado;
+                ViewBag.CodigoWhatsappSimulado = codigoGenerado;
+            }
 
             return View("RegistroUsuario", model);
         }

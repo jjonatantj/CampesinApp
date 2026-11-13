@@ -542,18 +542,22 @@ namespace CampesinApp.Controllers
         [HttpPost("ConfirmarCarga")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmarCarga(
-            ImportarDatosViewModel model)
+            ImportarDatosViewModel? model)
         {
             int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
 
             if (idUsuario == null)
                 return RedirectToAction("Login", "InicioSesion");
 
-            // Validación agregada para cumplir con la regla csharpsquid:S6967[cite: 5]
+            // En este paso de confirmación, los archivos ya fueron procesados y están en TempData.
+            // Removemos la validación de los archivos para que ModelState no falle por campos vacíos.
+            ModelState.Remove(nameof(ImportarDatosViewModel.ArchivoDane));
+            ModelState.Remove(nameof(ImportarDatosViewModel.ArchivoCorabastos));
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorImportacion"] = "Los datos del modelo no son válidos.";
-                return View("ImportarDatos", model);
+                return RedirectToAction("Index");
             }
 
             try
