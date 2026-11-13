@@ -43,7 +43,9 @@ namespace CampesinApp.Repositories.Models
         public const string Nombre = "En carretera";
 
         private static readonly System.Text.RegularExpressions.Regex Patron =
-            new(@"^En carretera \((-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\)$", System.Text.RegularExpressions.RegexOptions.Compiled);
+            new(@"^En carretera \((-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\)$", 
+                System.Text.RegularExpressions.RegexOptions.Compiled,
+                TimeSpan.FromMilliseconds(250));
 
         public static string Formatear(double lat, double lng)
         {

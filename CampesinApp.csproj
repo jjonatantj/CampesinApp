@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>74073a3c-870a-4474-a82d-d5c942a7963f</UserSecretsId>
+    <DefaultItemExcludes>$(DefaultItemExcludes);CampesinApp.Tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

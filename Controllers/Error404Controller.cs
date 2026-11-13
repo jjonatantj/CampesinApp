@@ -40,7 +40,7 @@ namespace CampesinApp.Controllers
                     }
                 }
 
-                if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+                if (Request.EsPeticionAjax())
                 {
                     return new EmptyResult();
                 }
