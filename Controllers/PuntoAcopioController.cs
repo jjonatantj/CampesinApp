@@ -194,6 +194,12 @@ namespace CampesinApp.Controllers
                 ModelState.AddModelError("Latitud", "Debe hacer clic en el mapa interactivo o usar 'Mi Ubicación Actual' para fijar las coordenadas geográficas.");
             }
 
+            // Validación de Horario de Atención: debe contar con al menos un día y hora de atención
+            if (string.IsNullOrWhiteSpace(model.HorarioAtencion))
+            {
+                ModelState.AddModelError("HorarioAtencion", "Debe seleccionar al menos un día disponible para el horario de atención.");
+            }
+
             // 3. REGLA DE NEGOCIO RN-02-CU018: Acceso vehicular habilitado por defecto
             model.AccesoVehicular = true;
 
