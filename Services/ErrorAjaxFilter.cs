@@ -26,7 +26,7 @@ namespace CampesinApp.Services
         public async Task OnExceptionAsync(ExceptionContext context)
         {
             var peticion = context.HttpContext.Request;
-            if (peticion.Headers["X-Requested-With"] != "XMLHttpRequest")
+            if (!peticion.EsPeticionAjax())
             {
                 return;
             }
