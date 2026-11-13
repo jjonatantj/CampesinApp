@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;

@@ -523,8 +523,8 @@
             geocoder = new google.maps.Geocoder();
 
             // Verificamos si los campos ocultos ya tenían coordenadas (por ejemplo al recargar por validación)
-            const latPrevia = parseFloat(document.getElementById('latitudHidden').value);
-            const lngPrevia = parseFloat(document.getElementById('longitudHidden').value);
+            const latPrevia = Number.parseFloat(document.getElementById('latitudHidden').value);
+            const lngPrevia = Number.parseFloat(document.getElementById('longitudHidden').value);
             const tieneCoordenadas = !isNaN(latPrevia) && !isNaN(lngPrevia) && latPrevia !== 0;
 
             const puntoInicial = tieneCoordenadas ? { lat: latPrevia, lng: lngPrevia } : { lat: latDefault, lng: lngDefault };
@@ -774,7 +774,7 @@
                     alert(mensajeError);
 
                     // Si no había coordenadas previas, restaurar mensaje de ayuda
-                    const latPrev = parseFloat(document.getElementById('latitudHidden').value);
+                    const latPrev = Number.parseFloat(document.getElementById('latitudHidden').value);
                     if (isNaN(latPrev) || latPrev === 0) {
                         if (textoCoords) {
                             textoCoords.innerHTML = `<span class="text-secondary">Ningún punto marcado aún. Digite la dirección o haga clic en el mapa.</span>`;
@@ -924,7 +924,7 @@
 
             // Verificamos si los días seleccionados son un bloque continuo (ej: Lun a Vie, Lun a Sáb)
             let diasTexto = '';
-            const indices = seleccionados.map(cb => parseInt(cb.getAttribute('data-index'), 10));
+            const indices = seleccionados.map(cb => Number.parseInt(cb.getAttribute('data-index'), 10));
             const esConsecutivo = indices.every((val, i, arr) => i === 0 || val === arr[i - 1] + 1);
 
             if (esConsecutivo && seleccionados.length >= 3) {
@@ -1049,8 +1049,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lng = parseFloat(data[0].lon);
+                        const lat = Number.parseFloat(data[0].lat);
+                        const lng = Number.parseFloat(data[0].lon);
                         map.setCenter({ lat: lat, lng: lng });
                         map.setZoom(14);
                     }
@@ -1271,8 +1271,8 @@
                     }
 
                     // 4. Validación de Coordenadas del Mapa (RN-01-CU018)
-                    const lat = parseFloat(document.getElementById('latitudHidden').value);
-                    const lng = parseFloat(document.getElementById('longitudHidden').value);
+                    const lat = Number.parseFloat(document.getElementById('latitudHidden').value);
+                    const lng = Number.parseFloat(document.getElementById('longitudHidden').value);
                     if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
                         e.preventDefault();
                         const mapDiv = document.getElementById('map');

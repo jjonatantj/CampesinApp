@@ -576,7 +576,7 @@
 
         return filas.filter(fila => {
             if (estado.filtroCantidad === null) return true;
-            const cant = parseInt(fila.getAttribute('data-cantidad') || '0', 10);
+            const cant = Number.parseInt(fila.getAttribute('data-cantidad') || '0', 10);
             return cant > estado.filtroCantidad;
         });
     }
@@ -728,7 +728,7 @@
         }
 
         const estado = obtenerEstadoOfertadores(idDemanda);
-        estado.filtroCantidad = parseInt(valorTexto, 10);
+        estado.filtroCantidad = Number.parseInt(valorTexto, 10);
         estado.paginaActual = 1;
         actualizarPaginacionOfertadores(idDemanda);
     }

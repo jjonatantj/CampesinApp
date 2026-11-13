@@ -119,8 +119,6 @@ namespace CampesinApp.Repositories
         public List<CamionSugerenciaItem> ObtenerCamionesDisponibles(int top = 5)
         {
             return _context.Camions
-                .Include(c => c.IdUsuarioNavigation)
-                    .ThenInclude(u => u.IdMunicipioNavigation)
                 .Where(c => c.EstadoPase && c.EstadoSeguro && c.EstadoTecno)
                 .Take(top)
                 .Select(c => new CamionSugerenciaItem
@@ -136,9 +134,6 @@ namespace CampesinApp.Repositories
         public List<CampesinoDestacadoItem> ObtenerCampesinosDestacados(int top = 4)
         {
             return _context.Usuarios
-                .Include(u => u.IdRolNavigation)
-                .Include(u => u.IdMunicipioNavigation)
-                    .ThenInclude(m => m.IdDepartamentoNavigation)
                 .Where(u => u.Estado && u.IdRolNavigation.TipoRol == "Campesino")
                 .Take(top)
                 .Select(u => new CampesinoDestacadoItem
@@ -154,7 +149,6 @@ namespace CampesinApp.Repositories
         public List<CompradorMayoristaItem> ObtenerCompradoresMayoristas(int top = 4)
         {
             return _context.Usuarios
-                .Include(u => u.IdRolNavigation)
                 .Where(u => u.Estado && u.IdRolNavigation.TipoRol == "Comprador")
                 .Take(top)
                 .Select(u => new CompradorMayoristaItem
@@ -169,7 +163,6 @@ namespace CampesinApp.Repositories
         public List<ProductoOfertaItem> ObtenerCatalogoProductos(int top = 6)
         {
             return _context.Productos
-                .Include(p => p.IdTipoProductoNavigation)
                 .Take(top)
                 .Select(p => new ProductoOfertaItem
                 {
