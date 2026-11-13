@@ -225,6 +225,13 @@ namespace CampesinApp.Services
                 var comprador = await _db.Demanda.Where(d => d.IdDemanda == idDemanda).Select(d => d.IdUsuario).FirstAsync();
                 _notificaciones.Agregar(new[] { comprador, viaje.IdUsuarioTransportador }, TiposNotificacion.EntregaCompletada,
                     "¡Entrega completada con éxito y sin novedades!", idDemanda);
+
+                // =========================================================================
+                // LIQUIDACIÓN AUTOMÁTICA DE FONDOS (CU-025 y CU-017)
+                // Se distribuye el pago retenido al transportador y a los campesinos según los
+                // valores calculados en base de datos (flete_Estimado y precio_Campesino).
+                // =========================================================================
+                await DistribuirFondosEntregaAsync(idDemanda, viaje.IdUsuarioTransportador);
             }
             else if (quienConfirmo == RolUsuario.Transportador && !viaje.CompradorConfirma)
             {
@@ -266,6 +273,90 @@ namespace CampesinApp.Services
             await using var destino = File.Create(Path.Combine(carpeta, nombre));
             await archivo.CopyToAsync(destino);
             return ResultadoOperacion<string>.Ok(nombre);
+        }
+
+        /// <summary>
+        /// Distribuye el dinero retenido del comprador cuando la entrega finaliza con éxito.
+        /// Utiliza el flete calculado en flete_Estimado para el transportador y el precio por kilo
+        /// calculado por el trigger trg_CalcularPrecioCampesino (demanda.precio_Campesino) para cada aporte de los campesinos.
+        /// </summary>
+        private async Task DistribuirFondosEntregaAsync(int idDemanda, int idUsuarioTransportador)
+        {
+            try
+            {
+                var demanda = await _db.Demanda
+                    .Include(d => d.AporteCamps)
+                    .Include(d => d.PagoCompradors)
+                    .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda);
+
+                if (demanda == null) return;
+
+                // 1. LIQUIDACIÓN DEL TRANSPORTADOR
+                // Verificamos que no se haya pagado ya para evitar pagos duplicados
+                bool transportadorYaPagado = await _db.PagoTransportadors.AnyAsync(p => p.IdDemanda == idDemanda);
+                if (!transportadorYaPagado)
+                {
+                    double fleteFinal = demanda.FleteEstimado ?? 150000.0;
+
+                    // Buscamos el perfil de pago del transportador, si no tiene tomamos el primero del sistema
+                    var perfilTrans = await _db.PerfilPagos.FirstOrDefaultAsync(p => p.IdUsuario == idUsuarioTransportador);
+                    int idPerfilPagoTrans = perfilTrans?.IdPerfilPago 
+                        ?? await _db.PerfilPagos.Select(p => p.IdPerfilPago).FirstOrDefaultAsync();
+
+                    if (idPerfilPagoTrans > 0)
+                    {
+                        var nuevoPagoTrans = new PagoTransportador
+                        {
+                            IdUsuario = idUsuarioTransportador,
+                            IdDemanda = idDemanda,
+                            IdPerfilPago = idPerfilPagoTrans,
+                            AnticipoTrans = Math.Round(fleteFinal * 0.30, 2),
+                            PagoCompleTrans = Math.Round(fleteFinal, 2),
+                            FechaAntiTrans = DateTime.Now,
+                            FechaPagoTrans = DateTime.Now
+                        };
+                        _db.PagoTransportadors.Add(nuevoPagoTrans);
+                    }
+                }
+
+                // 2. LIQUIDACIÓN DE CADA CAMPESINO APORTANTE
+                // Usamos directamente precio_Campesino calculado por el trigger en la base de datos
+                double precioKiloCampesino = demanda.PrecioCampesino ?? demanda.PrecioDeman;
+
+                foreach (var aporte in demanda.AporteCamps)
+                {
+                    // Si ya existe consignación registrada para este aporte, no duplicarla
+                    bool aporteYaConsignado = await _db.Consignacions.AnyAsync(c => c.IdAporte == aporte.IdAporte);
+                    if (aporteYaConsignado) continue;
+
+                    double valorConsignar = Math.Round(aporte.CantAporte * precioKiloCampesino, 2);
+
+                    var perfilCampesino = await _db.PerfilPagos.FirstOrDefaultAsync(p => p.IdUsuario == aporte.IdUsuario);
+                    int idPerfilPagoCamp = perfilCampesino?.IdPerfilPago 
+                        ?? await _db.PerfilPagos.Select(p => p.IdPerfilPago).FirstOrDefaultAsync();
+
+                    if (idPerfilPagoCamp > 0)
+                    {
+                        var nuevaConsignacion = new Consignacion
+                        {
+                            IdUsuario = aporte.IdUsuario,
+                            IdAporte = aporte.IdAporte,
+                            IdPerfilPago = idPerfilPagoCamp,
+                            ConsigCampesino = valorConsignar,
+                            FechaConsigCam = DateTime.Now
+                        };
+                        _db.Consignacions.Add(nuevaConsignacion);
+                    }
+                }
+
+                // 3. ACTUALIZAR ESTADO DE LA DEMANDA A FINALIZADA (Estado 4: Finalizada / Culminada)
+                demanda.IdEstadoDeman = 4;
+            }
+            catch (Exception ex)
+            {
+                await _log.RegistrarAsync(NivelesLog.Error, "CU-025 Liquidación Entrega",
+                    $"Error al distribuir fondos de la demanda {idDemanda}: {ex.Message}");
+            }
         }
     }
 }

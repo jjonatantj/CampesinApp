@@ -220,7 +220,7 @@
                         {
                             <div class="alert alert-success border-2 rounded-3 p-3 my-3 shadow-sm text-center" style="background-color: #f0fdf4;">
                                 <span class="d-block small text-success fw-bold mb-1"><i class="bi bi-whatsapp"></i> CÓDIGO WHATSAPP SIMULADO:</span>
-                                <span class="fs-3 fw-bold text-dark tracking-widest">@ViewBag.CodigoWhatsappSimulado</span>
+                                <span class="fs-3 fw-bold text-dark tracking-widest">@(ViewBag.CodigoTelefonoSimulado ?? ViewBag.CodigoWhatsappSimulado)</span>
                             </div>
                         }
                         else

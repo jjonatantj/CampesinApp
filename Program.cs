@@ -1,8 +1,6 @@
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
 using CampesinApp.Services;
-using Hangfire;
-using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -37,26 +35,9 @@ builder.Services.AddScoped<IAsignacionVehiculoRepository, AsignacionVehiculoRepo
 
 builder.Services.AddCasosDeUso(builder.Configuration);
 
-var hangfireStorage = new SqlServerStorage(connectionString, new SqlServerStorageOptions
-{
-    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-    QueuePollInterval = TimeSpan.Zero,
-    UseRecommendedIsolationLevel = true,
-    DisableGlobalLocks = true,
-    PrepareSchemaIfNecessary = true
-});
-
-JobStorage.Current = hangfireStorage;
-
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseStorage(hangfireStorage));
-
-builder.Services.AddHangfireServer();
+// 4. SERVICIOS DE ESTIMADOS DIARIOS (Nativo de .NET 8, sin scripts .sql ni dependencias pesadas)
 builder.Services.AddScoped<IEstimadosDiariosJob, EstimadosDiariosJob>();
+builder.Services.AddHostedService<EstimadosDiariosBackgroundService>();
 
 builder.Services.AddSession(options =>
 {
@@ -89,42 +70,6 @@ app.UseAuthorization();
 
 
 app.UseStatusCodePagesWithReExecute("/Error404/Index", "?statusCode={0}");
-
-// 5.1 HANGFIRE DASHBOARD Y PROGRAMACIÓN DE ESTIMADOS DIARIOS
-app.UseHangfireDashboard("/hangfire");
-
-TimeZoneInfo zonaColombia;
-try
-{
-    zonaColombia = TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-}
-catch
-{
-    try
-    {
-        zonaColombia = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
-    }
-    catch
-    {
-        zonaColombia = TimeZoneInfo.Local;
-    }
-}
-
-try
-{
-    RecurringJob.AddOrUpdate<IEstimadosDiariosJob>(
-        "sp-calcular-estimados-diarios",
-        job => job.EjecutarSpAsync(),
-        "30 8 * * *",
-        new RecurringJobOptions { TimeZone = zonaColombia });
-
-    BackgroundJob.Enqueue<IEstimadosDiariosJob>(job => job.VerificarYEjecutarPendienteAsync());
-}
-catch (Exception ex)
-{
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Aviso: No se pudo registrar la tarea programada de Hangfire en este arranque.");
-}
 
 app.MapControllerRoute(
     name: "default",

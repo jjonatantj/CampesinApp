@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 using CampesinApp.Repositories;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
@@ -215,7 +216,7 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
-                // Código de 6 dígitos con generador criptográficamente seguro (no se puede adivinar a partir de códigos anteriores).
+                // Generador criptográficamente seguro (CSPRNG) para códigos de recuperación (Regla SonarQube S2245)
                 string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
                 DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
 
@@ -338,7 +339,7 @@ namespace CampesinApp.Controllers
             reenvios++;
             HttpContext.Session.SetInt32("Rec_ReenviosCodigo", reenvios);
 
-            // Código de 6 dígitos con generador criptográficamente seguro.
+            // Generador criptográficamente seguro (CSPRNG) para códigos de recuperación (Regla SonarQube S2245)
             string codigoGenerado = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             DateTime fechaExpiracion = DateTime.Now.AddMinutes(5);
             HttpContext.Session.SetString("Rec_Expiracion", fechaExpiracion.ToString("o"));
