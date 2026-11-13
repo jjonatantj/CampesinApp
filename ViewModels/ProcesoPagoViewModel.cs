@@ -14,19 +14,23 @@ namespace CampesinApp.ViewModels
         // -------------------------------------------------------------
         // DATOS DE LA DEMANDA / PEDIDO A PAGAR
         // -------------------------------------------------------------
+        [Required]
         public int IdDemanda { get; set; }
 
         public string NombreProducto { get; set; } = string.Empty;
 
         public string NombreVariedad { get; set; } = string.Empty;
 
+        [Required]
         public int CantidadKilos { get; set; }
 
+        [Required]
         public double PrecioPorKilo { get; set; }
 
         // El comprador paga el 100% del valor estimado del pedido
         public double ValorTotalPagar => CantidadKilos * PrecioPorKilo;
 
+        [Required]
         public DateTime FechaEntrega { get; set; }
 
         public string DireccionEntrega { get; set; } = string.Empty;

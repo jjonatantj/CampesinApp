@@ -13,7 +13,7 @@
         return;
     }
 
-    const minutos = parseInt(contexto.dataset.inactividadMinutos, 10);
+    const minutos = Number.parseInt(contexto.dataset.inactividadMinutos, 10);
     if (!minutos || minutos <= 0) {
         return;
     }

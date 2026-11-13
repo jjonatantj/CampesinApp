@@ -283,8 +283,8 @@
 
                     // Renderizar cada punto de acopio
                     puntos.forEach(p => {
-                        const lat = parseFloat(p.latitud);
-                        const lng = parseFloat(p.longitud);
+                        const lat = Number.parseFloat(p.latitud);
+                        const lng = Number.parseFloat(p.longitud);
 
                         if (isNaN(lat) || isNaN(lng)) return;
 

@@ -29,8 +29,10 @@ namespace CampesinApp.Dtos
 
     public class ConfirmarRecepcionDto
     {
+        [Required]
         public int IdDemanda { get; set; }
 
+        [Required]
         public RespuestaRecepcion Respuesta { get; set; }
 
         [StringLength(500)]
@@ -53,11 +55,13 @@ namespace CampesinApp.Dtos
 
     public class FormularioCalificacionDto
     {
+        [Required]
         public int IdDemanda { get; set; }
 
         public string CodigoPedido { get; set; } = string.Empty;
 
         /// <summary>true para el comprador (estrellas y comentario obligatorios); el transportador solo escribe su comentario.</summary>
+        [Required]
         public bool EsComprador { get; set; }
 
         [Range(1, 5)]
@@ -71,6 +75,7 @@ namespace CampesinApp.Dtos
         public string CorreoSoporte { get; set; } = string.Empty;
 
         /// <summary>Se activa cuando se llega desde un desacuerdo de entrega (FE-01-CU025).</summary>
+        [Required]
         public bool PorDesacuerdo { get; set; }
     }
 

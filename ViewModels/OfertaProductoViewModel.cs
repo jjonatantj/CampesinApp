@@ -14,6 +14,7 @@ namespace CampesinApp.ViewModels
         // DATOS INFORMATIVOS DE LA DEMANDA (Solo lectura en la parte superior)
         // =========================================================================
 
+        [Required]
         public int IdDemanda { get; set; }
 
         public string NombreProducto { get; set; } = string.Empty;
@@ -23,26 +24,33 @@ namespace CampesinApp.ViewModels
         public string? Descripcion { get; set; }
 
         // Cantidad total solicitada originalmente por el comprador
+        [Required]
         public int CantidadTotal { get; set; }
 
         // Cantidad que aún falta por aportar para completar el pedido
+        [Required]
         public int CantidadFaltante { get; set; }
 
         // Suma de aportes realizados previamente por TODOS los campesinos a esta demanda
+        [Required]
         public int CantidadAportadaPrevia { get; set; }
 
         // Tope general del 10% del total demandado (RN-04-CU013)
+        [Required]
         public int TopeDiezPorciento { get; set; }
 
         // Cantidad aportada previamente por ESTE mismo campesino a esta demanda
+        [Required]
         public int AportePrevioCampesino { get; set; }
 
         // Indica si el campesino ya cumplió con el requisito de haber aportado >= 10%
         public bool YaCumplioMinimoDiez => (AportePrevioCampesino >= TopeDiezPorciento);
 
         // Mínimo permitido para la transacción actual (1 si ya cumplió el 10% o le falta poco)
+        [Required]
         public int MinimoPermitido { get; set; }
 
+        [Required]
         public double PrecioPropuesto { get; set; }
 
         public string MunicipioEntrega { get; set; } = string.Empty;

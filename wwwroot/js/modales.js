@@ -92,7 +92,7 @@
                 if (autoPagina) {
                     temporizadorRedireccion = setTimeout(
                         () => window.location.assign(autoPagina.dataset.url),
-                        parseInt(autoPagina.dataset.autoredirigir, 10) || 6000);
+                        Number.parseInt(autoPagina.dataset.autoredirigir, 10) || 6000);
                 }
                 return;
             }
@@ -110,7 +110,7 @@
         if (auto) {
             temporizadorRedireccion = setTimeout(
                 () => window.location.assign(auto.dataset.url),
-                parseInt(auto.dataset.autoredirigir, 10) || 6000);
+                Number.parseInt(auto.dataset.autoredirigir, 10) || 6000);
         }
     }
 
@@ -252,11 +252,11 @@
         const estrella = evento.target.closest('.estrella[data-valor]');
         if (estrella) {
             const contenedor = estrella.closest('[data-estrellas]');
-            const valor = parseInt(estrella.dataset.valor, 10);
+            const valor = Number.parseInt(estrella.dataset.valor, 10);
             contenedor.querySelector('input[type="hidden"]').value = valor;
             contenedor.querySelectorAll('.estrella').forEach((e) => {
-                e.classList.toggle('activa', parseInt(e.dataset.valor, 10) <= valor);
-                e.setAttribute('aria-pressed', parseInt(e.dataset.valor, 10) === valor ? 'true' : 'false');
+                e.classList.toggle('activa', Number.parseInt(e.dataset.valor, 10) <= valor);
+                e.setAttribute('aria-pressed', Number.parseInt(e.dataset.valor, 10) === valor ? 'true' : 'false');
             });
             contenedor.classList.remove('campo-error');
         }

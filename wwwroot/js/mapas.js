@@ -324,8 +324,8 @@
             if (!valor) return null;
             if (clave === 'municipio') return posicionMunicipio(valor);
             if (clave === 'lugar' && valor === 'En carretera') {
-                const lat = parseFloat(formulario.querySelector('#Latitud')?.value);
-                const lng = parseFloat(formulario.querySelector('#Longitud')?.value);
+                const lat = Number.parseFloat(formulario.querySelector('#Latitud')?.value);
+                const lng = Number.parseFloat(formulario.querySelector('#Longitud')?.value);
                 return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
             }
             const p = porNombre.get(valor);
