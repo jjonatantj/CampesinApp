@@ -292,8 +292,8 @@ namespace CampesinApp.Controllers
                 }
 
                 ViewBag.RegistroExitoso = true;
-                ViewBag.MensajeExito = $"Punto de acopio '{model.NombrePunto}' registrado satisfactoriamente (ID #{idPuntoGenerado}).";
-                TempData["MensajeExito"] = "Punto de acopio registrado satisfactoriamente.";
+                ViewBag.MensajeExito = $"Registro de punto de acopio {model.NombrePunto}";
+                TempData["MensajeExito"] = $"Registro de punto de acopio {model.NombrePunto}";
 
                 await CargarListasDesplegablesAsync(model);
                 return View(model);

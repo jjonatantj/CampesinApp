@@ -59,7 +59,7 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label asp-for="Cantidad" class="form-label fw-bold text-dark small"></label>
-                                    <input asp-for="Cantidad" id="txtCantidad" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 500" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
+                                    <input asp-for="Cantidad" id="txtCantidad" type="number" step="1" min="900" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 900" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
                                     <small class="text-success fw-bold d-block mt-1 ms-2" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
                                     <span asp-validation-for="Cantidad" class="text-danger small fw-semibold"></span>
                                 </div>
@@ -111,7 +111,7 @@
                                 {
                                     <div class="mt-2 text-danger small fw-semibold">
                                         <i class="bi bi-exclamation-circle me-1"></i> No tienes registrado punto de acopio.
-                                        <a href="@Url.Action("Index", "PuntoAcopio")" class="text-success fw-bold text-decoration-underline">Registra uno aquí</a>.
+                                        <a href="@Url.Action("Registrar", "PuntoAcopio")" class="text-success fw-bold text-decoration-underline">Registra uno aquí</a>.
                                     </div>
                                 }
                             </div>
@@ -301,8 +301,8 @@
             $("#errorTextoPrecio").text("");
             $("#txtPrecioEstimado").removeClass("is-invalid");
 
-            if (isNaN(cantidadIngresada) || cantidadIngresada < 20) {
-                Swal.fire('Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 20 kg.', 'error');
+            if (isNaN(cantidadIngresada) || cantidadIngresada < 900) {
+                Swal.fire('Cantidad insuficiente', 'Para compradores mayoristas, la cantidad mínima requerida es de 900 kg.', 'error');
                 return;
             }
 
