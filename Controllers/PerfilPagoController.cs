@@ -151,7 +151,8 @@ namespace CampesinApp.Controllers
             }
 
             // 5. REGISTRO PERMANENTE DE CLIENTE Y TARJETA EN OPENPAY (Customer & Saved Card)
-            var resultadoOpenpay = await RegistrarTarjetaEnOpenpayAsync(usuario, model.TokenOpenpay!, model.DeviceSessionId);
+            string ipCliente = ObtenerIpCliente();
+            var resultadoOpenpay = await RegistrarTarjetaEnOpenpayAsync(usuario, model.TokenOpenpay!, model.DeviceSessionId, ipCliente);
             if (!resultadoOpenpay.Exito)
             {
                 ModelState.AddModelError("", resultadoOpenpay.ErrorMensaje ?? "No fue posible registrar la tarjeta con la pasarela de pagos.");
@@ -190,10 +191,10 @@ namespace CampesinApp.Controllers
 
                     // BUENA PRÁCTICA DE SEGURIDAD (PCI-DSS):
                     // En el campo cvc (varchar(100) en BD) almacenamos el identificador compuesto permanente
-                    // en formato customerId|cardId para permitir cargos recurrentes sin quemar el token.
-                    Cvc = (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "").Length > 100 
-                        ? (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "").Substring(0, 100) 
-                        : (resultadoOpenpay.IdentificadorCompuesto ?? model.TokenOpenpay ?? "")
+                    // en formato customerId|cardId para permitir cargos recurrentes sin quemar el token temporal.
+                    Cvc = (resultadoOpenpay.IdentificadorCompuesto ?? "").Length > 100 
+                        ? (resultadoOpenpay.IdentificadorCompuesto ?? "").Substring(0, 100) 
+                        : (resultadoOpenpay.IdentificadorCompuesto ?? "")
                 };
 
                 // 7. Insertamos el nuevo registro en la tabla perfil_Pago
@@ -279,7 +280,8 @@ namespace CampesinApp.Controllers
         private async Task<(bool Exito, string? IdentificadorCompuesto, string? ErrorMensaje)> RegistrarTarjetaEnOpenpayAsync(
             Usuario usuario, 
             string tokenTarjeta, 
-            string? deviceSessionId)
+            string? deviceSessionId,
+            string? ipCliente = null)
         {
             string merchantId = _configuration["Openpay:MerchantId"] ?? "";
             string privateKey = _configuration["Openpay:PrivateApiKey"] ?? "";
@@ -301,6 +303,12 @@ namespace CampesinApp.Controllers
                 using var client = new HttpClient();
                 var credencialesBytes = Encoding.ASCII.GetBytes($"{privateKey}:");
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(credencialesBytes));
+
+                // Cabecera obligatoria de Openpay para antifraude y geolocalización
+                if (!string.IsNullOrWhiteSpace(ipCliente))
+                {
+                    client.DefaultRequestHeaders.Add("X-Forwarded-For", ipCliente);
+                }
 
                 // 1. Obtener o crear el Cliente en Openpay
                 string externalId = $"campesinapp_user_{usuario.IdUsuario}";
@@ -418,14 +426,6 @@ namespace CampesinApp.Controllers
                         }
                     }
 
-                    // Código 3006 en Sandbox: La cuenta de comercio en pruebas de Openpay Colombia no tiene activada la bóveda de tarjetas (Vaulting / OneClick).
-                    // Como la tarjeta ya fue validada y tokenizada exitosamente por Openpay en el navegador (tokenTarjeta), asociamos el token
-                    // para permitir que el registro de perfil de pago se complete sin bloquear las pruebas académicas.
-                    if (errCode == 3006 && isSandbox)
-                    {
-                        return (true, $"{customerId}|{tokenTarjeta}", null);
-                    }
-
                     string errorDesc = ExtraerErrorOpenpay(postTarjetaBody);
                     return (false, null, errorDesc);
                 }
@@ -505,6 +505,28 @@ namespace CampesinApp.Controllers
             {
                 return "Respuesta inesperada de la pasarela de pagos.";
             }
+        }
+
+        private string ObtenerIpCliente()
+        {
+            string? forwarded = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(forwarded))
+            {
+                string ip = forwarded.Split(',')[0].Trim();
+                if (!string.IsNullOrWhiteSpace(ip) && ip != "::1" && ip != "127.0.0.1")
+                {
+                    return ip;
+                }
+            }
+
+            var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (!string.IsNullOrWhiteSpace(remoteIp) && remoteIp != "::1" && remoteIp != "127.0.0.1")
+            {
+                return remoteIp;
+            }
+
+            // IP colombiana de contingencia para pruebas académicas en sandbox
+            return "186.155.12.1";
         }
     }
 }
