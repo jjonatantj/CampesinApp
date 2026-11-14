@@ -115,10 +115,14 @@ namespace CampesinApp.Controllers
                         model.DireccionEntrega = string.IsNullOrWhiteSpace(direccion) ? "Punto de acopio acordado" : direccion;
 
                         await RecargarListaMetodosPagoAsync(model, usuario.IdUsuario);
+                        CargarConfiguracionPasarela();
                         return View(model);
                     }
                 }
-                catch { }
+                catch (Exception)
+                {
+                    // Fallo no crítico al deserializar el borrador de demanda
+                }
             }
 
             // Paso E: Si se especificó un ID de demanda existente en la URL, verificamos que exista, que le pertenezca y que NO esté pagada
@@ -520,7 +524,10 @@ namespace CampesinApp.Controllers
                             idTransaccion = idProp.GetString();
                         }
                     }
-                    catch { }
+                    catch (Exception)
+                    {
+                        // Fallo no crítico al parsear el id de transacción exitosa
+                    }
 
                     return (true, null, idTransaccion);
                 }
@@ -541,7 +548,10 @@ namespace CampesinApp.Controllers
                             descripcionApi = descProp.GetString();
                         }
                     }
-                    catch { }
+                    catch (Exception)
+                    {
+                        // Fallo no crítico al parsear el código de error
+                    }
 
                     // Traducir exhaustivamente a español para evitar cualquier mensaje en inglés
                     string mensajeTraducido = TraducirErrorOpenpay(errorCode, descripcionApi);
@@ -619,7 +629,7 @@ namespace CampesinApp.Controllers
                 3003 => "Fondos insuficientes en la tarjeta para cubrir el monto del pedido.",
                 3004 => "La tarjeta se encuentra bloqueada por la entidad bancaria.",
                 3005 => "Transacción rechazada por los filtros de seguridad y prevención de fraude del banco.",
-                3006 => "La tarjeta no tiene habilitada la opción de compras por internet.",
+                3006 => "La operación no está permitida para esta tarjeta o cuenta. En modo de prueba (Sandbox), utilice la tarjeta oficial de compras exitosas: 4242 4242 4242 4242.",
                 3009 => "La tarjeta fue reportada como extraviada o robada.",
                 3010 => "El banco emisor ha restringido el uso de esta tarjeta.",
                 3011 => "La entidad bancaria solicita comunicarse directamente con el banco emisor.",
@@ -653,6 +663,7 @@ namespace CampesinApp.Controllers
                 : (demanda.IdPuntoAcopioNavigation != null ? demanda.IdPuntoAcopioNavigation.NombrePunto : "Punto de acopio asignado");
 
             await RecargarListaMetodosPagoAsync(model, idUsuario);
+            CargarConfiguracionPasarela();
         }
 
         private async Task PoblarDesdeBorradorAsync(ProcesoPagoViewModel model, BorradorDemandaDto borrador, int idUsuario)
@@ -676,6 +687,7 @@ namespace CampesinApp.Controllers
             model.DireccionEntrega = string.IsNullOrWhiteSpace(direccion) ? "Punto de acopio acordado" : direccion;
 
             await RecargarListaMetodosPagoAsync(model, idUsuario);
+            CargarConfiguracionPasarela();
         }
 
         private async Task RepoblarModeloErrorAsync(ProcesoPagoViewModel model, int idUsuario)
@@ -692,10 +704,22 @@ namespace CampesinApp.Controllers
                         return;
                     }
                 }
-                catch { }
+                catch (Exception)
+                {
+                    // Fallo no crítico al leer el borrador en sesión
+                }
             }
 
             await RecargarListaMetodosPagoAsync(model, idUsuario);
+            CargarConfiguracionPasarela();
+        }
+
+        private void CargarConfiguracionPasarela()
+        {
+            ViewBag.OpenpayMerchantId = _configuration["Openpay:MerchantId"] ?? "";
+            ViewBag.OpenpayPublicKey = _configuration["Openpay:PublicApiKey"] ?? "";
+            ViewBag.OpenpaySandbox = _configuration.GetValue<bool>("Openpay:SandboxMode", true);
+            ViewBag.OpenpayPais = _configuration["Openpay:Pais"] ?? "CO";
         }
 
         private async Task RecargarListaMetodosPagoAsync(ProcesoPagoViewModel model, int idUsuario)
