@@ -98,7 +98,7 @@
                 </div>
                 <h4 class="fw-bold mb-3" style="color: #1b5e20;">¡Éxito!</h4>
                 <p class="fs-5 text-dark mb-4">Usuario administrador creado con éxito</p>
-                <button type="button" class="btn btn-success rounded-pill px-5 py-2 fw-semibold" onclick="redirigirPerfil('@Url.Action("Index", "Perfil")')">Aceptar</button>
+                <a href="@Url.Action("Index", "Perfil")" class="btn btn-success rounded-pill px-5 py-2 fw-semibold">Aceptar</a>
             </div>
         </div>
     </div>
@@ -108,7 +108,7 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script src="~/js/RegistroAdmin.js" asp-append-version="true"></script>
+    <script src="~/js/registroAdmin.js" asp-append-version="true"></script>
 
     @if (ViewBag.MostrarModalExito != null && (bool)ViewBag.MostrarModalExito)
     {

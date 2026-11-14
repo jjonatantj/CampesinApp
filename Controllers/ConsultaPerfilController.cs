@@ -194,6 +194,16 @@ namespace CampesinApp.Controllers
                         : "****";
                 }
 
+                // Obtener dirección a partir del punto de acopio registrado por el usuario
+                var puntoAcopio = await _context.PuntoAcopios
+                    .Where(p => p.IdUsuario == usuario.IdUsuario || p.IdUsuarios.Any(u => u.IdUsuario == usuario.IdUsuario))
+                    .OrderByDescending(p => p.FechaRegistro)
+                    .FirstOrDefaultAsync();
+
+                string direccionVisualizar = (!string.IsNullOrWhiteSpace(puntoAcopio?.Direccion))
+                    ? puntoAcopio.Direccion.Trim()
+                    : "No registra";
+
                 var viewModel = new ConsultaPerfilViewModel
                 {
                     IdUsuario = usuario.IdUsuario,
@@ -209,7 +219,7 @@ namespace CampesinApp.Controllers
                     EstadoCuenta = usuario.Estado ? "Activo" : "Inactivo", // RN-05
                     Municipio = usuario.IdMunicipioNavigation?.Municipio1 ?? "Municipio no especificado",
                     Departamento = usuario.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1 ?? "Colombia",
-                    Direccion = "Centro Poblado / Vereda",
+                    Direccion = direccionVisualizar,
                     Telefono = (esPerfilPropio || esAdmin)
                         ? (usuario.TelelfonoUsu > 0 ? usuario.TelelfonoUsu.ToString() : "No registrado")
                         : (usuario.TelelfonoUsu > 0 ? "***" + usuario.TelelfonoUsu.ToString()[^4..] : "Privado")

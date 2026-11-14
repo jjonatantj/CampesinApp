@@ -14,7 +14,7 @@ namespace CampesinApp.ViewModels
         public int IdVariedad { get; set; }
 
         [Required(ErrorMessage = "La cantidad requerida es obligatoria.")]
-        [Range(20, 1000000, ErrorMessage = "Para compradores mayoristas, la cantidad mínima permitida es de 20 kg.")]
+        [Range(900, 1000000, ErrorMessage = "Para compradores mayoristas, la cantidad mínima permitida es de 900 kg.")]
         [Display(Name = "Cantidad Requerida (Kilos)")]
         public decimal Cantidad { get; set; }
 
