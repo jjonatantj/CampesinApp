@@ -11,6 +11,7 @@ namespace CampesinApp.ViewModels
     public class PerfilPagoViewModel
     {
         // Identificador del usuario que tiene la sesión activa en CampesinApp
+        [Required]
         public int IdUsuario { get; set; }
 
         // Documento de identidad del titular de la cuenta (debe coincidir con la sesión activa)

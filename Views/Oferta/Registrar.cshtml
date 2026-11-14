@@ -599,8 +599,8 @@
                 const bounds = new google.maps.LatLngBounds();
 
                 lista.forEach(p => {
-                    const lat = parseFloat(p.Latitud);
-                    const lng = parseFloat(p.Longitud);
+                    const lat = Number.parseFloat(p.Latitud);
+                    const lng = Number.parseFloat(p.Longitud);
                     if (isNaN(lat) || isNaN(lng) || lat === 0) return;
 
                     const pos = { lat: lat, lng: lng };
@@ -646,7 +646,7 @@
                 });
 
                 if (lista.length === 1) {
-                    mapOferta.setCenter({ lat: parseFloat(lista[0].Latitud), lng: parseFloat(lista[0].Longitud) });
+                    mapOferta.setCenter({ lat: Number.parseFloat(lista[0].Latitud), lng: Number.parseFloat(lista[0].Longitud) });
                     mapOferta.setZoom(15);
                 } else if (lista.length > 1) {
                     mapOferta.fitBounds(bounds);
@@ -694,8 +694,8 @@
 
                 // Enfocar marcador en Google Maps
                 if (centrarEnMapa && mapOferta) {
-                    const lat = parseFloat(p.Latitud);
-                    const lng = parseFloat(p.Longitud);
+                    const lat = Number.parseFloat(p.Latitud);
+                    const lng = Number.parseFloat(p.Longitud);
                     if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
                         const pos = { lat: lat, lng: lng };
                         mapOferta.setCenter(pos);
@@ -833,7 +833,7 @@
                         esValido = false;
                         if (!primerElementoError) primerElementoError = inputCantidad;
                     } else {
-                        const cantidadNum = parseInt(valorTexto, 10);
+                        const cantidadNum = Number.parseInt(valorTexto, 10);
 
                         if (cantidadNum <= 0) {
                             mostrarErrorCantidad("Por favor ingrese un número entero mayor a cero.");
@@ -890,7 +890,7 @@
 
                     // 6. APERTURA DEL MODAL SI TODAS LAS REGLAS SE CUMPLEN
                     if (esValido) {
-                        const cantidadIngresada = parseInt(valorTexto, 10);
+                        const cantidadIngresada = Number.parseInt(valorTexto, 10);
                         modalTexto.textContent = "¿Está seguro de ofertar " + cantidadIngresada + " cantidades?";
 
                         const pSeleccionado = todosPuntos.find(x => x.IdPuntoAcopio == puntoIdVal);

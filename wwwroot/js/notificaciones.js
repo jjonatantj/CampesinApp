@@ -35,7 +35,7 @@
     let ultimoVisto = null;
     try {
         const guardado = localStorage.getItem(clave);
-        if (guardado !== null) ultimoVisto = parseInt(guardado, 10);
+        if (guardado !== null) ultimoVisto = Number.parseInt(guardado, 10);
     } catch (e) { /* sin almacenamiento: se usa solo la memoria de esta pantalla */ }
 
     function recordar(id) {

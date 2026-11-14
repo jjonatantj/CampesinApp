@@ -211,7 +211,7 @@
 
             $.getJSON('@Url.Action("ObtenerCoordenadasPuntoAcopio", "PublicarDemanda")', { idPuntoAcopio: idPunto }, function (data) {
                 if (data && data.exito) {
-                    const latLng = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+                    const latLng = { lat: Number.parseFloat(data.lat), lng: Number.parseFloat(data.lng) };
 
                     if (marker) {
                         marker.setPosition(latLng);
@@ -237,7 +237,7 @@
             return true;
         }
         function calcularToneladas() {
-            let kilos = parseFloat($("#txtCantidad").val());
+            let kilos = Number.parseFloat($("#txtCantidad").val());
             if (!isNaN(kilos) && kilos > 0) {
                 let toneladas = kilos / 1000;
                 let formatoToneladas = Number.isInteger(toneladas) ? toneladas : toneladas.toFixed(2);
@@ -294,8 +294,8 @@
         function enviarDemandaAjax(event) {
             event.preventDefault();
 
-            var precioIngresado = parseFloat($("#txtPrecioEstimado").val());
-            var cantidadIngresada = parseFloat($("#txtCantidad").val());
+            var precioIngresado = Number.parseFloat($("#txtPrecioEstimado").val());
+            var cantidadIngresada = Number.parseFloat($("#txtCantidad").val());
 
             // Limpiar errores visuales previos en el input de precio
             $("#errorTextoPrecio").text("");
