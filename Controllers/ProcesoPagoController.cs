@@ -458,6 +458,9 @@ namespace CampesinApp.Controllers
                 var credencialesBytes = Encoding.ASCII.GetBytes($"{privateKey}:");
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(credencialesBytes));
 
+                string ipCliente = ObtenerIpCliente();
+                client.DefaultRequestHeaders.Add("X-Forwarded-For", ipCliente);
+
                 string baseUrl;
                 object payload;
 
@@ -612,7 +615,7 @@ namespace CampesinApp.Controllers
             // 2. Mapeo por código numérico de error oficial de Openpay
             string? porCodigo = errorCode switch
             {
-                1000 => "Ocurrió un error interno en la pasarela de pagos. Por favor intente más tarde.",
+                1000 => "Ocurrió un error en la pasarela de pagos (el token o registro de la tarjeta expiró o es inválido). Por favor registra la tarjeta nuevamente en Perfil de Pago.",
                 1001 => "Los datos requeridos para la transacción bancaria están incompletos o son inválidos.",
                 1002 => "La transacción no pudo ser autenticada por la pasarela de pagos. Verifique las credenciales.",
                 1003 => "El servicio de pagos no se encuentra disponible temporalmente. Intente en unos minutos.",
@@ -743,6 +746,28 @@ namespace CampesinApp.Controllers
             {
                 model.IdPerfilPagoSeleccionado = perfiles.Last().IdPerfilPago;
             }
+        }
+
+        private string ObtenerIpCliente()
+        {
+            string? forwarded = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(forwarded))
+            {
+                string ip = forwarded.Split(',')[0].Trim();
+                if (!string.IsNullOrWhiteSpace(ip) && ip != "::1" && ip != "127.0.0.1")
+                {
+                    return ip;
+                }
+            }
+
+            var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (!string.IsNullOrWhiteSpace(remoteIp) && remoteIp != "::1" && remoteIp != "127.0.0.1")
+            {
+                return remoteIp;
+            }
+
+            // IP colombiana de contingencia para pruebas académicas en sandbox
+            return "186.155.12.1";
         }
     }
 }
