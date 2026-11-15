@@ -31,6 +31,8 @@ namespace CampesinApp.Repositories
 
             try
             {
+                DateTime hoy = DateTime.Today;
+
                 // Consulta basada exactamente en tus DbSets: Demanda, TipoProductos, Variedads, Usuarios, Municipios y Departamentos
                 var listaDemandas = (from d in _context.Demanda
                                      join tp in _context.TipoProductos on d.IdTipoProducto equals tp.IdTipoProducto into tpGroup
@@ -45,6 +47,9 @@ namespace CampesinApp.Repositories
                                      from m in mGroup.DefaultIfEmpty()
                                      join dep in _context.Departamentos on (m != null ? m.IdDepartamento : 1) equals dep.IdDepartamento into depGroup
                                      from dep in depGroup.DefaultIfEmpty()
+                                     where (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2)
+                                        && d.LimTiemDeman.Date >= hoy
+                                        && (d.AporteCamps.Sum(a => (int?)a.CantAporte) ?? 0) < d.CantidadDeman
                                      select new
                                      {
                                          d.IdDemanda,

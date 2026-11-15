@@ -218,12 +218,50 @@
 </div>
 
 @section Scripts {
+    <!-- Scripts oficiales de Openpay (Antifraude / Device Session ID) -->
+    @if ((ViewBag.OpenpayPais ?? "CO") == "CO")
+    {
+        <script type="text/javascript" src="https://resources.openpay.co/openpay.v1.min.js"></script>
+        <script type="text/javascript" src="https://resources.openpay.co/openpay-data.v1.min.js"></script>
+    }
+    else
+    {
+        <script type="text/javascript" src="https://js.openpay.mx/openpay.v1.min.js"></script>
+        <script type="text/javascript" src="https://js.openpay.mx/openpay-data.v1.min.js"></script>
+    }
+
     <script type="text/javascript">
         function redirigirInicio() {
             window.location.href = '@Url.Action("Index", "PantallaPrincipal")';
         }
 
         document.addEventListener("DOMContentLoaded", function () {
+            // Inicialización de Openpay para antifraude (Device Session ID)
+            const merchantId = "@(ViewBag.OpenpayMerchantId ?? "")";
+            const publicKey = "@(ViewBag.OpenpayPublicKey ?? "")";
+            const isSandbox = @(ViewBag.OpenpaySandbox == true ? "true" : "false");
+
+            function inicializarDeviceSession() {
+                const inputDevice = document.getElementById("deviceSessionId");
+                if (window.OpenPay && merchantId && publicKey) {
+                    try {
+                        OpenPay.setId(merchantId);
+                        OpenPay.setApiKey(publicKey);
+                        OpenPay.setSandboxMode(isSandbox);
+                        const devSession = OpenPay.deviceData.setup("formProcesoPago", "deviceSessionId");
+                        if (inputDevice && devSession) {
+                            inputDevice.value = devSession;
+                        }
+                        console.log("Device session generado para pago seguro:", devSession);
+                    } catch (e) {
+                        console.warn("OpenPay deviceData setup:", e);
+                    }
+                }
+            }
+
+            inicializarDeviceSession();
+            window.addEventListener("load", inicializarDeviceSession);
+
             // 1. Manejo del Modal de Pago Exitoso con temporizador de 4 segundos
             const esPagoExitoso = @(ViewBag.PagoExitoso == true ? "true" : "false");
             if (esPagoExitoso) {
@@ -294,6 +332,7 @@
                 btnEjecutarPagoFinal.addEventListener("click", function () {
                     btnEjecutarPagoFinal.disabled = true;
                     btnEjecutarPagoFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando pago seguro...';
+                    inicializarDeviceSession();
                     form.submit();
                 });
             }
