@@ -241,17 +241,26 @@
             const publicKey = "@(ViewBag.OpenpayPublicKey ?? "")";
             const isSandbox = @(ViewBag.OpenpaySandbox == true ? "true" : "false");
 
-            if (window.OpenPay && merchantId && publicKey) {
-                OpenPay.setId(merchantId);
-                OpenPay.setApiKey(publicKey);
-                OpenPay.setSandboxMode(isSandbox);
-                try {
-                    const devSession = OpenPay.deviceData.setup("formProcesoPago", "deviceSessionId");
-                    console.log("Device session generado para pago seguro:", devSession);
-                } catch (e) {
-                    console.warn("OpenPay deviceData setup:", e);
+            function inicializarDeviceSession() {
+                const inputDevice = document.getElementById("deviceSessionId");
+                if (window.OpenPay && merchantId && publicKey) {
+                    try {
+                        OpenPay.setId(merchantId);
+                        OpenPay.setApiKey(publicKey);
+                        OpenPay.setSandboxMode(isSandbox);
+                        const devSession = OpenPay.deviceData.setup("formProcesoPago", "deviceSessionId");
+                        if (inputDevice && devSession) {
+                            inputDevice.value = devSession;
+                        }
+                        console.log("Device session generado para pago seguro:", devSession);
+                    } catch (e) {
+                        console.warn("OpenPay deviceData setup:", e);
+                    }
                 }
             }
+
+            inicializarDeviceSession();
+            window.addEventListener("load", inicializarDeviceSession);
 
             // 1. Manejo del Modal de Pago Exitoso con temporizador de 4 segundos
             const esPagoExitoso = @(ViewBag.PagoExitoso == true ? "true" : "false");
@@ -323,6 +332,7 @@
                 btnEjecutarPagoFinal.addEventListener("click", function () {
                     btnEjecutarPagoFinal.disabled = true;
                     btnEjecutarPagoFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando pago seguro...';
+                    inicializarDeviceSession();
                     form.submit();
                 });
             }

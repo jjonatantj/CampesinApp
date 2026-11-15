@@ -27,7 +27,10 @@ namespace CampesinApp.Repositories
         /// </summary>
         public async Task<List<Demandum>> ObtenerDemandasFiltradasAsync(int? idTipoProducto, int? idVariedad, int? idDepartamento, int? idMunicipio)
         {
+            DateTime hoy = DateTime.Today;
+
             var query = _context.Demanda
+                .AsNoTracking()
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
                 .Include(d => d.IdPuntoAcopioNavigation)
@@ -37,6 +40,16 @@ namespace CampesinApp.Repositories
                     .ThenInclude(u => u.IdMunicipioNavigation)
                         .ThenInclude(m => m.IdDepartamentoNavigation)
                 .AsQueryable();
+
+            // Regla de Negocio 1 (CU-011): Fecha límite de oferta
+            // El día límite es el último día disponible para ofertar. A partir del día siguiente ya no aparece en el catálogo.
+            query = query.Where(d => d.LimTiemDeman.Date >= hoy);
+
+            // Regla de Negocio 2 (CU-011): Demanda activa y cupo disponible
+            // Se excluyen demandas en tránsito (3) o finalizadas (4),
+            // y aquellas que ya hayan completado o superado el cupo total de kilos solicitados.
+            query = query.Where(d => (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2)
+                                  && (d.AporteCamps.Sum(a => (int?)a.CantAporte) ?? 0) < d.CantidadDeman);
 
             // 1. Filtro por Tipo de Producto
             if (idTipoProducto.HasValue && idTipoProducto.Value > 0)
@@ -121,13 +134,23 @@ namespace CampesinApp.Repositories
         /// </summary>
         public async Task<List<Demandum>> ObtenerDemandasFiltradasAsync(string? categoria, string? producto, string? region)
         {
+            DateTime hoy = DateTime.Today;
+
             var query = _context.Demanda
+                .AsNoTracking()
                 .Include(d => d.IdTipoProductoNavigation)
                 .Include(d => d.IdVariedadNavigation)
                 .Include(d => d.IdPuntoAcopioNavigation)
                     .ThenInclude(p => p.IdMunicipioNavigation)
                         .ThenInclude(m => m.IdDepartamentoNavigation)
                 .AsQueryable();
+
+            // Regla de Negocio 1 (CU-011): Fecha límite de oferta
+            query = query.Where(d => d.LimTiemDeman.Date >= hoy);
+
+            // Regla de Negocio 2 (CU-011): Demanda activa y cupo disponible
+            query = query.Where(d => (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2)
+                                  && (d.AporteCamps.Sum(a => (int?)a.CantAporte) ?? 0) < d.CantidadDeman);
 
             // 1. Filtro por Categoría / Variedad
             if (!string.IsNullOrWhiteSpace(categoria))

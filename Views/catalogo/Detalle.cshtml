@@ -28,6 +28,10 @@
                 {
                     <span class="badge bg-info text-dark rounded-pill px-3 py-1">Demanda Completada</span>
                 }
+                @if (DateTime.Today > Model.FechaLimite.Date)
+                {
+                    <span class="badge bg-danger rounded-pill px-3 py-1">Plazo Vencido</span>
+                }
             </div>
             <h1 class="brand-title mb-0">@Model.NombreProducto</h1>
             <p class="text-muted mb-0">Variedad: <strong class="text-dark">@Model.VariedadProducto</strong></p>
@@ -175,6 +179,12 @@
                         {
                             <button class="btn btn-secondary rounded-pill px-4 py-2 fw-bold text-white shadow-sm disabled" disabled>
                                 Demanda Completa
+                            </button>
+                        }
+                        else if (DateTime.Today > Model.FechaLimite.Date)
+                        {
+                            <button class="btn btn-danger rounded-pill px-4 py-2 fw-bold text-white shadow-sm disabled" disabled>
+                                Plazo Vencido
                             </button>
                         }
                         else

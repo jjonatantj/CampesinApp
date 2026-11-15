@@ -105,7 +105,9 @@ namespace CampesinApp.Controllers
         [HttpPost("")]
         [HttpPost("Guardar")]
         [ValidateAntiForgeryToken] // Evita peticiones maliciosas externas (CSRF)
-        public async Task<IActionResult> Guardar(PerfilPagoViewModel model)
+        public async Task<IActionResult> Guardar(
+            PerfilPagoViewModel model,
+            [FromHeader(Name = "X-Forwarded-For")] string? xForwardedFor = null)
         {
             // 1. Validamos que el usuario mantenga su sesión activa
             var idUsuario = HttpContext.Session.GetInt32("IdUsuario");
@@ -151,7 +153,7 @@ namespace CampesinApp.Controllers
             }
 
             // 5. REGISTRO PERMANENTE DE CLIENTE Y TARJETA EN OPENPAY (Customer & Saved Card)
-            string ipCliente = ObtenerIpCliente();
+            string ipCliente = ObtenerIpCliente(xForwardedFor);
             var resultadoOpenpay = await RegistrarTarjetaEnOpenpayAsync(usuario, model.TokenOpenpay!, model.DeviceSessionId, ipCliente);
             if (!resultadoOpenpay.Exito)
             {
@@ -507,12 +509,11 @@ namespace CampesinApp.Controllers
             }
         }
 
-        private string ObtenerIpCliente()
+        private string ObtenerIpCliente(string? xForwardedFor = null)
         {
-            string? forwarded = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(forwarded))
+            if (!string.IsNullOrWhiteSpace(xForwardedFor))
             {
-                string ip = forwarded.Split(',')[0].Trim();
+                string ip = xForwardedFor.Split(',')[0].Trim();
                 if (!string.IsNullOrWhiteSpace(ip) && ip != "::1" && ip != "127.0.0.1")
                 {
                     return ip;
