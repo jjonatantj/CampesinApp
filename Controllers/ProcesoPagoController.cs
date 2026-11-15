@@ -206,7 +206,7 @@ namespace CampesinApp.Controllers
             // =====================================================================
             // CASO A: EL PEDIDO PROVIENE DE UN BORRADOR NUEVO (IdDemanda == 0)
             // =====================================================================
-            if (model.IdDemanda == 0)
+            if (!model.IdDemanda.HasValue || model.IdDemanda.Value == 0)
             {
                 string? jsonBorrador = HttpContext.Session.GetString("DemandaBorrador");
                 if (string.IsNullOrWhiteSpace(jsonBorrador))
@@ -853,7 +853,7 @@ namespace CampesinApp.Controllers
             }).ToList();
 
             // Si no hay ningún medio de pago preseleccionado o el actual no está en la lista, seleccionamos el más reciente
-            if ((model.IdPerfilPagoSeleccionado == 0 || !perfiles.Any(p => p.IdPerfilPago == model.IdPerfilPagoSeleccionado)) && perfiles.Any())
+            if ((!model.IdPerfilPagoSeleccionado.HasValue || model.IdPerfilPagoSeleccionado.Value == 0 || !perfiles.Any(p => p.IdPerfilPago == model.IdPerfilPagoSeleccionado.Value)) && perfiles.Any())
             {
                 model.IdPerfilPagoSeleccionado = idUltimo;
             }
@@ -876,8 +876,8 @@ namespace CampesinApp.Controllers
                 return remoteIp;
             }
 
-            // IP colombiana de contingencia para pruebas académicas en sandbox
-            return "186.155.12.1";
+            // IP colombiana de contingencia para pruebas académicas en sandbox leída de configuración (Regla SonarQube S1313)
+            return _configuration["Openpay:IpContingenciaSandbox"] ?? "186.155.12.1";
         }
     }
 }

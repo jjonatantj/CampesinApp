@@ -67,15 +67,15 @@
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Cantidad Requerida:</span>
-                    <strong class="text-dark fs-6">@Model.CantidadKilos.ToString("N0") Kg</strong>
+                    <strong class="text-dark fs-6">@((Model.CantidadKilos ?? 0).ToString("N0")) Kg</strong>
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Precio por Kilo:</span>
-                    <strong class="text-dark fs-6">$@Model.PrecioPorKilo.ToString("N0") COP</strong>
+                    <strong class="text-dark fs-6">$@((Model.PrecioPorKilo ?? 0).ToString("N0")) COP</strong>
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Fecha Estimada de Entrega:</span>
-                    <strong class="text-dark fs-6">@Model.FechaEntrega.ToString("dd/MM/yyyy")</strong>
+                    <strong class="text-dark fs-6">@(Model.FechaEntrega?.ToString("dd/MM/yyyy") ?? "")</strong>
                 </div>
             </div>
 

@@ -148,14 +148,14 @@ namespace CampesinApp.Controllers
             }
 
             var puntoAcopio = await _context.PuntoAcopios
-                .FirstOrDefaultAsync(pa => pa.IdPuntoAcopio == model.IdPuntoAcopio && pa.IdUsuario == idUsuarioSesion);
+                .FirstOrDefaultAsync(pa => pa.IdPuntoAcopio == model.IdPuntoAcopio!.Value && pa.IdUsuario == idUsuarioSesion);
 
             if (puntoAcopio == null)
             {
                 return Json(new { exito = false, error = "El punto de acopio seleccionado no es válido o no le pertenece." });
             }
 
-            DateTime fechaHoraEntrega = model.FechaEntrega.Date;
+            DateTime fechaHoraEntrega = model.FechaEntrega!.Value.Date;
             if (TimeSpan.TryParse(model.HoraEntrega, out TimeSpan timeEntrega))
             {
                 fechaHoraEntrega = fechaHoraEntrega.Add(timeEntrega);
@@ -166,14 +166,14 @@ namespace CampesinApp.Controllers
             var borrador = new BorradorDemandaDto
             {
                 IdUsuario = idUsuarioSesion,
-                IdTipoProducto = model.IdTipoProducto,
-                IdVariedad = model.IdVariedad,
-                Cantidad = (int)model.Cantidad,
-                PrecioEstimado = (double)model.PrecioEstimado,
+                IdTipoProducto = model.IdTipoProducto!.Value,
+                IdVariedad = model.IdVariedad!.Value,
+                Cantidad = (int)model.Cantidad!.Value,
+                PrecioEstimado = (double)model.PrecioEstimado!.Value,
                 FechaEntrega = fechaHoraEntrega,
                 LimTiemDeman = fechaHoraLimite,
                 Descripcion = model.Descripcion ?? string.Empty,
-                IdPuntoAcopio = model.IdPuntoAcopio,
+                IdPuntoAcopio = model.IdPuntoAcopio!.Value,
                 DireccionInicial = puntoAcopio.Direccion ?? string.Empty
             };
 

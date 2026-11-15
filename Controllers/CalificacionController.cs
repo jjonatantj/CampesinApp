@@ -74,7 +74,7 @@ namespace CampesinApp.Controllers
 
         private async Task<IActionResult> ReMostrarFormularioAsync(UsuarioActual usuario, FormularioCalificacionDto dto, string mensaje)
         {
-            var formulario = await _calificaciones.ObtenerFormularioAsync(usuario, dto.IdDemanda, dto.PorDesacuerdo);
+            var formulario = await _calificaciones.ObtenerFormularioAsync(usuario, dto.IdDemanda ?? 0, dto.PorDesacuerdo ?? false);
             if (!formulario.Exitoso)
             {
                 return AvisoDeError(formulario);

@@ -534,7 +534,7 @@ namespace CampesinApp.Controllers
 
                 // Actualizar las cantidades en el modelo para la vista de éxito
                 model.CantidadAportadaPrevia = totalAportadoActual + model.CantidadAporte.Value;
-                model.CantidadFaltante = Math.Max(0, demanda.CantidadDeman - model.CantidadAportadaPrevia);
+                model.CantidadFaltante = Math.Max(0, (int)demanda.CantidadDeman - (model.CantidadAportadaPrevia ?? 0));
 
                 await CargarPuntosAcopioParaOfertaAsync(model, idUsuarioCampesino);
                 return View(model);

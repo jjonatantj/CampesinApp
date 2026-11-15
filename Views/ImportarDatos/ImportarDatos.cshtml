@@ -4,10 +4,12 @@
     ViewData["Title"] = "Importación de Datos Estadísticos - CampesinApp";
     Layout = "_LayoutCasosUso";
 
-    var daneValidos = (int)(Model.TotalFilasDane * 0.9);
-    var daneDescartados = Model.TotalFilasDane - daneValidos;
-    var coraValidos = (int)(Model.TotalFilasCorabastos * 0.95);
-    var coraDescartados = Model.TotalFilasCorabastos - coraValidos;
+    var totalDane = Model.TotalFilasDane ?? 0;
+    var daneValidos = (int)(totalDane * 0.9);
+    var daneDescartados = totalDane - daneValidos;
+    var totalCora = Model.TotalFilasCorabastos ?? 0;
+    var coraValidos = (int)(totalCora * 0.95);
+    var coraDescartados = totalCora - coraValidos;
 }
 
 <div class="cp-page py-5">
@@ -164,7 +166,7 @@
                                     <h5 class="fw-bold mb-3 text-dark">Fuente DANE (SIPSA)</h5>
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div>
-                                            <div class="big">@Model.TotalFilasDane.ToString("N0")</div>
+                                            <div class="big">@(Model.TotalFilasDane?.ToString("N0") ?? "0")</div>
                                             <small class="text-muted fw-semibold">registros leídos</small>
                                         </div>
                                     </div>
@@ -184,7 +186,7 @@
                                     <h5 class="fw-bold mb-3 text-dark">Fuente Corabastos</h5>
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div>
-                                            <div class="big">@Model.TotalFilasCorabastos.ToString("N0")</div>
+                                            <div class="big">@(Model.TotalFilasCorabastos?.ToString("N0") ?? "0")</div>
                                             <small class="text-muted fw-semibold">registros leídos</small>
                                         </div>
                                     </div>
@@ -221,7 +223,7 @@
                                         @foreach (var item in Model.ResultadosCruce)
                                         {
                                             var diff = item.PrecioCorabastos - item.PrecioDane;
-                                            var pct = item.PrecioDane != 0 ? (double)diff / (double)item.PrecioDane * 100 : 0;
+                                            var pct = (item.PrecioDane.HasValue && item.PrecioDane.Value != 0 && diff.HasValue) ? (double)diff.Value / (double)item.PrecioDane.Value * 100 : 0;
                                             var clase = diff > 0 ? "up" : (diff < 0 ? "down" : "eq");
                                             var icono = diff > 0 ? "bi-arrow-up-short" : (diff < 0 ? "bi-arrow-down-short" : "bi-dash");
 

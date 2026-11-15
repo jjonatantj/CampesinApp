@@ -7,26 +7,26 @@ namespace CampesinApp.ViewModels
     {
         [Required(ErrorMessage = "El tipo de producto es obligatorio.")]
         [Display(Name = "Tipo de Producto")]
-        public int IdTipoProducto { get; set; }
+        public int? IdTipoProducto { get; set; }
 
         [Required(ErrorMessage = "La variedad es obligatoria.")]
         [Display(Name = "Variedad")]
-        public int IdVariedad { get; set; }
+        public int? IdVariedad { get; set; }
 
         [Required(ErrorMessage = "La cantidad requerida es obligatoria.")]
         [Range(900, 1000000, ErrorMessage = "Para compradores mayoristas, la cantidad mínima permitida es de 900 kg.")]
         [Display(Name = "Cantidad Requerida (Kilos)")]
-        public decimal Cantidad { get; set; }
+        public decimal? Cantidad { get; set; }
 
         [Required(ErrorMessage = "El precio propuesto es obligatorio.")]
         [Range(100, 100000000, ErrorMessage = "Ingrese un precio real y válido (mayor a 100 COP).")]
         [Display(Name = "Precio Propuesto (COP por Kilo)")]
-        public decimal PrecioEstimado { get; set; }
+        public decimal? PrecioEstimado { get; set; }
 
         [Required(ErrorMessage = "La fecha de entrega es obligatoria.")]
         [DataType(DataType.Date)]
         [Display(Name = "Fecha de Entrega")]
-        public DateTime FechaEntrega { get; set; }
+        public DateTime? FechaEntrega { get; set; }
 
         [Required(ErrorMessage = "La hora de entrega es obligatoria.")]
         [Display(Name = "Hora de Entrega")]
@@ -47,7 +47,7 @@ namespace CampesinApp.ViewModels
 
         [Required(ErrorMessage = "Debe seleccionar un punto de acopio autorizado.")]
         [Display(Name = "Punto de Acopio Autorizado")]
-        public int IdPuntoAcopio { get; set; }
+        public int? IdPuntoAcopio { get; set; }
         public bool TienePuntosAcopio { get; set; } = true;
 
         // Listas para desplegables

@@ -82,7 +82,7 @@ namespace CampesinApp.Services
         /// <summary>El comprador confirma la recepción (pasos 3-4 de CU-025), con o sin observaciones.</summary>
         public async Task<ResultadoOperacion<ResultadoEntregaDto>> ConfirmarRecepcionAsync(UsuarioActual comprador, ConfirmarRecepcionDto dto)
         {
-            var validacion = await ObtenerValidacionAsync(comprador, dto.IdDemanda);
+            var validacion = await ObtenerValidacionAsync(comprador, dto.IdDemanda ?? 0);
             if (!validacion.Exitoso)
             {
                 return ResultadoOperacion<ResultadoEntregaDto>.Falla(validacion.Error, validacion.Mensaje!);
@@ -121,7 +121,7 @@ namespace CampesinApp.Services
                 nombreEvidencia = guardada.Datos;
             }
 
-            var obs = await ObservacionDelPedidoAsync(dto.IdDemanda);
+            var obs = await ObservacionDelPedidoAsync(dto.IdDemanda ?? 0);
             obs.HoraObser = DateTime.Now;
             if (conNovedad)
             {
@@ -136,11 +136,11 @@ namespace CampesinApp.Services
 
             await _db.SaveChangesAsync();
 
-            var resultado = await EvaluarAsync(dto.IdDemanda, conNovedad ? obs.ObserComprador : null, RolUsuario.Comprador);
+            var resultado = await EvaluarAsync(dto.IdDemanda ?? 0, conNovedad ? obs.ObserComprador : null, RolUsuario.Comprador);
             await _log.RegistrarAsync(
                 conNovedad ? NivelesLog.Advertencia : NivelesLog.Info,
                 "CU-025 Recepción",
-                $"Comprador registró recepción '{dto.Respuesta}' del pedido {CodigoPedido.Formatear(dto.IdDemanda)}. Estado: {resultado.EstadoEnvio}.",
+                $"Comprador registró recepción '{dto.Respuesta}' del pedido {CodigoPedido.Formatear(dto.IdDemanda ?? 0)}. Estado: {resultado.EstadoEnvio}.",
                 comprador.Id);
             return ResultadoOperacion<ResultadoEntregaDto>.Ok(resultado);
         }
