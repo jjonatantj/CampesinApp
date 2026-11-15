@@ -138,6 +138,13 @@ namespace CampesinApp.Controllers
                     return RedirectToAction("Index", "catalogo");
                 }
 
+                // RN-03-CU011 / CU013: Validar que el plazo límite de oferta no haya vencido
+                if (DateTime.Today > demanda.LimTiemDeman.Date)
+                {
+                    TempData["MensajeError"] = "Lo sentimos, el plazo límite para ofertar en esta demanda ha finalizado. Te invitamos a revisar otras ofertas.";
+                    return RedirectToAction("Index", "catalogo");
+                }
+
                 // Consultar aportes previos que este mismo campesino ya realizó a esta demanda
                 var aportePrevio = await _context.AporteCamps
                     .Include(a => a.IdPuntoAcopioNavigation)
@@ -302,6 +309,13 @@ namespace CampesinApp.Controllers
             if (cantidadFaltanteActual <= 0)
             {
                 TempData["MensajeError"] = "Lo sentimos, esta solicitud de compra acaba de completarse. Te invitamos a revisar otras ofertas.";
+                return RedirectToAction("Index", "catalogo");
+            }
+
+            // RN-03-CU011 / CU013: Validar que el plazo límite de oferta no haya vencido
+            if (DateTime.Today > demanda.LimTiemDeman.Date)
+            {
+                TempData["MensajeError"] = "Lo sentimos, el plazo límite para ofertar en esta demanda ha finalizado. Te invitamos a revisar otras ofertas.";
                 return RedirectToAction("Index", "catalogo");
             }
 
