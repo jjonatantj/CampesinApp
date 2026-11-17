@@ -40,7 +40,7 @@ namespace CampesinApp.Controllers
                 CodigoEnviado = HttpContext.Session.GetString("Eliminar_CodigoEnviado") == "true"
             };
 
-            if (model.CodigoEnviado)
+            if (model.CodigoEnviado == true)
             {
                 int reenviosActuales = HttpContext.Session.GetInt32("Eliminar_ReenviosCodigo") ?? 0;
                 ViewBag.ReenviosRestantes = 3 - reenviosActuales;

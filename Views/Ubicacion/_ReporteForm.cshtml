@@ -95,7 +95,7 @@
         <div class="row g-3 mb-3">
             <div class="col-sm-6">
                 <label for="PuntoOrigen" class="form-label">Punto de Origen <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
-                <select id="PuntoOrigen" name="PuntoOrigen" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoOrigen))">
+                <select id="PuntoOrigen" name="PuntoOrigen" aria-label="Punto de Origen" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoOrigen))">
                     <option value="">Seleccione el punto de origen…</option>
                     @foreach (var punto in Model.Puntos)
                     {
@@ -105,7 +105,7 @@
             </div>
             <div class="col-sm-6">
                 <label for="PuntoDestino" class="form-label">Punto de Destino <i class="bi bi-lock-fill text-muted small" title="Se asigna según el viaje"></i></label>
-                <select id="PuntoDestino" name="PuntoDestino" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoDestino))">
+                <select id="PuntoDestino" name="PuntoDestino" aria-label="Punto de Destino" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.PuntoDestino))">
                     <option value="">Seleccione el punto de destino…</option>
                     @foreach (var punto in Model.Puntos)
                     {
@@ -123,7 +123,7 @@
         <div class="row g-3">
             <div class="col-sm-7">
                 <label for="Lugar" class="form-label">Lugar donde se encuentra</label>
-                <select id="Lugar" name="Lugar" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Lugar))">
+                <select id="Lugar" name="Lugar" aria-label="Lugar donde se encuentra" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Lugar))">
                     <option value="">Seleccione el lugar…</option>
                     @foreach (var punto in Model.Puntos)
                     {
@@ -141,7 +141,7 @@
             </div>
             <div class="col-sm-5">
                 <label for="Hito" class="form-label">Tipo de reporte</label>
-                <select id="Hito" name="Hito" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Hito))">
+                <select id="Hito" name="Hito" aria-label="Tipo de reporte" class="form-select @VistaHelpers.ClaseError(ViewData, nameof(Model.Hito))">
                     <option value="">Seleccione…</option>
                     @foreach (var hito in Hitos.Todos)
                     {
@@ -152,7 +152,7 @@
         </div>
 
         <div class="mt-3">
-            <label class="form-label">Ubicación en el mapa</label>
+            <span class="form-label d-block fw-semibold">Ubicación en el mapa</span>
             <div data-mapa="reporte" data-select="#Lugar" data-municipio="#Region" data-origen="#PuntoOrigen" data-destino="#PuntoDestino"
                  data-puntos="@VistaHelpers.PuntosAcopioJson(Model.Puntos)" data-municipios="@VistaHelpers.MunicipiosJson(Model.Municipios)"
                  class="mapa-contenedor" aria-label="Mapa del reporte de ubicación"></div>

@@ -98,9 +98,9 @@
                     @if (Model.EsAdministrador == true)
                     {
                         <div class="card border-success-subtle bg-light rounded-4 p-3 mb-3 shadow-sm">
-                            <label class="form-label fw-bold small text-dark d-block mb-2">
+                            <span class="form-label fw-bold small text-dark d-block mb-2">
                                 <i class="bi bi-shield-lock-fill text-success me-1"></i> Tipo de Punto de Acopio (Panel Administrador) *
-                            </label>
+                            </span>
                             <div class="d-flex gap-2">
                                 <div class="flex-fill">
                                     <input type="radio" class="btn-check" asp-for="TipoAcopioManual" id="radioTipoCampesino" value="false" checked autocomplete="off">
@@ -133,10 +133,10 @@
 
                     <!-- 2. Departamento (para filtrado y centrado del mapa) -->
                     <div class="mb-3">
-                        <label asp-for="IdDepartamento" class="form-label fw-bold small text-dark">Departamento *</label>
+                        <label for="selectDepartamento" asp-for="IdDepartamento" class="form-label fw-bold small text-dark">Departamento *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-map"></i></span>
-                            <select asp-for="IdDepartamento" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectDepartamento" required>
+                            <select asp-for="IdDepartamento" aria-label="Departamento" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectDepartamento" required>
                                 <option value="">-- Seleccione un departamento --</option>
                                 @foreach (var depto in Model.Departamentos)
                                 {
@@ -149,10 +149,10 @@
 
                     <!-- 3. Municipio (Al cambiar, centra el mapa automáticamente) -->
                     <div class="mb-3">
-                        <label asp-for="IdMunicipio" class="form-label fw-bold small text-dark">Municipio *</label>
+                        <label for="selectMunicipio" asp-for="IdMunicipio" class="form-label fw-bold small text-dark">Municipio *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-geo"></i></span>
-                            <select asp-for="IdMunicipio" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMunicipio" required>
+                            <select asp-for="IdMunicipio" aria-label="Municipio" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMunicipio" required>
                                 <option value="">-- Seleccione primero un departamento --</option>
                                 @foreach (var mun in Model.Municipios)
                                 {
@@ -167,9 +167,9 @@
                     <!-- 4. LÓGICA DINÁMICA DE DIRECCIÓN: SELECTOR DE ZONA (URBANO/RURAL) -->
                     <!-- ============================================================== -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-dark d-block">
+                        <span class="form-label fw-bold small text-dark d-block">
                             <i class="bi bi-compass text-success me-1"></i> Zona de Ubicación *
-                        </label>
+                        </span>
                         <div class="d-flex gap-2">
                             <div class="flex-fill">
                                 <input type="radio" class="btn-check" name="radioZona" id="radioZonaUrbano" value="Urbano" checked autocomplete="off">
@@ -201,9 +201,9 @@
                         <!-- Fila 1: Tipo de vía y Número Principal -->
                         <div class="row g-2 mb-2">
                             <div class="col-sm-6">
-                                <label class="form-label small text-muted mb-1">Tipo de Vía *</label>
+                                <label for="urbanoTipoVia" class="form-label small text-muted mb-1">Tipo de Vía *</label>
                                 <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
-                                    <select id="urbanoTipoVia" class="form-select border-0 bg-transparent shadow-none px-3 py-1 small">
+                                    <select id="urbanoTipoVia" aria-label="Tipo de Vía" class="form-select border-0 bg-transparent shadow-none px-3 py-1 small">
                                         <option value="Calle">Calle</option>
                                         <option value="Carrera">Carrera</option>
                                         <option value="Diagonal">Diagonal</option>
@@ -215,9 +215,9 @@
                                 </div>
                             </div>
                             <div class="col-sm-6">
-                                <label class="form-label small text-muted mb-1">Número de Vía *</label>
+                                <label for="urbanoNumeroVia" class="form-label small text-muted mb-1">Número de Vía *</label>
                                 <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
-                                    <input type="text" id="urbanoNumeroVia" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: 45" maxlength="15" />
+                                    <input type="text" id="urbanoNumeroVia" aria-label="Número de Vía" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: 45" maxlength="15" />
                                 </div>
                             </div>
                         </div>
@@ -225,33 +225,33 @@
                         <!-- Fila 2: Letra/Sufijo, Cruce (#) y Placa (-) -->
                         <div class="row g-2 mb-2">
                             <div class="col-4">
-                                <label class="form-label small text-muted mb-1">Letra / Bis</label>
+                                <label for="urbanoLetraVia" class="form-label small text-muted mb-1">Letra / Bis</label>
                                 <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
-                                    <input type="text" id="urbanoLetraVia" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small text-center" placeholder="Ej: A, Sur" maxlength="15" />
+                                    <input type="text" id="urbanoLetraVia" aria-label="Letra o Bis de la Vía" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small text-center" placeholder="Ej: A, Sur" maxlength="15" />
                                 </div>
                             </div>
                             <div class="col-4">
-                                <label class="form-label small text-muted mb-1">Cruce (#) *</label>
+                                <label for="urbanoNumeroGenerador" class="form-label small text-muted mb-1">Cruce (#) *</label>
                                 <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                     <span class="input-group-text bg-transparent border-0 text-muted ps-2 pe-1 small">#</span>
-                                    <input type="text" id="urbanoNumeroGenerador" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 12" maxlength="15" />
+                                    <input type="text" id="urbanoNumeroGenerador" aria-label="Número de Cruce" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 12" maxlength="15" />
                                 </div>
                             </div>
                             <div class="col-4">
-                                <label class="form-label small text-muted mb-1">Placa (-) *</label>
+                                <label for="urbanoPlaca" class="form-label small text-muted mb-1">Placa (-) *</label>
                                 <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                     <span class="input-group-text bg-transparent border-0 text-muted ps-2 pe-1 small">-</span>
-                                    <input type="text" id="urbanoPlaca" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 34" maxlength="15" />
+                                    <input type="text" id="urbanoPlaca" aria-label="Número de Placa" class="form-control border-0 bg-transparent shadow-none px-1 py-1 small text-center" placeholder="Ej: 34" maxlength="15" />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Fila 3: Indicación Extra (Urbana) -->
                         <div class="mt-2">
-                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
+                            <label for="urbanoIndicacionExtra" class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
                             <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                 <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
-                                <input type="text" id="urbanoIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Casa verde de dos pisos, frente al parque" maxlength="150" value="@Model.Descripcion" />
+                                <input type="text" id="urbanoIndicacionExtra" aria-label="Indicación extra de dirección urbana" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Casa verde de dos pisos, frente al parque" maxlength="150" value="@Model.Descripcion" />
                             </div>
                             <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
                                 <i class="bi bi-info-circle text-secondary me-1"></i> Esta indicación se guarda en la descripción del punto de acopio.
@@ -273,19 +273,19 @@
 
                         <!-- Fila 1: Nombre de Vereda -->
                         <div class="mb-2">
-                            <label class="form-label small text-muted mb-1">Nombre de Vereda *</label>
+                            <label for="ruralNombreVereda" class="form-label small text-muted mb-1">Nombre de Vereda *</label>
                             <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                 <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-geo-alt"></i></span>
-                                <input type="text" id="ruralNombreVereda" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: El Rosal, La Esperanza, San Isidro" maxlength="100" />
+                                <input type="text" id="ruralNombreVereda" aria-label="Nombre de Vereda" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: El Rosal, La Esperanza, San Isidro" maxlength="100" />
                             </div>
                         </div>
 
                         <!-- Fila 2: Indicación Extra (Rural) -->
                         <div class="mt-2">
-                            <label class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
+                            <label for="ruralIndicacionExtra" class="form-label small text-muted mb-1">Indicación extra (Opcional)</label>
                             <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                 <span class="input-group-text bg-transparent border-0 text-muted ps-3"><i class="bi bi-info-circle"></i></span>
-                                <input type="text" id="ruralIndicacionExtra" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Finca El Paraíso, a 300m de la escuela rural" maxlength="150" value="@Model.Descripcion" />
+                                <input type="text" id="ruralIndicacionExtra" aria-label="Indicación extra de dirección rural" class="form-control border-0 bg-transparent shadow-none px-3 py-1 small" placeholder="Ej: Finca El Paraíso, a 300m de la escuela rural" maxlength="150" value="@Model.Descripcion" />
                             </div>
                             <small class="text-muted d-block mt-1 ps-2" style="font-size: 0.75rem;">
                                 <i class="bi bi-info-circle text-secondary me-1"></i> Esta indicación se guarda en la descripción del punto de acopio.
@@ -339,9 +339,9 @@
                     <!-- 6. HORARIO DE ATENCIÓN ESTRUCTURADO (DÍAS + HORAS INICIO/FIN)  -->
                     <!-- ============================================================== -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-dark mb-1 d-block">
+                        <span class="form-label fw-bold small text-dark mb-1 d-block">
                             <i class="bi bi-clock-fill text-success me-1"></i> Horario de Atención *
-                        </label>
+                        </span>
 
                         <div class="card border rounded-4 p-3 bg-white shadow-sm" id="cardHorarioAtencion">
                             <small class="text-muted fw-semibold mb-2 d-block">
@@ -388,17 +388,17 @@
                             <!-- Inputs nativos de reloj para Hora de Inicio y Hora de Cierre -->
                             <div class="row g-2 mb-2">
                                 <div class="col-6">
-                                    <label class="form-label small text-muted mb-1">Hora de inicio *</label>
+                                    <label for="inputHoraInicio" class="form-label small text-muted mb-1">Hora de inicio *</label>
                                     <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                         <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-sunrise"></i></span>
-                                        <input type="time" id="inputHoraInicio" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="08:00" required />
+                                        <input type="time" id="inputHoraInicio" aria-label="Hora de inicio" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="08:00" required />
                                     </div>
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label small text-muted mb-1">Hora de cierre *</label>
+                                    <label for="inputHoraCierre" class="form-label small text-muted mb-1">Hora de cierre *</label>
                                     <div class="input-group border rounded-pill bg-light overflow-hidden align-items-center">
                                         <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-sunset"></i></span>
-                                        <input type="time" id="inputHoraCierre" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="17:00" required />
+                                        <input type="time" id="inputHoraCierre" aria-label="Hora de cierre" class="form-control border-0 bg-transparent shadow-none px-2 py-1 small" value="17:00" required />
                                     </div>
                                 </div>
                             </div>

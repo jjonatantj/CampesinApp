@@ -21,16 +21,13 @@ namespace CampesinApp.ViewModels
 
         public string NombreVariedad { get; set; } = string.Empty;
 
-        [Required]
         public int? CantidadKilos { get; set; }
 
-        [Required]
         public double? PrecioPorKilo { get; set; }
 
         // El comprador paga el 100% del valor estimado del pedido
         public double ValorTotalPagar => (CantidadKilos ?? 0) * (PrecioPorKilo ?? 0);
 
-        [Required]
         public DateTime? FechaEntrega { get; set; }
 
         public string DireccionEntrega { get; set; } = string.Empty;

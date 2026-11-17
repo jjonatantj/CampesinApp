@@ -28,21 +28,21 @@
                     </div>
                 }
 
-                @if (!Model.CodigoEnviado)
+                @if (Model.CodigoEnviado != true)
                 {
                     <!-- PASO 1: CORREO Y CONTRASEÑA -->
                     <form asp-action="SolicitarCodigo" method="post">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                         <div class="mb-3">
-                            <label asp-for="Correo" class="form-label fw-bold text-dark"></label>
-                            <input asp-for="Correo" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
+                            <label asp-for="Correo" class="form-label fw-bold text-dark">Correo Electrónico</label>
+                            <input asp-for="Correo" aria-label="Correo Electrónico" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
                         </div>
 
                         <div class="mb-4">
-                            <label asp-for="Contrasena" class="form-label fw-bold text-dark"></label>
+                            <label for="txtContrasena" asp-for="Contrasena" class="form-label fw-bold text-dark">Contraseña</label>
                             <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
-                                <input asp-for="Contrasena" type="password" id="txtContrasena" class="form-control border-0 shadow-none px-3 py-2 bg-transparent text-dark" style="appearance: none; -webkit-appearance: none;" placeholder="Ingrese su contraseña" />
+                                <input asp-for="Contrasena" type="password" id="txtContrasena" aria-label="Contraseña" class="form-control border-0 shadow-none px-3 py-2 bg-transparent text-dark" style="appearance: none; -webkit-appearance: none;" placeholder="Ingrese su contraseña" />
                                 <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtContrasena', 'iconPass')">
                                     <svg id="iconPass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#212529" viewBox="0 0 16 16">
                                         <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
@@ -75,8 +75,8 @@
 
                     <form asp-action="ConfirmarEliminacion" method="post" id="formConfirmarEliminar">
                         <div class="mb-3 text-start">
-                            <label asp-for="CodigoVerificacion" class="form-label fw-bold text-dark small">Código de Verificación</label>
-                            <input asp-for="CodigoVerificacion" id="txtCodigoVerificacion" class="form-control rounded-pill px-3 py-2 text-center fs-4 tracking-widest" placeholder="000000" maxlength="6" autocomplete="off" />
+                            <label for="txtCodigoVerificacion" asp-for="CodigoVerificacion" class="form-label fw-bold text-dark small">Código de Verificación</label>
+                            <input asp-for="CodigoVerificacion" id="txtCodigoVerificacion" aria-label="Código de Verificación" class="form-control rounded-pill px-3 py-2 text-center fs-4 tracking-widest" placeholder="000000" maxlength="6" autocomplete="off" />
                             <span asp-validation-for="CodigoVerificacion" class="text-danger small d-block text-center mt-1"></span>
                         </div>
 
@@ -200,7 +200,7 @@
             </text>
         }
 
-                const codigoEnviado = @(Model.CodigoEnviado ? "true" : "false");
+                const codigoEnviado = @(Model.CodigoEnviado == true ? "true" : "false");
         const reenviosRestantes = @(ViewBag.ReenviosRestantes ?? 3);
         let tiempoRestanteSegundos = @(ViewBag.SegundosRestantes ?? 300);
 

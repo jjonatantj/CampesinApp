@@ -90,12 +90,12 @@
                                         </p>
 
                                         <div class="mt-auto">
-                                            <label class="form-label fw-bold small mb-2">Adjuntar archivo DANE</label>
+                                            <label for="ArchivoDane" asp-for="ArchivoDane" class="form-label fw-bold small mb-2">Adjuntar archivo DANE</label>
                                             <div class="cp-dropzone">
                                                 <i class="bi bi-cloud-arrow-up"></i>
                                                 <span class="d-block small fw-bold text-success">Haga clic o arrastre el archivo aquí</span>
                                                 <small class="text-muted">.xlsx · .xls · .csv</small>
-                                                <input asp-for="ArchivoDane" type="file" accept=".csv, .xlsx, .xls" data-target="fileDane" />
+                                                <input asp-for="ArchivoDane" id="ArchivoDane" aria-label="Adjuntar archivo DANE" type="file" accept=".csv, .xlsx, .xls" data-target="fileDane" />
                                             </div>
                                             <div class="text-center">
                                                 <div id="fileDane" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>
@@ -120,13 +120,13 @@
                                         </p>
 
                                         <div class="mt-auto">
-                                            <label class="form-label fw-bold small mb-2">Adjuntar archivo Corabastos (PDF)</label>
+                                            <label for="ArchivoCorabastos" asp-for="ArchivoCorabastos" class="form-label fw-bold small mb-2">Adjuntar archivo Corabastos (PDF)</label>
                                             <div class="cp-dropzone">
                                                 <i class="bi bi-cloud-arrow-up"></i>
                                                 <span class="d-block small fw-bold" style="color:#b36b00;">Haga clic o arrastre el archivo aquí</span>
                                                 <small class="text-muted">Solo formato .pdf</small>
                                                 <!-- Cambiado accept exclusivamente a .pdf -->
-                                                <input asp-for="ArchivoCorabastos" type="file" accept=".pdf" data-target="fileCora" />
+                                                <input asp-for="ArchivoCorabastos" id="ArchivoCorabastos" aria-label="Adjuntar archivo Corabastos (PDF)" type="file" accept=".pdf" data-target="fileCora" />
                                             </div>
                                             <div class="text-center">
                                                 <div id="fileCora" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>

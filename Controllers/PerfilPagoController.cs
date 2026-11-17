@@ -527,7 +527,7 @@ namespace CampesinApp.Controllers
             }
 
             // IP colombiana de contingencia para pruebas académicas en sandbox leída de configuración (Regla SonarQube S1313)
-            return _configuration["Openpay:IpContingenciaSandbox"] ?? "186.155.12.1";
+            return _configuration["Openpay:IpContingenciaSandbox"] ?? string.Empty;
         }
     }
 }

@@ -6,7 +6,8 @@ namespace CampesinApp.ViewModels
     public class RegistroUsuarioViewModel
     {
         // Control de Pasos (1: Formulario principal, 2: Seleccionar Método, 3: Ingresar Código)
-        public int Paso { get; set; } = 1;
+        [Required]
+        public int? Paso { get; set; } = 1;
 
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los nombres solo deben contener letras y espacios.")]

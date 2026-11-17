@@ -46,7 +46,6 @@ namespace CampesinApp.ViewModels
         public decimal? Capacidad { get; set; }
 
         // Regla RN-02-CU018: Acceso vehicular para camiones
-        [Required]
         [Display(Name = "¿Cuenta con acceso vehicular para camión?")]
         public bool? AccesoVehicular { get; set; } = true;
 
@@ -57,14 +56,12 @@ namespace CampesinApp.ViewModels
         /// <summary>
         /// Indica si el usuario conectado es Administrador para permitirle seleccionar manualmente el tipo de acopio.
         /// </summary>
-        [Required]
         public bool? EsAdministrador { get; set; }
 
         /// <summary>
         /// Selección manual del tipo de punto por parte del Administrador:
         /// false (0) = Campesino, true (1) = Comprador
         /// </summary>
-        [Required]
         [Display(Name = "Tipo de Punto de Acopio")]
         public bool? TipoAcopioManual { get; set; }
 

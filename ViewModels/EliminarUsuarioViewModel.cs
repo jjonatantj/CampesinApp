@@ -15,6 +15,6 @@ namespace CampesinApp.ViewModels
         [Display(Name = "Código de Verificación")]
         public string? CodigoVerificacion { get; set; }
 
-        public bool CodigoEnviado { get; set; } = false;
+        public bool? CodigoEnviado { get; set; } = false;
     }
 }

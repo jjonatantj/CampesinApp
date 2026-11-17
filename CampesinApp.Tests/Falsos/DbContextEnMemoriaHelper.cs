@@ -14,7 +14,38 @@ public static class DbContextEnMemoriaHelper
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        return new Campesinapp3ContextEnMemoria(opciones);
+        var context = new Campesinapp3ContextEnMemoria(opciones);
+
+        // Semilla base para que los .Include() y .ThenInclude() de EF Core InMemory resuelvan las claves foráneas
+        var depto = new Departamento { IdDepartamento = 1, Departamento1 = "Cundinamarca" };
+        var muni = new Municipio { IdMunicipio = 1, Municipio1 = "Bogotá", IdDepartamento = 1, IdDepartamentoNavigation = depto };
+        var rol = new Rol { IdRol = 1, TipoRol = "Comprador" };
+        var user = new Usuario
+        {
+            IdUsuario = 10,
+            IdRol = 1,
+            IdMunicipio = 1,
+            CorreoUsu = "test@user.com",
+            ContrasenaUsu = "123",
+            NombreCom = "Test",
+            ApellidoCom = "User",
+            Imagen = "default.png",
+            Estado = true,
+            IdMunicipioNavigation = muni,
+            IdRolNavigation = rol
+        };
+        var tp = new TipoProducto { IdTipoProducto = 1, Producto = "Tomate" };
+        var variedad = new Variedad { IdVariedad = 1, VariedadProd = "Chonto", IdTipoProducto = 1, IdTipoProductoNavigation = tp };
+
+        context.Departamentos.Add(depto);
+        context.Municipios.Add(muni);
+        context.Rols.Add(rol);
+        context.Usuarios.Add(user);
+        context.TipoProductos.Add(tp);
+        context.Variedads.Add(variedad);
+        context.SaveChanges();
+
+        return context;
     }
 
     private sealed class Campesinapp3ContextEnMemoria : Campesinapp3Context
