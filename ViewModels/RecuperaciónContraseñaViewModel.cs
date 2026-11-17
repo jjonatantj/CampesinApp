@@ -5,7 +5,8 @@ namespace CampesinApp.ViewModels
     /// <summary>ViewModel para el flujo de recuperación de contraseña (CU-005).</summary>
     public class RecuperaciónContraseñaViewModel
     {
-        public int Paso { get; set; } = 1; // 1: Cédula, 2: Método, 3: Código, 4: Nueva Contraseña
+        [Required]
+        public int? Paso { get; set; } = 1; // 1: Cédula, 2: Método, 3: Código, 4: Nueva Contraseña
 
         [Required(ErrorMessage = "La cédula es obligatoria.")]
         [RegularExpression(@"^\d{6,10}$", ErrorMessage = "La cédula debe contener solo números (entre 6 y 10 dígitos).")]

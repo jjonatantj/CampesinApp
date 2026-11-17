@@ -1,26 +1,26 @@
 @model FormularioCalificacionDto
 @{
     var error = ViewData["Error"] as string;
-    var estrellasError = !string.IsNullOrEmpty(error) && Model.EsComprador && Model.Estrellas is < 1 or > 5;
+    var estrellasError = !string.IsNullOrEmpty(error) && Model.EsComprador == true && Model.Estrellas is < 1 or > 5;
     var comentarioError = !string.IsNullOrEmpty(error) && string.IsNullOrWhiteSpace(Model.Comentario);
 }
 @* Ventana obligatoria: sin botón de cierre ni aplazamiento (CU-026). *@
 <form method="post" asp-controller="Calificacion" asp-action="Enviar" data-ajax-form novalidate data-modal-estatico>
     <input type="hidden" name="IdDemanda" value="@Model.IdDemanda" />
-    <input type="hidden" name="PorDesacuerdo" value="@Model.PorDesacuerdo.ToString().ToLowerInvariant()" />
+    <input type="hidden" name="PorDesacuerdo" value="@((Model.PorDesacuerdo ?? false).ToString().ToLowerInvariant())" />
     <div class="modal-header">
         <h5 class="modal-title">Módulo de Observaciones y Calificación</h5>
         <span class="text-muted small">@Model.CodigoPedido</span>
     </div>
     <div class="modal-body">
-        @if (Model.PorDesacuerdo)
+        @if (Model.PorDesacuerdo == true)
         {
             <div class="recuadro-error" role="alert">
                 Registramos su inconformidad con la entrega. Cuéntenos lo ocurrido y, si lo necesita, comuníquese con soporte.
             </div>
         }
 
-        @if (Model.EsComprador)
+        @if (Model.EsComprador == true)
         {
             <p class="small text-muted">Su calificación aplica al servicio del pedido: la entrega de los productores y el transporte.</p>
             <div class="mb-3">

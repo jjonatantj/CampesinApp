@@ -19,10 +19,8 @@ namespace CampesinApp.ViewModels
         public IFormFile? ArchivoCorabastos { get; set; }
 
         public bool EsVistaPrevia { get; set; } = false;
-        [Required]
-        public int TotalFilasDane { get; set; }
-        [Required]
-        public int TotalFilasCorabastos { get; set; }
+        public int? TotalFilasDane { get; set; }
+        public int? TotalFilasCorabastos { get; set; }
         public List<DetalleCrucePrecioViewModel> ResultadosCruce { get; set; } = new();
     }
 }

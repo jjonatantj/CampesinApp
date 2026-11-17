@@ -76,29 +76,30 @@ namespace CampesinApp.Services
 
         public async Task<ResultadoOperacion> EnviarAsync(UsuarioActual usuario, FormularioCalificacionDto dto)
         {
-            var formulario = await ObtenerFormularioAsync(usuario, dto.IdDemanda);
+            int idDemanda = dto.IdDemanda ?? 0;
+            var formulario = await ObtenerFormularioAsync(usuario, idDemanda);
             if (!formulario.Exitoso)
             {
                 return ResultadoOperacion.Falla(formulario.Error, formulario.Mensaje!);
             }
 
             var comentario = dto.Comentario?.Trim();
-            var requiereEstrellas = formulario.Datos!.EsComprador;
-            if (string.IsNullOrWhiteSpace(comentario) || (requiereEstrellas && dto.Estrellas is < 1 or > 5))
+            var requiereEstrellas = formulario.Datos!.EsComprador == true;
+            if (string.IsNullOrWhiteSpace(comentario) || (requiereEstrellas && dto.Estrellas is null or < 1 or > 5))
             {
                 return ResultadoOperacion.Falla(TipoError.Validacion, "Debe seleccionar las estrellas y completar el comentario obligatorio para continuar");
             }
 
-            var obs = await UltimaObservacionAsync(dto.IdDemanda, rastrear: true);
+            var obs = await UltimaObservacionAsync(idDemanda, rastrear: true);
             if (obs == null)
             {
-                obs = new Observacion { IdDemanda = dto.IdDemanda, CalificacionEstre = 0, HoraObser = DateTime.Now };
+                obs = new Observacion { IdDemanda = idDemanda, CalificacionEstre = 0, HoraObser = DateTime.Now };
                 _db.Observacions.Add(obs);
             }
 
             if (requiereEstrellas)
             {
-                obs.CalificacionEstre = dto.Estrellas;
+                obs.CalificacionEstre = dto.Estrellas ?? 0;
                 obs.ObserComprador = Combinar(obs.ObserComprador, comentario);
             }
             else
@@ -119,8 +120,8 @@ namespace CampesinApp.Services
 
             await _log.RegistrarAsync(NivelesLog.Info, "CU-026 Calificación",
                 requiereEstrellas
-                    ? $"Calificación de {dto.Estrellas} estrellas del pedido {CodigoPedido.Formatear(dto.IdDemanda)}."
-                    : $"Observación del transportador sobre el pedido {CodigoPedido.Formatear(dto.IdDemanda)}.",
+                    ? $"Calificación de {dto.Estrellas} estrellas del pedido {CodigoPedido.Formatear(idDemanda)}."
+                    : $"Observación del transportador sobre el pedido {CodigoPedido.Formatear(idDemanda)}.",
                 usuario.Id);
             return ResultadoOperacion.Ok("¡Gracias por tu opinión! Calificación guardada con éxito");
         }
@@ -130,13 +131,14 @@ namespace CampesinApp.Services
         {
             try
             {
-                var codigo = CodigoPedido.Formatear(dto.IdDemanda);
-                var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { dto.IdDemanda }))[dto.IdDemanda];
+                int idDemanda = dto.IdDemanda ?? 0;
+                var codigo = CodigoPedido.Formatear(idDemanda);
+                var participantes = (await _pedidos.ObtenerParticipantesAsync(new[] { idDemanda }))[idDemanda];
                 var destinatarios = participantes.Where(p => p.IdUsuario != usuario.Id).Select(p => p.IdUsuario);
                 var mensaje = esComprador
                     ? $"El comprador calificó el pedido {codigo} con {dto.Estrellas} {(dto.Estrellas == 1 ? "estrella" : "estrellas")}. Puede consultarlo en «Ver Observaciones»."
                     : $"El transportador dejó una observación sobre el pedido {codigo}. Puede consultarla en «Ver Observaciones».";
-                await _notificaciones.EnviarAsync(destinatarios, TiposNotificacion.Calificacion, mensaje, dto.IdDemanda);
+                await _notificaciones.EnviarAsync(destinatarios, TiposNotificacion.Calificacion, mensaje, idDemanda);
             }
             catch (DbUpdateException)
             {

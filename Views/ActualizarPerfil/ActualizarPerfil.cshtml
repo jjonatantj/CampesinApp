@@ -27,45 +27,45 @@
                     <!-- CAMPOS DE SÓLO LECTURA -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-secondary small">Nombres</label>
-                            <input asp-for="Nombres" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
+                            <label asp-for="Nombres" class="form-label fw-bold text-secondary small">Nombres</label>
+                            <input asp-for="Nombres" aria-label="Nombres" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-secondary small">Apellidos</label>
-                            <input asp-for="Apellidos" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
+                            <label asp-for="Apellidos" class="form-label fw-bold text-secondary small">Apellidos</label>
+                            <input asp-for="Apellidos" aria-label="Apellidos" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-secondary small">Cédula</label>
-                            <input asp-for="Cedula" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
+                            <label asp-for="Cedula" class="form-label fw-bold text-secondary small">Cédula</label>
+                            <input asp-for="Cedula" aria-label="Cédula" class="form-control rounded-pill px-3 py-2 bg-light text-muted" readonly />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Telefono" class="form-label fw-bold text-dark small">Teléfono</label>
-                            <input asp-for="Telefono" class="form-control rounded-pill px-3 py-2" placeholder="Teléfono" />
+                            <input asp-for="Telefono" aria-label="Teléfono" class="form-control rounded-pill px-3 py-2" placeholder="Teléfono" />
                             <span asp-validation-for="Telefono" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Correo" class="form-label fw-bold text-dark small">Correo Electrónico</label>
-                        <input asp-for="Correo" class="form-control rounded-pill px-3 py-2" placeholder="correo@ejemplo.com" />
+                        <input asp-for="Correo" aria-label="Correo Electrónico" class="form-control rounded-pill px-3 py-2" placeholder="correo@ejemplo.com" />
                         <span asp-validation-for="Correo" class="text-danger small"></span>
                     </div>
 
                     <!-- UBICACIÓN -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark small">Departamento</label>
-                            <select id="ddlDepartamento" asp-for="IdDepartamento" asp-items="Model.ListaDepartamentos" class="form-select rounded-pill px-3 py-2" onchange="cargarMunicipios()">
+                            <label for="ddlDepartamento" asp-for="IdDepartamento" class="form-label fw-bold text-dark small">Departamento</label>
+                            <select id="ddlDepartamento" asp-for="IdDepartamento" asp-items="Model.ListaDepartamentos" aria-label="Departamento" class="form-select rounded-pill px-3 py-2" onchange="cargarMunicipios()">
                                 <option value="">Seleccione departamento...</option>
                             </select>
                             <span asp-validation-for="IdDepartamento" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark small">Municipio</label>
-                            <select id="ddlMunicipio" asp-for="IdMunicipio" asp-items="Model.ListaMunicipios" class="form-select rounded-pill px-3 py-2">
+                            <label for="ddlMunicipio" asp-for="IdMunicipio" class="form-label fw-bold text-dark small">Municipio</label>
+                            <select id="ddlMunicipio" asp-for="IdMunicipio" asp-items="Model.ListaMunicipios" aria-label="Municipio" class="form-select rounded-pill px-3 py-2">
                                 <option value="">Seleccione municipio...</option>
                             </select>
                             <span asp-validation-for="IdMunicipio" class="text-danger small"></span>
@@ -74,9 +74,9 @@
 
                     <!-- CONTRASEÑA -->
                     <div class="mb-4">
-                        <label asp-for="NuevaContrasena" class="form-label fw-bold text-dark small">Nueva Contraseña (Opcional)</label>
+                        <label for="txtPasswordActualizar" asp-for="NuevaContrasena" class="form-label fw-bold text-dark small">Nueva Contraseña (Opcional)</label>
                         <div class="input-group input-group-pill border rounded-pill bg-white overflow-hidden align-items-center" style="border-color: #dee2e6 !important;">
-                            <input asp-for="NuevaContrasena" type="password" id="txtPasswordActualizar" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" style="appearance: none; -webkit-appearance: none;" placeholder="Dejar en blanco para mantener la actual" />
+                            <input asp-for="NuevaContrasena" type="password" id="txtPasswordActualizar" aria-label="Nueva Contraseña (Opcional)" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" style="appearance: none; -webkit-appearance: none;" placeholder="Dejar en blanco para mantener la actual" />
                             <button class="btn border-0 bg-transparent px-3 text-dark shadow-none" type="button" onclick="mostrarContrasena('txtPasswordActualizar', 'iconActualizarPass')">
                                 <svg id="iconActualizarPass" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#212529" viewBox="0 0 16 16">
                                     <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />

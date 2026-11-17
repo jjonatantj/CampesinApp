@@ -90,9 +90,10 @@
 
                         <!-- SELECTOR 1: TIPO DE PRODUCTO -->
                         <div class="col-md-4">
+                            <label for="ddlTipoProducto" class="visually-hidden">Tipo de producto</label>
                             <div class="input-group">
                                 <span class="input-group-text border-0 bg-transparent text-success pe-1"><i class="bi bi-tags-fill"></i></span>
-                                <select id="ddlTipoProducto" name="categoria" asp-for="CategoriaSeleccionada" asp-items="Model.ListaTiposProducto" class="form-select border-0 shadow-none fw-bold text-dark small" style="cursor: pointer;" onchange="cargarVariedadesFiltro()">
+                                <select id="ddlTipoProducto" name="categoria" asp-for="CategoriaSeleccionada" asp-items="Model.ListaTiposProducto" aria-label="Tipo de producto" class="form-select border-0 shadow-none fw-bold text-dark small" style="cursor: pointer;" onchange="cargarVariedadesFiltro()">
                                     <option value="">Todos los tipos...</option>
                                 </select>
                             </div>
@@ -100,9 +101,10 @@
 
                         <!-- SELECTOR 2: VARIEDAD DEPENDIENTE -->
                         <div class="col-md-4">
+                            <label for="ddlVariedad" class="visually-hidden">Variedad de producto</label>
                             <div class="input-group border-start ps-1">
                                 <span class="input-group-text border-0 bg-transparent text-success pe-1"><i class="bi bi-filter-circle-fill"></i></span>
-                                <select id="ddlVariedad" name="variedad" asp-for="VariedadSeleccionada" asp-items="Model.ListaVariedades" class="form-select border-0 shadow-none fw-semibold text-dark small" style="cursor: pointer;">
+                                <select id="ddlVariedad" name="variedad" asp-for="VariedadSeleccionada" asp-items="Model.ListaVariedades" aria-label="Variedad de producto" class="form-select border-0 shadow-none fw-semibold text-dark small" style="cursor: pointer;">
                                     <option value="">Todas las variedades...</option>
                                 </select>
                             </div>

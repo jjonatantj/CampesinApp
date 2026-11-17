@@ -4,10 +4,12 @@
     ViewData["Title"] = "Importación de Datos Estadísticos - CampesinApp";
     Layout = "_LayoutCasosUso";
 
-    var daneValidos = (int)(Model.TotalFilasDane * 0.9);
-    var daneDescartados = Model.TotalFilasDane - daneValidos;
-    var coraValidos = (int)(Model.TotalFilasCorabastos * 0.95);
-    var coraDescartados = Model.TotalFilasCorabastos - coraValidos;
+    var totalDane = Model.TotalFilasDane ?? 0;
+    var daneValidos = (int)(totalDane * 0.9);
+    var daneDescartados = totalDane - daneValidos;
+    var totalCora = Model.TotalFilasCorabastos ?? 0;
+    var coraValidos = (int)(totalCora * 0.95);
+    var coraDescartados = totalCora - coraValidos;
 }
 
 <div class="cp-page py-5">
@@ -88,12 +90,12 @@
                                         </p>
 
                                         <div class="mt-auto">
-                                            <label class="form-label fw-bold small mb-2">Adjuntar archivo DANE</label>
+                                            <label for="ArchivoDane" asp-for="ArchivoDane" class="form-label fw-bold small mb-2">Adjuntar archivo DANE</label>
                                             <div class="cp-dropzone">
                                                 <i class="bi bi-cloud-arrow-up"></i>
                                                 <span class="d-block small fw-bold text-success">Haga clic o arrastre el archivo aquí</span>
                                                 <small class="text-muted">.xlsx · .xls · .csv</small>
-                                                <input asp-for="ArchivoDane" type="file" accept=".csv, .xlsx, .xls" data-target="fileDane" />
+                                                <input asp-for="ArchivoDane" id="ArchivoDane" aria-label="Adjuntar archivo DANE" type="file" accept=".csv, .xlsx, .xls" data-target="fileDane" />
                                             </div>
                                             <div class="text-center">
                                                 <div id="fileDane" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>
@@ -118,13 +120,13 @@
                                         </p>
 
                                         <div class="mt-auto">
-                                            <label class="form-label fw-bold small mb-2">Adjuntar archivo Corabastos (PDF)</label>
+                                            <label for="ArchivoCorabastos" asp-for="ArchivoCorabastos" class="form-label fw-bold small mb-2">Adjuntar archivo Corabastos (PDF)</label>
                                             <div class="cp-dropzone">
                                                 <i class="bi bi-cloud-arrow-up"></i>
                                                 <span class="d-block small fw-bold" style="color:#b36b00;">Haga clic o arrastre el archivo aquí</span>
                                                 <small class="text-muted">Solo formato .pdf</small>
                                                 <!-- Cambiado accept exclusivamente a .pdf -->
-                                                <input asp-for="ArchivoCorabastos" type="file" accept=".pdf" data-target="fileCora" />
+                                                <input asp-for="ArchivoCorabastos" id="ArchivoCorabastos" aria-label="Adjuntar archivo Corabastos (PDF)" type="file" accept=".pdf" data-target="fileCora" />
                                             </div>
                                             <div class="text-center">
                                                 <div id="fileCora" class="cp-file"><i class="bi bi-file-earmark-check-fill"></i><span></span></div>
@@ -164,7 +166,7 @@
                                     <h5 class="fw-bold mb-3 text-dark">Fuente DANE (SIPSA)</h5>
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div>
-                                            <div class="big">@Model.TotalFilasDane.ToString("N0")</div>
+                                            <div class="big">@(Model.TotalFilasDane?.ToString("N0") ?? "0")</div>
                                             <small class="text-muted fw-semibold">registros leídos</small>
                                         </div>
                                     </div>
@@ -184,7 +186,7 @@
                                     <h5 class="fw-bold mb-3 text-dark">Fuente Corabastos</h5>
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div>
-                                            <div class="big">@Model.TotalFilasCorabastos.ToString("N0")</div>
+                                            <div class="big">@(Model.TotalFilasCorabastos?.ToString("N0") ?? "0")</div>
                                             <small class="text-muted fw-semibold">registros leídos</small>
                                         </div>
                                     </div>
@@ -221,7 +223,7 @@
                                         @foreach (var item in Model.ResultadosCruce)
                                         {
                                             var diff = item.PrecioCorabastos - item.PrecioDane;
-                                            var pct = item.PrecioDane != 0 ? (double)diff / (double)item.PrecioDane * 100 : 0;
+                                            var pct = (item.PrecioDane.HasValue && item.PrecioDane.Value != 0 && diff.HasValue) ? (double)diff.Value / (double)item.PrecioDane.Value * 100 : 0;
                                             var clase = diff > 0 ? "up" : (diff < 0 ? "down" : "eq");
                                             var icono = diff > 0 ? "bi-arrow-up-short" : (diff < 0 ? "bi-arrow-down-short" : "bi-dash");
 

@@ -254,22 +254,22 @@ namespace CampesinApp.Controllers
                 // Si es Administrador: usa la selección manual del formulario.
                 // Si es otro rol: se determina según su rol autenticado.
                 bool tipoAcopioFinal = esAdmin
-                    ? model.TipoAcopioManual
+                    ? (model.TipoAcopioManual ?? false)
                     : rol.Equals("Comprador", StringComparison.OrdinalIgnoreCase);
 
                 var nuevoPuntoDto = new PuntoAcopioRegistroDto
                 {
                     IdUsuario = idUsuario,
-                    IdDepartamento = model.IdDepartamento,
-                    IdMunicipio = model.IdMunicipio,
+                    IdDepartamento = model.IdDepartamento!.Value,
+                    IdMunicipio = model.IdMunicipio!.Value,
                     NombrePunto = model.NombrePunto.Trim(),
                     Direccion = model.Direccion.Trim(),
                     Telefono = model.Telefono.Trim(),
                     HorarioAtencion = model.HorarioAtencion.Trim(),
-                    Latitud = model.Latitud.Value,
-                    Longitud = model.Longitud.Value,
-                    Capacidad = model.Capacidad,
-                    AccesoVehicular = true,
+                    Latitud = model.Latitud!.Value,
+                    Longitud = model.Longitud!.Value,
+                    Capacidad = model.Capacidad!.Value,
+                    AccesoVehicular = model.AccesoVehicular ?? true,
                     TipoAcopio = tipoAcopioFinal,
                     Descripcion = string.IsNullOrWhiteSpace(model.Descripcion) ? null : model.Descripcion.Trim()
                 };
@@ -412,9 +412,9 @@ namespace CampesinApp.Controllers
                 Selected = d.IdDepartamento == model.IdDepartamento
             }).ToList();
 
-            if (model.IdDepartamento > 0)
+            if (model.IdDepartamento.HasValue && model.IdDepartamento.Value > 0)
             {
-                var municipios = await _puntoAcopioRepo.ObtenerMunicipiosPorDepartamentoAsync(model.IdDepartamento);
+                var municipios = await _puntoAcopioRepo.ObtenerMunicipiosPorDepartamentoAsync(model.IdDepartamento.Value);
                 model.Municipios = municipios.Select(m => new SelectListItem
                 {
                     Value = m.IdMunicipio.ToString(),

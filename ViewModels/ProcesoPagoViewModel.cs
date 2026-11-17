@@ -15,23 +15,20 @@ namespace CampesinApp.ViewModels
         // DATOS DE LA DEMANDA / PEDIDO A PAGAR
         // -------------------------------------------------------------
         [Required]
-        public int IdDemanda { get; set; }
+        public int? IdDemanda { get; set; }
 
         public string NombreProducto { get; set; } = string.Empty;
 
         public string NombreVariedad { get; set; } = string.Empty;
 
-        [Required]
-        public int CantidadKilos { get; set; }
+        public int? CantidadKilos { get; set; }
 
-        [Required]
-        public double PrecioPorKilo { get; set; }
+        public double? PrecioPorKilo { get; set; }
 
         // El comprador paga el 100% del valor estimado del pedido
-        public double ValorTotalPagar => CantidadKilos * PrecioPorKilo;
+        public double ValorTotalPagar => (CantidadKilos ?? 0) * (PrecioPorKilo ?? 0);
 
-        [Required]
-        public DateTime FechaEntrega { get; set; }
+        public DateTime? FechaEntrega { get; set; }
 
         public string DireccionEntrega { get; set; } = string.Empty;
 
@@ -41,7 +38,7 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "Debe seleccionar un método de pago registrado.")]
         [Range(1, int.MaxValue, ErrorMessage = "Por favor elija un método de pago válido.")]
         [Display(Name = "Método de Pago")]
-        public int IdPerfilPagoSeleccionado { get; set; }
+        public int? IdPerfilPagoSeleccionado { get; set; }
 
         // Lista de opciones para el menú desplegable con las tarjetas/cuentas guardadas
         public List<SelectListItem> ListaMetodosPago { get; set; } = new();

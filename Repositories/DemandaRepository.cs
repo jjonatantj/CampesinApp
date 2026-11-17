@@ -49,7 +49,7 @@ namespace CampesinApp.Repositories
             // Se excluyen demandas en tránsito (3) o finalizadas (4),
             // y aquellas que ya hayan completado o superado el cupo total de kilos solicitados.
             query = query.Where(d => (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2)
-                                  && (d.AporteCamps.Sum(a => (int?)a.CantAporte) ?? 0) < d.CantidadDeman);
+                                  && (!d.AporteCamps.Any() || d.AporteCamps.Sum(a => a.CantAporte) < d.CantidadDeman));
 
             // 1. Filtro por Tipo de Producto
             if (idTipoProducto.HasValue && idTipoProducto.Value > 0)
@@ -150,7 +150,7 @@ namespace CampesinApp.Repositories
 
             // Regla de Negocio 2 (CU-011): Demanda activa y cupo disponible
             query = query.Where(d => (d.IdEstadoDeman == 1 || d.IdEstadoDeman == 2)
-                                  && (d.AporteCamps.Sum(a => (int?)a.CantAporte) ?? 0) < d.CantidadDeman);
+                                  && (!d.AporteCamps.Any() || d.AporteCamps.Sum(a => a.CantAporte) < d.CantidadDeman));
 
             // 1. Filtro por Categoría / Variedad
             if (!string.IsNullOrWhiteSpace(categoria))

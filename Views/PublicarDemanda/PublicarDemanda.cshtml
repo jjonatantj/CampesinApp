@@ -40,16 +40,16 @@
                         <div class="col-lg-6">
                             <!-- PRODUCTO Y VARIEDAD -->
                             <div class="mb-3">
-                                <label asp-for="IdTipoProducto" class="form-label fw-bold text-dark small"></label>
-                                <select id="ddlTipoProducto" asp-for="IdTipoProducto" asp-items="Model.ListaTiposProducto" class="form-select rounded-pill px-3 py-2" onchange="cargarVariedades()">
+                                <label for="ddlTipoProducto" asp-for="IdTipoProducto" class="form-label fw-bold text-dark small">Tipo de Producto</label>
+                                <select id="ddlTipoProducto" asp-for="IdTipoProducto" asp-items="Model.ListaTiposProducto" aria-label="Tipo de Producto" class="form-select rounded-pill px-3 py-2" onchange="cargarVariedades()">
                                     <option value="">Seleccione tipo de producto...</option>
                                 </select>
                                 <span asp-validation-for="IdTipoProducto" class="text-danger small fw-semibold"></span>
                             </div>
 
                             <div class="mb-3">
-                                <label asp-for="IdVariedad" class="form-label fw-bold text-dark small"></label>
-                                <select id="ddlVariedad" asp-for="IdVariedad" asp-items="Model.ListaVariedades" class="form-select rounded-pill px-3 py-2" onchange="consultarPrecioModelo()">
+                                <label for="ddlVariedad" asp-for="IdVariedad" class="form-label fw-bold text-dark small">Variedad</label>
+                                <select id="ddlVariedad" asp-for="IdVariedad" asp-items="Model.ListaVariedades" aria-label="Variedad" class="form-select rounded-pill px-3 py-2" onchange="consultarPrecioModelo()">
                                     <option value="">Seleccione variedad...</option>
                                 </select>
                                 <span asp-validation-for="IdVariedad" class="text-danger small fw-semibold"></span>
@@ -58,16 +58,16 @@
                             <!-- CANTIDAD Y PRECIO -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label asp-for="Cantidad" class="form-label fw-bold text-dark small"></label>
-                                    <input asp-for="Cantidad" id="txtCantidad" type="number" step="1" min="900" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 900" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
+                                    <label for="txtCantidad" asp-for="Cantidad" class="form-label fw-bold text-dark small">Cantidad Requerida (Kilos)</label>
+                                    <input asp-for="Cantidad" id="txtCantidad" aria-label="Cantidad Requerida (Kilos)" type="number" step="1" min="900" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 900" oninput="calcularToneladas()" onkeypress="return soloNumeros(event)" />
                                     <small class="text-success fw-bold d-block mt-1 ms-2" id="lblConversionTon">Equivalente: 0.00 Toneladas</small>
                                     <span asp-validation-for="Cantidad" class="text-danger small fw-semibold"></span>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label asp-for="PrecioEstimado" class="form-label fw-bold text-dark small"></label>
+                                    <label for="txtPrecioEstimado" asp-for="PrecioEstimado" class="form-label fw-bold text-dark small">Precio Propuesto (COP por Kilo)</label>
                                     <!-- El input con su id para control de estilos -->
-                                    <input id="txtPrecioEstimado" asp-for="PrecioEstimado" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
+                                    <input id="txtPrecioEstimado" asp-for="PrecioEstimado" aria-label="Precio Propuesto (COP por Kilo)" type="number" step="1" class="form-control rounded-pill px-3 py-2" placeholder="Ej: 3500" onkeypress="return soloNumeros(event)" />
                                     <!-- Contenedor dedicado exclusivamente al texto de error en rojo -->
                                     <span id="errorTextoPrecio" class="text-danger small fw-semibold d-block mt-1"></span>
                                     <span asp-validation-for="PrecioEstimado" class="text-danger small fw-semibold" style="display:none;"></span>
@@ -77,32 +77,32 @@
                             <!-- FECHAS Y HORARIOS -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label asp-for="FechaEntrega" class="form-label fw-bold text-dark small"></label>
-                                    <input asp-for="FechaEntrega" type="date" id="txtFechaEntrega" class="form-control rounded-pill px-3 py-2 mb-1" />
+                                    <label for="txtFechaEntrega" asp-for="FechaEntrega" class="form-label fw-bold text-dark small">Fecha de Entrega</label>
+                                    <input asp-for="FechaEntrega" type="date" id="txtFechaEntrega" aria-label="Fecha de Entrega" class="form-control rounded-pill px-3 py-2 mb-1" />
                                     <small class="text-muted d-block ms-2" style="font-size: 0.75rem;">Mínimo 4 días a partir de hoy.</small>
                                     <span asp-validation-for="FechaEntrega" class="text-danger small fw-semibold"></span>
 
-                                    <label asp-for="HoraEntrega" class="form-label fw-bold text-dark small mt-2"></label>
-                                    <input asp-for="HoraEntrega" type="time" class="form-control rounded-pill px-3 py-2" value="08:00" />
+                                    <label asp-for="HoraEntrega" class="form-label fw-bold text-dark small mt-2">Hora de Entrega</label>
+                                    <input asp-for="HoraEntrega" type="time" aria-label="Hora de Entrega" class="form-control rounded-pill px-3 py-2" value="08:00" />
                                     <span asp-validation-for="HoraEntrega" class="text-danger small fw-semibold"></span>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <!-- Campos actualizados con el nombre requerido de 2 días y textos correctos -->
-                                    <label class="form-label fw-bold text-dark small">Fecha disponible en el aplicativo</label>
-                                    <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" class="form-control rounded-pill px-3 py-2 mb-1 bg-light text-muted" readonly />
+                                    <label for="txtFechaLimite" class="form-label fw-bold text-dark small">Fecha disponible en el aplicativo</label>
+                                    <input asp-for="LimTiemDeman" type="date" id="txtFechaLimite" aria-label="Fecha disponible en el aplicativo" class="form-control rounded-pill px-3 py-2 mb-1 bg-light text-muted" readonly />
                                     <small class="text-success fw-semibold d-block ms-2" style="font-size: 0.75rem;">Disponible por 2 días hasta medianoche.</small>
                                     <span asp-validation-for="LimTiemDeman" class="text-danger small fw-semibold"></span>
 
-                                    <label class="form-label fw-bold text-dark small mt-2">Hora disponible en el aplicativo</label>
-                                    <input asp-for="HoraLimite" type="time" class="form-control rounded-pill px-3 py-2 bg-light text-muted" value="23:59" readonly />
+                                    <label for="txtHoraLimite" asp-for="HoraLimite" class="form-label fw-bold text-dark small mt-2">Hora disponible en el aplicativo</label>
+                                    <input asp-for="HoraLimite" type="time" id="txtHoraLimite" aria-label="Hora disponible en el aplicativo" class="form-control rounded-pill px-3 py-2 bg-light text-muted" value="23:59" readonly />
                                     <span asp-validation-for="HoraLimite" class="text-danger small fw-semibold"></span>
                                 </div>
                             </div>
 
                             <!-- PUNTO DE ACOPIO AUTORIZADO -->
                             <div class="mb-3">
-                                <label asp-for="IdPuntoAcopio" class="form-label fw-bold text-dark small"></label>
-                                <select id="ddlPuntoAcopio" asp-for="IdPuntoAcopio" asp-items="Model.ListaPuntosAcopio" class="form-select rounded-pill px-3 py-2" onchange="actualizarUbicacionMapa()">
+                                <label for="ddlPuntoAcopio" asp-for="IdPuntoAcopio" class="form-label fw-bold text-dark small">Punto de Acopio Autorizado</label>
+                                <select id="ddlPuntoAcopio" asp-for="IdPuntoAcopio" asp-items="Model.ListaPuntosAcopio" aria-label="Punto de Acopio Autorizado" class="form-select rounded-pill px-3 py-2" onchange="actualizarUbicacionMapa()">
                                     <option value="">Seleccione su punto de acopio...</option>
                                 </select>
                                 <span asp-validation-for="IdPuntoAcopio" class="text-danger small fw-semibold"></span>
@@ -118,15 +118,15 @@
 
                             <!-- DESCRIPCIÓN -->
                             <div class="mb-3">
-                                <label asp-for="Descripcion" class="form-label fw-bold text-dark small"></label>
-                                <textarea asp-for="Descripcion" class="form-control rounded-4 px-3 py-2" rows="2" placeholder="Detalle especificaciones de calidad..."></textarea>
+                                <label asp-for="Descripcion" class="form-label fw-bold text-dark small">Descripción de Calidad</label>
+                                <textarea asp-for="Descripcion" aria-label="Descripción de Calidad" class="form-control rounded-4 px-3 py-2" rows="2" placeholder="Detalle especificaciones de calidad..."></textarea>
                                 <span asp-validation-for="Descripcion" class="text-danger small fw-semibold"></span>
                             </div>
                         </div>
 
                         <!-- COLUMNA DERECHA: MAPA DE GOOGLE MAPS (SATELITAL) -->
                         <div class="col-lg-6 d-flex flex-column">
-                            <label class="form-label fw-bold text-dark small"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Ubicación Geográfica del Punto de Acopio (Vista Satelital)</label>
+                            <span class="form-label fw-bold text-dark small"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Ubicación Geográfica del Punto de Acopio (Vista Satelital)</span>
                             <div class="flex-grow-1 border rounded-4 overflow-hidden shadow-sm bg-light mb-3" style="min-height: 380px; position: relative;">
                                 <div id="map" style="width: 100%; height: 100%; min-height: 380px;"></div>
                             </div>
