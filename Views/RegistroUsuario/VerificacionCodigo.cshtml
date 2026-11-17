@@ -36,16 +36,16 @@
 
                     <!-- CÓDIGO DE CORREO -->
                     <div class="mb-3 text-start">
-                        <label asp-for="Codigo" class="form-label fw-bold text-dark small">Código de Verificación por Correo</label>
-                        <input asp-for="Codigo" id="txtCodigoCorreo" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos del correo" maxlength="6" autocomplete="off" />
+                        <label for="txtCodigoCorreo" asp-for="Codigo" class="form-label fw-bold text-dark small">Código de Verificación por Correo</label>
+                        <input asp-for="Codigo" id="txtCodigoCorreo" aria-label="Código de Verificación por Correo" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos del correo" maxlength="6" autocomplete="off" />
                         <span asp-validation-for="Codigo" class="text-danger small"></span>
                         <span id="errorCorreo" class="text-danger small d-block"></span>
                     </div>
 
                     <!-- CÓDIGO DE WHATSAPP / TELÉFONO -->
                     <div class="mb-4 text-start">
-                        <label asp-for="CodigoTelefono" class="form-label fw-bold text-dark small">Código de Verificación por WhatsApp</label>
-                        <input asp-for="CodigoTelefono" id="txtCodigoTelefono" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos de WhatsApp" maxlength="6" autocomplete="off" />
+                        <label for="txtCodigoTelefono" asp-for="CodigoTelefono" class="form-label fw-bold text-dark small">Código de Verificación por WhatsApp</label>
+                        <input asp-for="CodigoTelefono" id="txtCodigoTelefono" aria-label="Código de Verificación por WhatsApp" class="form-control text-center rounded-pill py-2" placeholder="Ingrese los 6 dígitos de WhatsApp" maxlength="6" autocomplete="off" />
                         <span asp-validation-for="CodigoTelefono" class="text-danger small"></span>
                         <span id="errorTelefono" class="text-danger small d-block"></span>
                     </div>

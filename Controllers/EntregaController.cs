@@ -58,7 +58,7 @@ namespace CampesinApp.Controllers
             // (por ejemplo, observación de más de 500 caracteres), se vuelve a mostrar el formulario con el aviso.
             if (!ModelState.IsValid)
             {
-                var formulario = await _entregas.ObtenerValidacionAsync(usuario, dto.IdDemanda);
+                var formulario = await _entregas.ObtenerValidacionAsync(usuario, dto.IdDemanda ?? 0);
                 if (!formulario.Exitoso)
                 {
                     return AvisoDeError(formulario, recargarPrincipalUrl: "/Pedidos/Lista");
@@ -76,7 +76,7 @@ namespace CampesinApp.Controllers
                 // Errores corregibles (falta la descripción de la novedad, foto inválida) se muestran en el mismo formulario.
                 if (resultado.Error == TipoError.Validacion)
                 {
-                    var validacion = await _entregas.ObtenerValidacionAsync(usuario, dto.IdDemanda);
+                    var validacion = await _entregas.ObtenerValidacionAsync(usuario, dto.IdDemanda ?? 0);
                     if (validacion.Exitoso)
                     {
                         ViewData["Error"] = resultado.Mensaje;
@@ -91,12 +91,12 @@ namespace CampesinApp.Controllers
             var entrega = resultado.Datos!;
 
             // Al confirmar la recepción, el aviso "su pedido ha arribado" deja de tener sentido.
-            await _notificaciones.MarcarPopupsDeDemandaAsync(usuario.Id, dto.IdDemanda, TiposNotificacion.Llegada);
+            await _notificaciones.MarcarPopupsDeDemandaAsync(usuario.Id, dto.IdDemanda!.Value, TiposNotificacion.Llegada);
 
             // FA-01 / FE-01 de CU-025: con novedad o rechazo, el comprador pasa al módulo de observaciones y calificación.
             if (entrega.ConNovedad)
             {
-                var formulario = await _calificaciones.ObtenerFormularioAsync(usuario, dto.IdDemanda, porDesacuerdo: true);
+                var formulario = await _calificaciones.ObtenerFormularioAsync(usuario, dto.IdDemanda!.Value, porDesacuerdo: true);
                 if (formulario.Exitoso)
                 {
                     return ModalSuperpuesto("~/Views/Calificacion/_CalificacionForm.cshtml", formulario.Datos);
@@ -105,7 +105,7 @@ namespace CampesinApp.Controllers
 
             if (entrega.EntregaCompletada)
             {
-                await _notificaciones.MarcarPopupsDeDemandaAsync(usuario.Id, dto.IdDemanda, TiposNotificacion.EntregaCompletada);
+                await _notificaciones.MarcarPopupsDeDemandaAsync(usuario.Id, dto.IdDemanda!.Value, TiposNotificacion.EntregaCompletada);
                 return Aviso("¡Entrega completada con éxito y sin novedades!", TipoAviso.Exito, recargarPrincipalUrl: "/Pedidos/Lista");
             }
 

@@ -18,12 +18,12 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "Debe seleccionar un departamento.")]
         [Range(1, int.MaxValue, ErrorMessage = "Seleccione un departamento válido.")]
         [Display(Name = "Departamento")]
-        public int IdDepartamento { get; set; }
+        public int? IdDepartamento { get; set; }
 
         [Required(ErrorMessage = "Debe seleccionar un municipio.")]
         [Range(1, int.MaxValue, ErrorMessage = "Seleccione un municipio válido.")]
         [Display(Name = "Municipio")]
-        public int IdMunicipio { get; set; }
+        public int? IdMunicipio { get; set; }
 
         [Required(ErrorMessage = "La dirección física es obligatoria.")]
         [StringLength(150, ErrorMessage = "La dirección no puede superar los 150 caracteres.")]
@@ -43,11 +43,11 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "La capacidad estimada es obligatoria.")]
         [Range(1, 10000000, ErrorMessage = "La capacidad debe ser un número positivo mayor a 0.")]
         [Display(Name = "Capacidad (Kg / Toneladas)")]
-        public decimal Capacidad { get; set; }
+        public decimal? Capacidad { get; set; }
 
         // Regla RN-02-CU018: Acceso vehicular para camiones
         [Display(Name = "¿Cuenta con acceso vehicular para camión?")]
-        public bool AccesoVehicular { get; set; } = true;
+        public bool? AccesoVehicular { get; set; } = true;
 
         [StringLength(255, ErrorMessage = "La descripción no puede superar los 255 caracteres.")]
         [Display(Name = "Descripción o Detalles del Punto")]
@@ -56,16 +56,14 @@ namespace CampesinApp.ViewModels
         /// <summary>
         /// Indica si el usuario conectado es Administrador para permitirle seleccionar manualmente el tipo de acopio.
         /// </summary>
-        [Required]
-        public bool EsAdministrador { get; set; }
+        public bool? EsAdministrador { get; set; }
 
         /// <summary>
         /// Selección manual del tipo de punto por parte del Administrador:
         /// false (0) = Campesino, true (1) = Comprador
         /// </summary>
-        [Required]
         [Display(Name = "Tipo de Punto de Acopio")]
-        public bool TipoAcopioManual { get; set; }
+        public bool? TipoAcopioManual { get; set; }
 
         // Regla RN-01-CU018: Latitud y Longitud geográficas (llenadas automáticamente por el mapa en campos ocultos)
         [Required(ErrorMessage = "Debe hacer clic en el mapa para marcar la ubicación geográfica (Latitud requerida).")]

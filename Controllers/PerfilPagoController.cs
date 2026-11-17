@@ -178,13 +178,13 @@ namespace CampesinApp.Controllers
                     IdUsuario = usuario.IdUsuario,
 
                     // Llave foránea de tipo_Cuenta (Ahorros / Corriente)
-                    IdTipoCuenta = model.IdTipoCuenta,
+                    IdTipoCuenta = model.IdTipoCuenta!.Value,
 
                     // Llave foránea de tipo_Pago (Tarjeta, Débito, etc.)
-                    IdTipoPago = model.IdTipoPago,
+                    IdTipoPago = model.IdTipoPago!.Value,
 
                     // Llave foránea de entidad_Financiera (Banco Agrario, Bancolombia, etc.)
-                    IdEntiFinanc = model.IdEntiFinanc,
+                    IdEntiFinanc = model.IdEntiFinanc!.Value,
 
                     // Para num_Cuenta (varchar(12) en BD): guardamos los últimos dígitos limpios
                     NumCuenta = numLimpio.Length > 12 
@@ -526,8 +526,8 @@ namespace CampesinApp.Controllers
                 return remoteIp;
             }
 
-            // IP colombiana de contingencia para pruebas académicas en sandbox
-            return "186.155.12.1";
+            // IP colombiana de contingencia para pruebas académicas en sandbox leída de configuración (Regla SonarQube S1313)
+            return _configuration["Openpay:IpContingenciaSandbox"] ?? string.Empty;
         }
     }
 }

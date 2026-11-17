@@ -30,10 +30,10 @@ namespace CampesinApp.Dtos
     public class ConfirmarRecepcionDto
     {
         [Required]
-        public int IdDemanda { get; set; }
+        public int? IdDemanda { get; set; }
 
         [Required]
-        public RespuestaRecepcion Respuesta { get; set; }
+        public RespuestaRecepcion? Respuesta { get; set; }
 
         [StringLength(500)]
         public string? Observacion { get; set; }
@@ -56,16 +56,15 @@ namespace CampesinApp.Dtos
     public class FormularioCalificacionDto
     {
         [Required]
-        public int IdDemanda { get; set; }
+        public int? IdDemanda { get; set; }
 
         public string CodigoPedido { get; set; } = string.Empty;
 
         /// <summary>true para el comprador (estrellas y comentario obligatorios); el transportador solo escribe su comentario.</summary>
-        [Required]
-        public bool EsComprador { get; set; }
+        public bool? EsComprador { get; set; }
 
         [Range(1, 5)]
-        public int Estrellas { get; set; }
+        public int? Estrellas { get; set; }
 
         [Required, StringLength(255)]
         public string? Comentario { get; set; }
@@ -75,8 +74,7 @@ namespace CampesinApp.Dtos
         public string CorreoSoporte { get; set; } = string.Empty;
 
         /// <summary>Se activa cuando se llega desde un desacuerdo de entrega (FE-01-CU025).</summary>
-        [Required]
-        public bool PorDesacuerdo { get; set; }
+        public bool? PorDesacuerdo { get; set; }
     }
 
     /// <summary>"Ver Observaciones" de un pedido finalizado (CU-026): calificación y comentarios guardados en observacion.</summary>

@@ -67,15 +67,15 @@
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Cantidad Requerida:</span>
-                    <strong class="text-dark fs-6">@Model.CantidadKilos.ToString("N0") Kg</strong>
+                    <strong class="text-dark fs-6">@((Model.CantidadKilos ?? 0).ToString("N0")) Kg</strong>
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Precio por Kilo:</span>
-                    <strong class="text-dark fs-6">$@Model.PrecioPorKilo.ToString("N0") COP</strong>
+                    <strong class="text-dark fs-6">$@((Model.PrecioPorKilo ?? 0).ToString("N0")) COP</strong>
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block">Fecha Estimada de Entrega:</span>
-                    <strong class="text-dark fs-6">@Model.FechaEntrega.ToString("dd/MM/yyyy")</strong>
+                    <strong class="text-dark fs-6">@(Model.FechaEntrega?.ToString("dd/MM/yyyy") ?? "")</strong>
                 </div>
             </div>
 
@@ -106,12 +106,12 @@
                     <i class="bi bi-credit-card me-1"></i> Selección del Medio de Pago
                 </h5>
 
-                <label asp-for="IdPerfilPagoSeleccionado" class="form-label fw-bold small text-dark">
+                <label for="selectMetodoPago" asp-for="IdPerfilPagoSeleccionado" class="form-label fw-bold small text-dark">
                     Método de Pago Registrado *
                 </label>
                 <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none mb-1" id="groupSelectMetodoPago">
                     <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-wallet2"></i></span>
-                    <select asp-for="IdPerfilPagoSeleccionado" asp-items="Model.ListaMetodosPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMetodoPago" required>
+                    <select asp-for="IdPerfilPagoSeleccionado" asp-items="Model.ListaMetodosPago" aria-label="Método de Pago Registrado" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectMetodoPago" required>
                         <option value="">-- Selecciona el medio de pago para la transacción --</option>
                     </select>
                 </div>

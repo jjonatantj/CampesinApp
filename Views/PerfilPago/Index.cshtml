@@ -92,10 +92,10 @@
 
                     <!-- 2. Entidad Financiera -->
                     <div class="mb-3">
-                        <label asp-for="IdEntiFinanc" class="form-label fw-bold small text-dark">Entidad Financiera *</label>
+                        <label for="selectBanco" asp-for="IdEntiFinanc" class="form-label fw-bold small text-dark">Entidad Financiera *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupBanco">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-bank"></i></span>
-                            <select asp-for="IdEntiFinanc" asp-items="Model.ListaEntidadesFinancieras" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectBanco" required>
+                            <select asp-for="IdEntiFinanc" asp-items="Model.ListaEntidadesFinancieras" aria-label="Entidad Financiera" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectBanco" required>
                                 <option value="">-- Seleccione una entidad bancaria --</option>
                             </select>
                         </div>
@@ -105,10 +105,10 @@
 
                     <!-- 3. Modalidad de Pago -->
                     <div class="mb-3">
-                        <label asp-for="IdTipoPago" class="form-label fw-bold small text-dark">Modalidad de Pago *</label>
+                        <label for="selectTipoPago" asp-for="IdTipoPago" class="form-label fw-bold small text-dark">Modalidad de Pago *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupTipoPago">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-cash-stack"></i></span>
-                            <select asp-for="IdTipoPago" asp-items="Model.ListaTiposPago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoPago" required>
+                            <select asp-for="IdTipoPago" asp-items="Model.ListaTiposPago" aria-label="Modalidad de Pago" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoPago" required>
                                 <option value="">-- Seleccione modalidad de pago --</option>
                             </select>
                         </div>
@@ -127,10 +127,10 @@
 
                     <!-- 4. Tipo de Cuenta (Ahorros / Corriente) -->
                     <div class="mb-3">
-                        <label asp-for="IdTipoCuenta" class="form-label fw-bold small text-dark">Tipo de Cuenta *</label>
+                        <label for="selectTipoCuenta" asp-for="IdTipoCuenta" class="form-label fw-bold small text-dark">Tipo de Cuenta *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupTipoCuenta">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-card-checklist"></i></span>
-                            <select asp-for="IdTipoCuenta" asp-items="Model.ListaTiposCuenta" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoCuenta" required>
+                            <select asp-for="IdTipoCuenta" asp-items="Model.ListaTiposCuenta" aria-label="Tipo de Cuenta" class="form-select border-0 shadow-none px-3 py-2 bg-transparent" id="selectTipoCuenta" required>
                                 <option value="">-- Seleccione tipo de cuenta --</option>
                             </select>
                         </div>

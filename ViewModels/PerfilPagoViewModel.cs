@@ -12,7 +12,7 @@ namespace CampesinApp.ViewModels
     {
         // Identificador del usuario que tiene la sesión activa en CampesinApp
         [Required]
-        public int IdUsuario { get; set; }
+        public int? IdUsuario { get; set; }
 
         // Documento de identidad del titular de la cuenta (debe coincidir con la sesión activa)
         [Required(ErrorMessage = "El documento del titular es obligatorio.")]
@@ -23,19 +23,19 @@ namespace CampesinApp.ViewModels
         [Required(ErrorMessage = "Debe seleccionar una entidad financiera.")]
         [Range(1, int.MaxValue, ErrorMessage = "Por favor elija una entidad financiera válida.")]
         [Display(Name = "Entidad Financiera")]
-        public int IdEntiFinanc { get; set; }
+        public int? IdEntiFinanc { get; set; }
 
         // Identificador del tipo de cuenta bancaria (FK a tipo_Cuenta: Ahorros, Corriente, etc.)
         [Required(ErrorMessage = "Debe seleccionar el tipo de cuenta.")]
         [Range(1, int.MaxValue, ErrorMessage = "Por favor elija un tipo de cuenta válido.")]
         [Display(Name = "Tipo de Cuenta")]
-        public int IdTipoCuenta { get; set; }
+        public int? IdTipoCuenta { get; set; }
 
         // Identificador del tipo/modalidad de pago (FK a tipo_Pago)
         [Required(ErrorMessage = "Debe seleccionar el tipo de pago.")]
         [Range(1, int.MaxValue, ErrorMessage = "Por favor elija una modalidad de pago válida.")]
         [Display(Name = "Tipo de Pago")]
-        public int IdTipoPago { get; set; }
+        public int? IdTipoPago { get; set; }
 
         // Número de cuenta o tarjeta ingresado por el usuario
         [Required(ErrorMessage = "El número de cuenta o tarjeta es obligatorio.")]

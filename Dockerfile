@@ -19,7 +19,14 @@ WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
-COPY --from=build /app/publish .
+COPY --from=build --chown=app:app /app/publish .
+
+# Asegurar carpetas de subida de imágenes y permisos de escritura para el usuario app
+RUN mkdir -p wwwroot/images/productos wwwroot/images/perfiles \
+    && chown -R app:app /app
+
+# Ejecutar el contenedor con el usuario seguro no-root 'app' propio de .NET 8 (Regla SonarQube)
+USER app
 
 ENTRYPOINT ["dotnet", "CampesinApp.dll"]
 
