@@ -276,30 +276,77 @@ namespace CampesinApp.Services
         }
 
         /// <summary>
+        /// Oculta los primeros dígitos del número de cuenta por seguridad y privacidad en comprobantes (ej: ****4567).
+        /// </summary>
+        private static string EnmascararNumeroCuenta(string? numeroCuenta)
+        {
+            if (string.IsNullOrWhiteSpace(numeroCuenta))
+            {
+                return "No registrada";
+            }
+
+            var limpio = numeroCuenta.Trim();
+            return limpio.Length <= 4 ? limpio : $"****{limpio[^4..]}";
+        }
+
+        /// <summary>
         /// Distribuye el dinero retenido del comprador cuando la entrega finaliza con éxito.
         /// Utiliza el flete calculado en flete_Estimado para el transportador y el precio por kilo
         /// calculado por el trigger trg_CalcularPrecioCampesino (demanda.precio_Campesino) para cada aporte de los campesinos.
+        /// Genera y envía los comprobantes de liquidación vía correo electrónico con el respaldo de Openpay.
         /// </summary>
         private async Task DistribuirFondosEntregaAsync(int idDemanda, int idUsuarioTransportador)
         {
             try
             {
                 var demanda = await _db.Demanda
+                    .Include(d => d.IdTipoProductoNavigation)
+                    .Include(d => d.IdVariedadNavigation)
+                    .Include(d => d.IdPuntoAcopioNavigation)
+                        .ThenInclude(p => p!.IdMunicipioNavigation)
+                            .ThenInclude(m => m.IdDepartamentoNavigation)
                     .Include(d => d.AporteCamps)
+                        .ThenInclude(a => a.IdUsuarioNavigation)
                     .Include(d => d.PagoCompradors)
                     .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda);
 
                 if (demanda == null) return;
 
+                string nombreProducto = demanda.IdTipoProductoNavigation?.Producto ?? "Producto agrícola";
+                string nombreVariedad = demanda.IdVariedadNavigation?.VariedadProd ?? string.Empty;
+                string codigoPedido = CodigoPedido.Formatear(demanda.IdDemanda);
+
+                string destinoEntrega;
+                if (demanda.IdPuntoAcopioNavigation != null)
+                {
+                    var pa = demanda.IdPuntoAcopioNavigation;
+                    var mun = pa.IdMunicipioNavigation?.Municipio1;
+                    var depto = pa.IdMunicipioNavigation?.IdDepartamentoNavigation?.Departamento1;
+                    string ubicacion = !string.IsNullOrWhiteSpace(mun) ? $" ({mun}, {depto})" : string.Empty;
+                    destinoEntrega = $"{pa.NombrePunto}{ubicacion}";
+                }
+                else
+                {
+                    destinoEntrega = !string.IsNullOrWhiteSpace(demanda.DireccionInicial)
+                        ? demanda.DireccionInicial
+                        : "Punto de entrega acordado";
+                }
+
                 // 1. LIQUIDACIÓN DEL TRANSPORTADOR
                 // Verificamos que no se haya pagado ya para evitar pagos duplicados
+                ComprobantePagoTransportadorEmailDto? dtoTransportador = null;
                 bool transportadorYaPagado = await _db.PagoTransportadors.AnyAsync(p => p.IdDemanda == idDemanda);
                 if (!transportadorYaPagado)
                 {
                     double fleteFinal = demanda.FleteEstimado ?? 150000.0;
+                    double anticipo = Math.Round(fleteFinal * 0.30, 2);
+                    double saldoLiquidado = Math.Round(fleteFinal - anticipo, 2);
 
-                    // Buscamos el perfil de pago del transportador, si no tiene tomamos el primero del sistema
-                    var perfilTrans = await _db.PerfilPagos.FirstOrDefaultAsync(p => p.IdUsuario == idUsuarioTransportador);
+                    var perfilTrans = await _db.PerfilPagos
+                        .Include(p => p.IdEntiFinancNavigation)
+                        .Include(p => p.IdTipoCuentaNavigation)
+                        .FirstOrDefaultAsync(p => p.IdUsuario == idUsuarioTransportador);
+
                     int idPerfilPagoTrans = perfilTrans?.IdPerfilPago 
                         ?? await _db.PerfilPagos.Select(p => p.IdPerfilPago).FirstOrDefaultAsync();
 
@@ -310,18 +357,85 @@ namespace CampesinApp.Services
                             IdUsuario = idUsuarioTransportador,
                             IdDemanda = idDemanda,
                             IdPerfilPago = idPerfilPagoTrans,
-                            AnticipoTrans = Math.Round(fleteFinal * 0.30, 2),
+                            AnticipoTrans = anticipo,
                             PagoCompleTrans = Math.Round(fleteFinal, 2),
                             FechaAntiTrans = DateTime.Now,
                             FechaPagoTrans = DateTime.Now
                         };
                         _db.PagoTransportadors.Add(nuevoPagoTrans);
+
+                        var usuarioTrans = await _db.Usuarios.FirstOrDefaultAsync(u => u.IdUsuario == idUsuarioTransportador);
+                        if (usuarioTrans != null && !string.IsNullOrWhiteSpace(usuarioTrans.CorreoUsu))
+                        {
+                            string nombreBanco = perfilTrans?.IdEntiFinancNavigation?.EntiFinanc ?? "Entidad Bancaria";
+                            string tipoCuenta = perfilTrans?.IdTipoCuentaNavigation?.TipoCuenta ?? "Cuenta";
+                            string cuentaEnmascarada = EnmascararNumeroCuenta(perfilTrans?.NumCuenta);
+
+                            dtoTransportador = new ComprobantePagoTransportadorEmailDto
+                            {
+                                CorreoDestino = usuarioTrans.CorreoUsu,
+                                NombreTransportador = $"{usuarioTrans.NombreCom} {usuarioTrans.ApellidoCom}".Trim(),
+                                CodigoPedido = codigoPedido,
+                                Producto = nombreProducto,
+                                Variedad = nombreVariedad,
+                                TotalKilos = demanda.CantidadDeman,
+                                DestinoEntrega = destinoEntrega,
+                                FleteTotal = fleteFinal,
+                                Anticipo = anticipo,
+                                SaldoLiquidado = saldoLiquidado,
+                                BancoDestino = $"{nombreBanco} ({tipoCuenta})",
+                                CuentaDestino = cuentaEnmascarada,
+                                FechaPago = DateTime.Now
+                            };
+                        }
                     }
                 }
 
                 // 2. LIQUIDACIÓN DE CADA CAMPESINO APORTANTE
-                // Usamos directamente precio_Campesino calculado por el trigger en la base de datos
-                double precioKiloCampesino = demanda.PrecioCampesino ?? demanda.PrecioDeman;
+                // Si el trigger trg_CalcularPrecioCampesino ya calculó el valor por kilo, lo usamos.
+                // Si está en NULL (pedidos de prueba antiguos o sin corrida de DANE/Corabastos),
+                // buscamos el precio estimado vigente o derivamos el precio unitario por kilo.
+                double precioKiloCampesino;
+                if (demanda.PrecioCampesino.HasValue && demanda.PrecioCampesino.Value > 0)
+                {
+                    precioKiloCampesino = demanda.PrecioCampesino.Value;
+                }
+                else
+                {
+                    var precioSugerido = await _db.PrecioEstimados
+                        .AsNoTracking()
+                        .Where(p => p.IdTipoProducto == demanda.IdTipoProducto && p.IdVariedad == demanda.IdVariedad)
+                        .OrderByDescending(p => p.FechaPreci)
+                        .ThenByDescending(p => p.IdPrecioEstimado)
+                        .Select(p => (double?)p.PrecioEstiCampesino)
+                        .FirstOrDefaultAsync();
+
+                    if (precioSugerido.HasValue && precioSugerido.Value > 0)
+                    {
+                        precioKiloCampesino = precioSugerido.Value;
+                    }
+                    else if (demanda.PrecioDeman > 50000 && demanda.CantidadDeman > 0)
+                    {
+                        // En pedidos de prueba antiguos donde PrecioDeman contiene el TOTAL del pedido (ej: 1,550,000 COP por 300 Kg)
+                        // dividimos por la cantidad para obtener el precio por kilo unitario real.
+                        precioKiloCampesino = Math.Round(demanda.PrecioDeman / demanda.CantidadDeman, 2);
+                    }
+                    else
+                    {
+                        precioKiloCampesino = demanda.PrecioDeman;
+                    }
+                }
+
+                var dtosCampesinos = new List<ComprobantePagoCampesinoEmailDto>();
+
+                var idsCampesinos = demanda.AporteCamps.Select(a => a.IdUsuario).Distinct().ToList();
+                var perfilesCampesinos = await _db.PerfilPagos
+                    .Include(p => p.IdEntiFinancNavigation)
+                    .Include(p => p.IdTipoCuentaNavigation)
+                    .Where(p => idsCampesinos.Contains(p.IdUsuario))
+                    .ToDictionaryAsync(p => p.IdUsuario);
+
+                int idPerfilPagoDefault = 0;
 
                 foreach (var aporte in demanda.AporteCamps)
                 {
@@ -331,9 +445,16 @@ namespace CampesinApp.Services
 
                     double valorConsignar = Math.Round(aporte.CantAporte * precioKiloCampesino, 2);
 
-                    var perfilCampesino = await _db.PerfilPagos.FirstOrDefaultAsync(p => p.IdUsuario == aporte.IdUsuario);
-                    int idPerfilPagoCamp = perfilCampesino?.IdPerfilPago 
-                        ?? await _db.PerfilPagos.Select(p => p.IdPerfilPago).FirstOrDefaultAsync();
+                    perfilesCampesinos.TryGetValue(aporte.IdUsuario, out var perfilCampesino);
+                    int idPerfilPagoCamp = perfilCampesino?.IdPerfilPago ?? 0;
+                    if (idPerfilPagoCamp == 0)
+                    {
+                        if (idPerfilPagoDefault == 0)
+                        {
+                            idPerfilPagoDefault = await _db.PerfilPagos.Select(p => p.IdPerfilPago).FirstOrDefaultAsync();
+                        }
+                        idPerfilPagoCamp = idPerfilPagoDefault;
+                    }
 
                     if (idPerfilPagoCamp > 0)
                     {
@@ -346,11 +467,65 @@ namespace CampesinApp.Services
                             FechaConsigCam = DateTime.Now
                         };
                         _db.Consignacions.Add(nuevaConsignacion);
+
+                        var usuarioCamp = aporte.IdUsuarioNavigation;
+                        if (usuarioCamp != null && !string.IsNullOrWhiteSpace(usuarioCamp.CorreoUsu))
+                        {
+                            string nombreBanco = perfilCampesino?.IdEntiFinancNavigation?.EntiFinanc ?? "Entidad Bancaria";
+                            string tipoCuenta = perfilCampesino?.IdTipoCuentaNavigation?.TipoCuenta ?? "Cuenta";
+                            string cuentaEnmascarada = EnmascararNumeroCuenta(perfilCampesino?.NumCuenta);
+
+                            dtosCampesinos.Add(new ComprobantePagoCampesinoEmailDto
+                            {
+                                CorreoDestino = usuarioCamp.CorreoUsu,
+                                NombreCampesino = $"{usuarioCamp.NombreCom} {usuarioCamp.ApellidoCom}".Trim(),
+                                CodigoPedido = codigoPedido,
+                                Producto = nombreProducto,
+                                Variedad = nombreVariedad,
+                                KilosAportados = aporte.CantAporte,
+                                PrecioPorKilo = precioKiloCampesino,
+                                TotalLiquidado = valorConsignar,
+                                BancoDestino = $"{nombreBanco} ({tipoCuenta})",
+                                CuentaDestino = cuentaEnmascarada,
+                                FechaPago = DateTime.Now
+                            });
+                        }
                     }
                 }
 
                 // 3. ACTUALIZAR ESTADO DE LA DEMANDA A FINALIZADA (Estado 4: Finalizada / Culminada)
                 demanda.IdEstadoDeman = 4;
+
+                // Guardamos los cambios en base de datos antes del despacho de correos
+                await _db.SaveChangesAsync();
+
+                // 4. DESPACHO ASÍNCRONO DE COMPROBANTES DE PAGO VÍA EMAIL (RESPALDO OPENPAY)
+                // Se ejecutan en bloques aislados para que cualquier problema con el servidor SMTP jamás interrumpa el flujo
+                if (dtoTransportador != null)
+                {
+                    try
+                    {
+                        await EmailService.EnviarComprobantePagoTransportadorAsync(dtoTransportador, _entorno);
+                    }
+                    catch (Exception exTrans)
+                    {
+                        await _log.RegistrarAsync(NivelesLog.Advertencia, "CU-025 Correo Transportador",
+                            $"No se pudo enviar el comprobante de flete a {dtoTransportador.CorreoDestino}: {exTrans.Message}");
+                    }
+                }
+
+                foreach (var dtoCamp in dtosCampesinos)
+                {
+                    try
+                    {
+                        await EmailService.EnviarComprobantePagoCampesinoAsync(dtoCamp, _entorno);
+                    }
+                    catch (Exception exCamp)
+                    {
+                        await _log.RegistrarAsync(NivelesLog.Advertencia, "CU-025 Correo Campesino",
+                            $"No se pudo enviar el comprobante de pago al campesino ({dtoCamp.CorreoDestino}): {exCamp.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
