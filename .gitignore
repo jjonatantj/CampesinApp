@@ -271,4 +271,8 @@ wwwroot/uploads/
 # Configuracion local de cada integrante (cadena de conexion propia)
 appsettings.Local.json
 
+# Cobertura y pruebas
+TestResults/
+coverage.opencover.xml
+
 .agents/
