@@ -88,8 +88,9 @@
                                 <label for="fileInputFoto" class="btn btn-outline-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm" style="cursor: pointer;">
                                     Agregar foto
                                 </label>
-                                <input asp-for="FotoPerfil" type="file" id="fileInputFoto" class="d-none" accept="image/*" onchange="mostrarVistaPrevia(event)" />
-                                <span asp-validation-for="FotoPerfil" class="text-danger small mt-1 d-block"></span>
+                                <input asp-for="FotoPerfil" type="file" id="fileInputFoto" class="d-none" accept=".jpg,.jpeg,.png,.webp" onchange="mostrarVistaPrevia(event)" />
+                                <small class="text-muted mt-1" style="font-size: 0.75rem;">Formatos: JPG, PNG o WebP (Máx. 5 MB)</small>
+                                <span asp-validation-for="FotoPerfil" id="errorFotoPerfil" class="text-danger small mt-1 d-block"></span>
                             </div>
                         </div>
 

@@ -308,6 +308,7 @@ namespace CampesinApp.Services
                     .Include(d => d.AporteCamps)
                         .ThenInclude(a => a.IdUsuarioNavigation)
                     .Include(d => d.PagoCompradors)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda);
 
                 if (demanda == null) return;

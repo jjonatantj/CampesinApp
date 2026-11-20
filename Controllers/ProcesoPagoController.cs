@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
+using CampesinApp.Services;
 
 namespace CampesinApp.Controllers
 {
@@ -23,6 +24,7 @@ namespace CampesinApp.Controllers
     /// hasta que la entrega física de la cosecha sea validada.
     /// </summary>
     [Route("ProcesoPago")]
+    [RolesPermitidos(RolUsuario.Comprador, Mensaje = "Acceso exclusivo: Solo los compradores pueden realizar el pago de demandas.")]
     public class ProcesoPagoController : Controller
     {
         private readonly Campesinapp3Context _context;
@@ -362,6 +364,7 @@ namespace CampesinApp.Controllers
                 .Include(d => d.AporteCamps)
                 .Include(d => d.PagoCompradors)
                 .Include(d => d.IdCamionNavigation)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(d => d.IdDemanda == idDemanda);
 
             if (demanda == null) return false;

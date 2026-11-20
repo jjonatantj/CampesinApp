@@ -10,6 +10,7 @@ using System.Security.Cryptography; // <-- Espacio de nombres necesario para la 
 namespace CampesinApp.Controllers
 {
     [Route("RegistroAdmin")]
+    [RolesPermitidos(RolUsuario.Administrador, Mensaje = "Acceso exclusivo: Solo los administradores pueden registrar nuevos administradores.")]
     public class RegistroAdminController : Controller
     {
         private readonly Campesinapp3Context _context;
@@ -24,18 +25,6 @@ namespace CampesinApp.Controllers
         [HttpGet]
         public IActionResult Index(bool? exito)
         {
-            int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
-            if (idUsuario == null)
-            {
-                return RedirectToAction("Login", "InicioSesion");
-            }
-
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.IdUsuario == idUsuario.Value && u.Estado);
-            if (usuario == null || usuario.IdRol != 4)
-            {
-                return RedirectToAction("Index", "Perfil");
-            }
-
             // El modal solo se activa si la URL trae el parámetro de éxito
             if (exito == true)
             {
@@ -50,18 +39,6 @@ namespace CampesinApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Index(RegistroAdminViewModel model)
         {
-            int? idUsuario = HttpContext.Session.GetInt32("IdUsuario");
-            if (idUsuario == null)
-            {
-                return RedirectToAction("Login", "InicioSesion");
-            }
-
-            var usuarioSesion = _context.Usuarios.FirstOrDefault(u => u.IdUsuario == idUsuario.Value && u.Estado);
-            if (usuarioSesion == null || usuarioSesion.IdRol != 4)
-            {
-                return RedirectToAction("Index", "Perfil");
-            }
-
             if (long.TryParse(model.Cedula, out long cedulaLong))
             {
                 if (_context.Usuarios.Any(u => u.CedulaUsu == cedulaLong))
@@ -84,6 +61,17 @@ namespace CampesinApp.Controllers
                 int randomPin = RandomNumberGenerator.GetInt32(1000, 10000);
                 string passwordTemporal = "Admin" + randomPin;
 
+                // Obtenemos el IdRol dinámico para el rol 'Administrador' evitando números mágicos
+                int idRolAdmin = _context.Rols
+                    .Where(r => r.TipoRol == "Administrador")
+                    .Select(r => r.IdRol)
+                    .FirstOrDefault();
+
+                if (idRolAdmin == 0)
+                {
+                    idRolAdmin = 4;
+                }
+
                 var nuevoAdmin = new Usuario
                 {
                     NombreCom = model.Nombres,
@@ -92,7 +80,7 @@ namespace CampesinApp.Controllers
                     CorreoUsu = model.Correo,
                     TelelfonoUsu = telefonoLong,
                     ContrasenaUsu = EncriptacionService.Encriptar(passwordTemporal),
-                    IdRol = 4,
+                    IdRol = idRolAdmin,
                     IdMunicipio = idMunicipioDefecto,
                     Estado = true,
                     Imagen = "admin.jpg"

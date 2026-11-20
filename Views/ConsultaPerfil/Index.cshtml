@@ -120,11 +120,20 @@
 
                     <!-- Calificación Resumida en Estrellas -->
                     <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
-                        <span class="text-warning fs-5">
-                            <i class="bi bi-star-fill"></i>
-                        </span>
-                        <span class="fw-bold fs-5 text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
-                        <span class="text-muted small">(@Model.TotalResenas reseñas)</span>
+                        @if (Model.TotalResenas == 0)
+                        {
+                            <span class="text-muted small">
+                                <i class="bi bi-star text-muted me-1"></i>Sin calificaciones
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-warning fs-5">
+                                <i class="bi bi-star-fill"></i>
+                            </span>
+                            <span class="fw-bold fs-5 text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                            <span class="text-muted small">(@Model.TotalResenas reseñas)</span>
+                        }
                     </div>
 
                     <hr class="my-3 text-muted" />
@@ -224,23 +233,33 @@
                                 <small class="text-muted text-uppercase fw-bold d-block mb-1">
                                     <i class="bi bi-star me-1 text-warning"></i>Calificación
                                 </small>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-4 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
-                                    <span class="text-warning">
-                                        @for (int i = 1; i <= 5; i++)
-                                        {
-                                            if (i <= Math.Round(Model.CalificacionPromedio))
+                                @if (Model.TotalResenas == 0)
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-6 fw-semibold text-muted">Sin calificaciones aún</span>
+                                        <small class="text-muted">(0 reseñas)</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-4 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                                        <span class="text-warning">
+                                            @for (int i = 1; i <= 5; i++)
                                             {
-                                                <i class="bi bi-star-fill"></i>
+                                                if (i <= Math.Round(Model.CalificacionPromedio))
+                                                {
+                                                    <i class="bi bi-star-fill"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-star"></i>
+                                                }
                                             }
-                                            else
-                                            {
-                                                <i class="bi bi-star"></i>
-                                            }
-                                        }
-                                    </span>
-                                    <small class="text-muted">(@Model.TotalResenas reseñas)</small>
-                                </div>
+                                        </span>
+                                        <small class="text-muted">(@Model.TotalResenas reseñas)</small>
+                                    </div>
+                                }
                             </div>
                         </div>
 
@@ -309,11 +328,11 @@
                                     <!-- TABLA HISTORIAL DE COMPRAS/VENTAS PARA COMPRADOR (Mockup 3) -->
                                     <thead class="table-light text-secondary text-uppercase small">
                                         <tr>
-                                            <th style="width: 28%;" class="ps-3 py-2">Producto Solicitado</th>
-                                            <th style="width: 14%;" class="py-2 text-center">Cantidad</th>
-                                            <th style="width: 18%;" class="py-2 text-end">Precio / Kg</th>
-                                            <th style="width: 18%;" class="py-2 text-end">Total Compra</th>
-                                            <th style="width: 22%;" class="pe-3 py-2 text-center">Fecha y Estado</th>
+                                            <th scope="col" style="width: 28%;" class="ps-3 py-2">Producto Solicitado</th>
+                                            <th scope="col" style="width: 14%;" class="py-2 text-center">Cantidad</th>
+                                            <th scope="col" style="width: 18%;" class="py-2 text-end">Precio / Kg</th>
+                                            <th scope="col" style="width: 18%;" class="py-2 text-end">Total Compra</th>
+                                            <th scope="col" style="width: 22%;" class="pe-3 py-2 text-center">Fecha y Estado</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -360,10 +379,10 @@
                                     <!-- TABLA PRODUCTOS CULTIVADOS PARA CAMPESINO (Mockup 2) -->
                                     <thead class="table-light text-secondary text-uppercase small">
                                         <tr>
-                                            <th style="width: 30%;" class="ps-3 py-2">Producto Cultivado</th>
-                                            <th style="width: 18%;" class="py-2 text-center">Variedad</th>
-                                            <th style="width: 24%;" class="py-2 text-end">Precio de Referencia</th>
-                                            <th style="width: 28%;" class="pe-3 py-2">Ubicación / Detalles</th>
+                                            <th scope="col" style="width: 30%;" class="ps-3 py-2">Producto Cultivado</th>
+                                            <th scope="col" style="width: 18%;" class="py-2 text-center">Variedad</th>
+                                            <th scope="col" style="width: 24%;" class="py-2 text-end">Precio de Referencia</th>
+                                            <th scope="col" style="width: 28%;" class="pe-3 py-2">Ubicación / Detalles</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -465,26 +484,39 @@
             <div class="modal-body p-4">
                 <!-- Resumen de promedio -->
                 <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-4 mb-4 border">
-                    <div>
-                        <span class="fs-2 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
-                        <span class="text-muted"> / 5.0</span>
-                        <div class="text-warning">
-                            @for (int i = 1; i <= 5; i++)
-                            {
-                                if (i <= Math.Round(Model.CalificacionPromedio))
-                                {
-                                    <i class="bi bi-star-fill"></i>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-star"></i>
-                                }
-                            }
+                    @if (Model.TotalResenas == 0)
+                    {
+                        <div>
+                            <span class="fs-5 fw-bold text-muted">Sin calificaciones</span>
+                            <div class="text-muted small">Este usuario aún no tiene reseñas registradas.</div>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge bg-success rounded-pill px-3 py-1">@Model.TotalResenas Reseñas</span>
-                    </div>
+                        <div class="text-end">
+                            <span class="badge bg-secondary rounded-pill px-3 py-1">0 Reseñas</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <span class="fs-2 fw-bold text-dark">@Model.CalificacionPromedio.ToString("0.0")</span>
+                            <span class="text-muted"> / 5.0</span>
+                            <div class="text-warning">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(Model.CalificacionPromedio))
+                                    {
+                                        <i class="bi bi-star-fill"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star"></i>
+                                    }
+                                }
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success rounded-pill px-3 py-1">@Model.TotalResenas Reseñas</span>
+                        </div>
+                    }
                 </div>
 
                 <!-- Lista de comentarios -->

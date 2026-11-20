@@ -99,6 +99,7 @@ namespace CampesinApp.Controllers
                         .ThenInclude(m => m.IdDepartamentoNavigation)
                     .Include(u => u.Demanda)
                     .Include(u => u.Productos)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(u => u.IdUsuario == idUsuarioConsultar);
 
                 if (usuario == null)
@@ -366,7 +367,7 @@ namespace CampesinApp.Controllers
                 else
                 {
                     // Valores iniciales si no hay observaciones registradas aún
-                    viewModel.CalificacionPromedio = 5.0;
+                    viewModel.CalificacionPromedio = 0.0;
                     viewModel.TotalResenas = 0;
                 }
 

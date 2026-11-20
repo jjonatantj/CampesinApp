@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using CampesinApp.Repositories;
+using CampesinApp.Repositories.Models;
 using CampesinApp.Services;
 using CampesinApp.ViewModels;
 
@@ -17,6 +18,7 @@ namespace CampesinApp.Controllers
     /// 2. Aplica las validaciones de negocio (RN-01-CU020 y RN-02-CU020).
     /// 3. Gestiona los flujos de excepción (FE01-CU020 y FE03-CU019).
     /// </summary>
+    [RolesPermitidos(RolUsuario.Administrador, Mensaje = "Acceso restringido: Solo los administradores pueden gestionar la asignación de vehículos.")]
     public class AsignacionVehiculoController : Controller
     {
         private readonly IAsignacionVehiculoRepository _repository;

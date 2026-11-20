@@ -59,6 +59,22 @@ namespace CampesinApp.Controllers
                 {
                     ModelState.AddModelError("FotoPerfil", "La foto de perfil es obligatoria. Por favor, suba una imagen.");
                 }
+                else
+                {
+                    var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var mimesPermitidos = new[] { "image/jpeg", "image/png", "image/webp", "image/pjpeg", "image/x-png" };
+                    var extensionFoto = Path.GetExtension(model.FotoPerfil.FileName).ToLowerInvariant();
+                    var contentTypeFoto = (model.FotoPerfil.ContentType ?? string.Empty).ToLowerInvariant();
+
+                    if (!extensionesPermitidas.Contains(extensionFoto) || !mimesPermitidos.Contains(contentTypeFoto))
+                    {
+                        ModelState.AddModelError("FotoPerfil", "Formato de archivo no válido. Solo se permiten imágenes JPG, JPEG, PNG o WebP.");
+                    }
+                    else if (model.FotoPerfil.Length > 5 * 1024 * 1024)
+                    {
+                        ModelState.AddModelError("FotoPerfil", "La imagen de perfil no debe superar el tamaño máximo de 5 MB.");
+                    }
+                }
 
                 var rolSeleccionado = _context.Rols.FirstOrDefault(r => r.IdRol == model.IdRol);
                 if (rolSeleccionado == null || (model.IdRol.HasValue && rolSeleccionado.TipoRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase)) || model.IdRol == 4)
@@ -85,7 +101,7 @@ namespace CampesinApp.Controllers
                     string folder = Path.Combine(_environment.WebRootPath, "images/perfiles");
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                    nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil!.FileName);
+                    nombreImagen = Guid.NewGuid().ToString() + Path.GetExtension(model.FotoPerfil!.FileName).ToLowerInvariant();
                     string filePath = Path.Combine(folder, nombreImagen);
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
@@ -244,7 +260,7 @@ namespace CampesinApp.Controllers
                 };
 
                 _context.Usuarios.Add(nuevoUsuario);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 HttpContext.Session.Clear();
 

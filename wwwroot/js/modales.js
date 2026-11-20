@@ -197,7 +197,7 @@
             const cuales = cierre.dataset.modalCerrar || modalDe(cierre) || 'superpuesta';
             cerrarVarios(cuales);
             if (cierre.dataset.recargarUrl) {
-                pedir(cierre.dataset.recargarUrl, { method: 'GET' }, 'principal');
+                void pedir(cierre.dataset.recargarUrl, { method: 'GET' }, 'principal');
             }
             if (cierre.dataset.redirigir) {
                 window.location.assign(cierre.dataset.redirigir);
@@ -218,7 +218,7 @@
             if (enlace.hasAttribute('data-cerrar-origen') && origen) {
                 cerrar(origen);
             }
-            pedir(enlace.dataset.modalUrl, { method: 'GET' }, enlace.dataset.modalDestino || (origen ? 'superpuesta' : 'principal'));
+            void pedir(enlace.dataset.modalUrl, { method: 'GET' }, enlace.dataset.modalDestino || (origen ? 'superpuesta' : 'principal'));
             return;
         }
 
@@ -239,10 +239,10 @@
             const origen = modalDe(envio) || 'principal';
             const enviar = () => {
                 const datos = new URLSearchParams(JSON.parse(envio.dataset.modalDatos || '{}'));
-                pedir(envio.dataset.modalPost, { method: 'POST', body: datos }, origen);
+                void pedir(envio.dataset.modalPost, { method: 'POST', body: datos }, origen);
             };
             if (envio.dataset.confirmar) {
-                preguntar(envio.dataset.confirmar).then((acepto) => { if (acepto) enviar(); });
+                void preguntar(envio.dataset.confirmar).then((acepto) => { if (acepto) enviar(); });
             } else {
                 enviar();
             }
@@ -275,12 +275,12 @@
 
         if (metodo === 'GET') {
             const separador = formulario.action.includes('?') ? '&' : '?';
-            pedir(formulario.action + separador + new URLSearchParams(datos).toString(), { method: 'GET' }, destino);
+            void pedir(formulario.action + separador + new URLSearchParams(datos).toString(), { method: 'GET' }, destino);
             return;
         }
 
         if (boton) boton.disabled = true;
-        pedir(formulario.action, { method: 'POST', body: datos }, destino).finally(() => {
+        void pedir(formulario.action, { method: 'POST', body: datos }, destino).finally(() => {
             if (boton) boton.disabled = false;
         });
     });

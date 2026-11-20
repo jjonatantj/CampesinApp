@@ -75,4 +75,4 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=PaginaBienvenida}/{action=Bienvenida}/{id?}");
 
-app.Run();
+await app.RunAsync();

@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
+using CampesinApp.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace CampesinApp.Controllers
 {
     [Route("PublicarDemanda")]
+    [RolesPermitidos(RolUsuario.Comprador, Mensaje = "Acceso exclusivo: Solo los compradores pueden publicar demandas.")]
     public class PublicarDemandaController : Controller
     {
         private readonly Campesinapp3Context _context;

@@ -35,7 +35,7 @@ namespace CampesinApp.ViewModels
         public string Departamento { get; set; } = "Colombia";
         public string? Direccion { get; set; }
         public string Telefono { get; set; } = "No registrado";
-        public double CalificacionPromedio { get; set; } = 5.0;
+        public double CalificacionPromedio { get; set; } = 0.0;
         public int TotalResenas { get; set; } = 0;
 
         // ==========================================
