@@ -18,6 +18,7 @@ namespace CampesinApp.Controllers
     /// y ver el detalle de los campesinos que han aportado productos a cada una.
     /// </summary>
     [Route("ConsultaOfertadores")]
+    [RolesPermitidos(RolUsuario.Comprador, RolUsuario.Transportador, RolUsuario.Administrador, Mensaje = "Acceso restringido: Su rol no tiene acceso a la consulta de ofertadores.")]
     public class ConsultaOfertadoresController : Controller
     {
         private readonly Campesinapp3Context _context;

@@ -140,7 +140,7 @@
 
                     <!-- 5. Número de Cuenta o Tarjeta -->
                     <div class="mb-3">
-                        <label asp-for="NumCuenta" class="form-label fw-bold small text-dark">Número de Cuenta o Tarjeta *</label>
+                        <label for="numeroCuenta" asp-for="NumCuenta" class="form-label fw-bold small text-dark">Número de Cuenta o Tarjeta *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupNumCuenta">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-credit-card"></i></span>
                             <input asp-for="NumCuenta" id="numeroCuenta" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" maxlength="19" placeholder="Ej: 4111 1111 1111 1111" inputmode="numeric" required />
@@ -151,7 +151,7 @@
 
                     <!-- 6. Código CVC -->
                     <div class="mb-3">
-                        <label asp-for="Cvc" class="form-label fw-bold small text-dark">Código de Seguridad (CVC) *</label>
+                        <label for="codigoCvc" asp-for="Cvc" class="form-label fw-bold small text-dark">Código de Seguridad (CVC) *</label>
                         <div class="input-group border rounded-pill bg-white overflow-hidden align-items-center shadow-none" id="groupCvc">
                             <span class="input-group-text bg-transparent border-0 text-success ps-3"><i class="bi bi-lock-fill"></i></span>
                             <input asp-for="Cvc" id="codigoCvc" type="password" maxlength="4" class="form-control border-0 shadow-none px-3 py-2 bg-transparent" placeholder="123" inputmode="numeric" required />

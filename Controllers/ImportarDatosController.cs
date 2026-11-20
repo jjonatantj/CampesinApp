@@ -11,10 +11,12 @@ using UglyToad.PdfPig;
 
 using CampesinApp.Repositories.Models;
 using CampesinApp.ViewModels;
+using CampesinApp.Services;
 
 namespace CampesinApp.Controllers
 {
     [Route("ImportarDatos")]
+    [RolesPermitidos(RolUsuario.Administrador, Mensaje = "Acceso restringido: Solo el administrador del sistema puede importar datos del DANE y Corabastos.")]
     public class ImportarDatosController : Controller
     {
         private readonly Campesinapp3Context _context;

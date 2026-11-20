@@ -78,6 +78,7 @@ namespace CampesinApp.Services
                     u.CorreoUsu,
                     u.CedulaUsu,
                     u.Imagen,
+                    u.IdRol,
                     TipoRol = u.IdRolNavigation.TipoRol,
                     Municipio = u.IdMunicipioNavigation.Municipio1
                 })
@@ -85,7 +86,7 @@ namespace CampesinApp.Services
 
             if (datos == null) return null;
 
-            var rol = RolUsuarioExtensions.Desde(datos.TipoRol);
+            var rol = RolUsuarioExtensions.Desde(datos.TipoRol, datos.IdRol);
             if (rol == RolUsuario.Ninguno) return null;
 
             return new UsuarioActual(

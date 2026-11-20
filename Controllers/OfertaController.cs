@@ -27,6 +27,7 @@ namespace CampesinApp.Controllers
     /// </summary>
     [Route("[controller]/[action]")]
     [Route("RegistroProducto/[action]")]
+    [RolesPermitidos(RolUsuario.Campesino, Mensaje = "Acceso exclusivo: Solo los campesinos pueden ofertar a las demandas.")]
     public class OfertaController : Controller
     {
         private readonly Campesinapp3Context _context;

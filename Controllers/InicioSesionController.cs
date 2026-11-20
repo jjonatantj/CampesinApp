@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using CampesinApp.Repositories;
@@ -11,6 +12,11 @@ namespace CampesinApp.Controllers
     /// </summary>
     public class InicioSesionController : Controller
     {
+        private sealed record EstadoBloqueoLogin(int IntentosFallidos, DateTime? BloqueadoHasta);
+
+        // Almacén en memoria del servidor por cédula para que el bloqueo de 3 intentos no se pueda evadir borrando cookies
+        private static readonly ConcurrentDictionary<string, EstadoBloqueoLogin> _bloqueosPorCedula = new(StringComparer.Ordinal);
+
         private readonly UsuariosRepository _usuariosRepo;
         private readonly Campesinapp3Context _context;
 
@@ -35,18 +41,35 @@ namespace CampesinApp.Controllers
             if (!ModelState.IsValid)
                 return View("InicioSesion", model ?? new LoginViewModel());
 
-            string sessionKeyIntentos = $"IntentosFallidos_{model.Cedula}";
+            string cedulaNormalizada = (model.Cedula ?? string.Empty).Trim();
+            string sessionKeyIntentos = $"IntentosFallidos_{cedulaNormalizada}";
             string sessionKeyBloqueo = "TiempoBloqueoUsuario";
+
+            // 1. Verificar bloqueo en memoria del servidor (por cédula) y en sesión (por navegador)
+            DateTime? tiempoBloqueoFin = null;
+
+            if (_bloqueosPorCedula.TryGetValue(cedulaNormalizada, out var estadoServidor) && estadoServidor.BloqueadoHasta.HasValue)
+            {
+                if (DateTime.Now < estadoServidor.BloqueadoHasta.Value)
+                {
+                    tiempoBloqueoFin = estadoServidor.BloqueadoHasta.Value;
+                }
+                else
+                {
+                    _bloqueosPorCedula.TryRemove(cedulaNormalizada, out _);
+                }
+            }
 
             long? bloqueoTicks = HttpContext.Session.GetLong(sessionKeyBloqueo);
             if (bloqueoTicks != null)
             {
-                DateTime tiempoBloqueoFin = new DateTime(bloqueoTicks.Value);
-                if (DateTime.Now < tiempoBloqueoFin)
+                DateTime bloqueoSesionFin = new DateTime(bloqueoTicks.Value);
+                if (DateTime.Now < bloqueoSesionFin)
                 {
-                    int minutosRestantes = (int)Math.Ceiling((tiempoBloqueoFin - DateTime.Now).TotalMinutes);
-                    ModelState.AddModelError(string.Empty, $"Demasiados intentos fallidos. Su cuenta está bloqueada temporalmente. Intente de nuevo en {minutosRestantes} minuto(s).");
-                    return View("InicioSesion", model ?? new LoginViewModel());
+                    if (!tiempoBloqueoFin.HasValue || bloqueoSesionFin > tiempoBloqueoFin.Value)
+                    {
+                        tiempoBloqueoFin = bloqueoSesionFin;
+                    }
                 }
                 else
                 {
@@ -55,10 +78,22 @@ namespace CampesinApp.Controllers
                 }
             }
 
-            var usuario = _usuariosRepo.ValidarCredenciales(model.Cedula, model.Contrasena);
+            if (tiempoBloqueoFin.HasValue)
+            {
+                int minutosRestantes = Math.Max(1, (int)Math.Ceiling((tiempoBloqueoFin.Value - DateTime.Now).TotalMinutes));
+                ModelState.AddModelError(string.Empty, $"Demasiados intentos fallidos. Su cuenta está bloqueada temporalmente. Intente de nuevo en {minutosRestantes} minuto(s).");
+                return View("InicioSesion", model);
+            }
+
+            var usuario = _usuariosRepo.ValidarCredenciales(cedulaNormalizada, model.Contrasena);
 
             if (usuario != null)
             {
+                // Credenciales válidas: limpiar contadores de intentos fallidos en servidor y sesión
+                _bloqueosPorCedula.TryRemove(cedulaNormalizada, out _);
+                HttpContext.Session.Remove(sessionKeyIntentos);
+                HttpContext.Session.Remove(sessionKeyBloqueo);
+
                 var pendienteCambio = _context.LogSistemas
                     .FirstOrDefault(l => l.IdUsuario == usuario.IdUsuario && l.Mensaje == "CAMBIO_CONTRASENA_PENDIENTE");
 
@@ -68,25 +103,30 @@ namespace CampesinApp.Controllers
                     return RedirectToAction("ForzarCambioContrasena", "InicioSesion");
                 }
 
-                HttpContext.Session.Remove(sessionKeyIntentos);
-                HttpContext.Session.Remove(sessionKeyBloqueo);
-
                 string rolUsuario = usuario.IdRolNavigation?.TipoRol ?? "Campesino";
 
                 HttpContext.Session.SetString("RolUsuario", rolUsuario);
-                HttpContext.Session.SetString("CedulaUsuario", model.Cedula);
+                HttpContext.Session.SetString("CedulaUsuario", cedulaNormalizada);
                 HttpContext.Session.SetInt32("IdUsuario", usuario.IdUsuario);
 
                 TempData["MensajeExito"] = $"¡Bienvenido de nuevo a CampesinApp ({rolUsuario})!";
                 return RedirectToAction("Index", "PantallaPrincipal");
             }
 
-            int intentosActuales = HttpContext.Session.GetInt32(sessionKeyIntentos) ?? 0;
-            intentosActuales++;
+            // 2. Registrar intento fallido en el servidor (asociado a la cédula) y en la sesión
+            int intentosServidor = 0;
+            if (_bloqueosPorCedula.TryGetValue(cedulaNormalizada, out var estadoActual) && !estadoActual.BloqueadoHasta.HasValue)
+            {
+                intentosServidor = estadoActual.IntentosFallidos;
+            }
+
+            int intentosSesion = HttpContext.Session.GetInt32(sessionKeyIntentos) ?? 0;
+            int intentosActuales = Math.Max(intentosServidor, intentosSesion) + 1;
 
             if (intentosActuales >= 3)
             {
                 DateTime bloqueoFin = DateTime.Now.AddMinutes(5);
+                _bloqueosPorCedula[cedulaNormalizada] = new EstadoBloqueoLogin(0, bloqueoFin);
                 HttpContext.Session.SetLong(sessionKeyBloqueo, bloqueoFin.Ticks);
                 HttpContext.Session.Remove(sessionKeyIntentos);
 
@@ -94,12 +134,13 @@ namespace CampesinApp.Controllers
             }
             else
             {
+                _bloqueosPorCedula[cedulaNormalizada] = new EstadoBloqueoLogin(intentosActuales, null);
                 HttpContext.Session.SetInt32(sessionKeyIntentos, intentosActuales);
                 int intentosRestantes = 3 - intentosActuales;
                 ModelState.AddModelError(string.Empty, $"Cédula o contraseña incorrectas. Le quedan {intentosRestantes} intento(s) antes del bloqueo temporal.");
             }
 
-            return View("InicioSesion", model ?? new LoginViewModel());
+            return View("InicioSesion", model);
         }
 
         [HttpGet]
@@ -188,6 +229,7 @@ namespace CampesinApp.Controllers
                 HttpContext.Session.SetString("Rec_Correo", usuario.CorreoUsu);
                 HttpContext.Session.SetString("Rec_Telefono", usuario.TelelfonoUsu.ToString());
                 HttpContext.Session.SetString("Rec_Nombres", usuario.NombreCom);
+                HttpContext.Session.Remove("Rec_CodigoVerificado");
 
                 model.Paso = 2;
                 model.CorreoEnmascarado = EnmascararCorreo(usuario.CorreoUsu);
@@ -223,6 +265,7 @@ namespace CampesinApp.Controllers
                 HttpContext.Session.SetString("Rec_Expiracion", fechaExpiracion.ToString("o"));
                 HttpContext.Session.SetInt32("Rec_IntentosCodigo", 0);
                 HttpContext.Session.SetInt32("Rec_ReenviosCodigo", 0);
+                HttpContext.Session.Remove("Rec_CodigoVerificado");
 
                 if (model.MetodoSeleccionado == "telefono")
                 {
@@ -292,6 +335,9 @@ namespace CampesinApp.Controllers
                     return View("RecuperarContraseña", model);
                 }
 
+                // Marcar en la sesión del servidor que el código OTP del Paso 3 fue verificado con éxito
+                HttpContext.Session.SetInt32("Rec_CodigoVerificado", 1);
+
                 model.Paso = 4;
                 model.Cedula = cedula;
                 ModelState.Clear();
@@ -301,9 +347,26 @@ namespace CampesinApp.Controllers
             // PASO 4: Guardar la nueva contraseña encriptada
             if (model.Paso == 4)
             {
+                string? cedulaSesion = HttpContext.Session.GetString("Rec_Cedula");
+                bool codigoVerificado = HttpContext.Session.GetInt32("Rec_CodigoVerificado") == 1;
+
+                // Impedir salto directo al Paso 4 sin haber superado el Paso 3 en esta sesión
+                if (string.IsNullOrEmpty(cedulaSesion) || !codigoVerificado)
+                {
+                    TempData["ErrorRecuperacion"] = "Debe completar la verificación del código de seguridad antes de cambiar su contraseña.";
+                    return RedirectToAction("RecuperarPassword");
+                }
+
+                // Forzar que la contraseña se actualice únicamente para la cédula verificada en la sesión del servidor
+                model.Cedula = cedulaSesion;
+                ModelState.Remove(nameof(model.Cedula));
+                ModelState.Remove(nameof(model.CodigoVerificacion));
+                ModelState.Remove(nameof(model.MetodoSeleccionado));
+
                 if (ModelState.IsValid)
                 {
-                    _usuariosRepo.ActualizarContrasena(model.Cedula, model.NuevaContrasena);
+                    _usuariosRepo.ActualizarContrasena(cedulaSesion, model.NuevaContrasena);
+                    _bloqueosPorCedula.TryRemove(cedulaSesion.Trim(), out _);
                     HttpContext.Session.Clear();
 
                     // Activamos la bandera para que la alerta emergente se muestre en el Paso 4
@@ -312,6 +375,9 @@ namespace CampesinApp.Controllers
                     ModelState.Clear();
                     return View("RecuperarContraseña", model);
                 }
+
+                model.Paso = 4;
+                return View("RecuperarContraseña", model);
             }
 
             return View("RecuperarContraseña", model);
